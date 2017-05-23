@@ -119,15 +119,13 @@ class Runner(object):
                 print('training finished, total step %d, the model will be save in %s' % (step, save_path))
                 model.saver.save(sess, save_path=(save_path + 'latest.ckpt'))
             else:
-<<<<<<< HEAD
+
                 x, y, seqLengths, names = self.data.test_data()
-=======
-                x, y, seqLengths, names = self.data.test_data(self.config.validation_size)
+
                 # x, y, seqLengths, names = self.data.test_data(self.config.validation_size,                                                              's_F193089BC92BAFDF_你好你是傻逼吗.wav')
-                print(x.shape)
-                print(names)
->>>>>>> master
+
                 # print(len(seqLengths))
+
                 _, logits, labels = sess.run([model.optimizer, model.softmax, model.labels],
                                              feed_dict={model.inputX: x, model.inputY: y,
                                                         model.seqLengths: seqLengths})
@@ -135,26 +133,19 @@ class Runner(object):
 
                 moving_average = [self.moving_average(record, self.config.smoothing_window, padding=True)
                                   for record in logits]
-<<<<<<< HEAD
-                print(names)
-                print(len(moving_average))
-=======
 
                 # print(len(moving_average))
->>>>>>> master
+
                 prediction = [
                     self.prediction(moving_avg, self.config.trigger_threshold, self.config.lockout)
                     for moving_avg in moving_average]
                 # print(prediction[0].shape)
 
-<<<<<<< HEAD
-                ind = 1
-                np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
-=======
+
                 ind = 0
                 np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
                 print(str(names[ind]))
->>>>>>> master
+
                 with open('logits.txt', 'w') as f:
                     f.write(str(logits[ind]))
                 with open('moving_avg.txt', 'w') as f:
@@ -209,11 +200,9 @@ class Runner(object):
 
         false_accept = prediction.sum() - correct_trigger_num
         miss = label_correct - correct_trigger_num
-<<<<<<< HEAD
+
         print('%d\t%d\t%d' % (label_correct, miss, false_accept))
-=======
-        print(miss, false_accept)
->>>>>>> master
+
 
         return np.asanyarray([miss, false_accept])
 
