@@ -70,7 +70,7 @@ class Runner(object):
                 print(('Model restored from:' + model_path))
             else:
                 files = glob(save_path + '*')
-                if (len(files > 0)):
+                if len(files) > 0:
                     print(files)
                     raise Exception(
                         'existing param files. Please move them before initializing, otherwise will overwrite')
