@@ -80,6 +80,9 @@ class DRNN(object):
             self.background_lable = tf.slice(self.labels, [0, 0, 0], [-1, -1, 1])
             self.xent_background = -tf.reduce_sum(tf.log(self.background_softmax) * self.background_lable)
 
+            self.flatten_masked_softmax = tf.reshape(self.masked_softmax, (config.batch_size, -1))
+            self.max_index = tf.arg_max(self.flatten_masked_softmax, 1)
+
             self.max_pooling_loss = self.xent_background + self.xent_max_frame
 
             self.var_op = tf.global_variables()

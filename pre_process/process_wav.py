@@ -71,7 +71,6 @@ def dump2npy(tuples, path, keep_filename=False):
     maxLen = max([t[0].shape[1] for t in tuples])
     print('max lengths is %d' % maxLen)
 
-
     data = np.concatenate(
         [np.pad(t[0], pad_width=((0, 0), (0, maxLen - t[0].shape[1]), (0, 0)), mode='constant', constant_values=0) for t
          in tuples])
@@ -87,6 +86,7 @@ def dump2npy(tuples, path, keep_filename=False):
     np.save(path + 'seqLen.npy', seqLengths)
     if keep_filename:
         files = [t[3] for t in tuples]
+        print(files)
         # print(files)
         with open(path + 'filename.pkl', 'wb') as f:
             pickle.dump(files, f)
@@ -109,8 +109,8 @@ if __name__ == '__main__':
     # valid_files = glob(wave_valid_dir + '*.wav')
 
 
-    train_tuples = [process_file(wave_train_dir + f, f, train_files[f][0], train_files[f][1], 8) for f in train_files]
-    dump2npy(train_tuples, save_train_dir)
+    train_tuples = [process_file(wave_train_dir + f, f, train_files[f][0], train_files[f][1], 1) for f in train_files]
+    dump2npy(train_tuples, save_train_dir, True)
 
     valid_tuples = [process_file(wave_valid_dir + f, f, valid_files[f][0], valid_files[f][1], 1) for f in valid_files]
     dump2npy(valid_tuples, save_valid_dir, True)

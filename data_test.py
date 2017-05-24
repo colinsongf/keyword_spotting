@@ -64,6 +64,7 @@ class DataSet(object):
         return np.pad(array, pad_width=((0, pad_num),) + ((0, 0),) * dim, mode='constant', constant_values=0)
 
     def test_data(self, name=None):
+        perm = np.arange(config.batch_size)
         if name is not None:
             index = self.valid_name_dict[name]
             vi_wave = np.zeros(self.vi_wave.shape, dtype=np.float32)
@@ -74,7 +75,7 @@ class DataSet(object):
             vi_seq[0] = self.vi_seqLength[index]
             return vi_wave, vi_label, vi_seq, self.valid_name
         else:
-            return self.vi_wave, self.vi_label, self.vi_seqLength, self.valid_name
+            return self.vi_wave[perm], self.vi_label[perm], self.vi_seqLength[perm], self.valid_name[:config.batch_size]
 
     def next_batch(self, batch_size, shuffle=True):
         perm = np.arange(batch_size)

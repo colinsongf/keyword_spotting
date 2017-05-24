@@ -27,17 +27,19 @@ import os
 
 import numpy as np
 import tensorflow as tf
-
+from glob2 import glob
 from models.dynamic_rnn import DRNN
 from functools import reduce
 from data_test import read_dataset
 import time
 
 model_path = './params/latest.ckpt'
-#model_path = None
+# model_path = None
 save_path = './params/'
 DEBUG = False
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
+
+# os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 class Runner(object):
@@ -67,21 +69,29 @@ class Runner(object):
                 model.saver.restore(sess, model_path)
                 print(('Model restored from:' + model_path))
             else:
+                files = glob(save_path + '*')
+                if (len(files > 0)):
+                    print(files)
+                    raise Exception(
+                        'existing param files. Please move them before initializing, otherwise will overwrite')
                 print('Initializing')
                 sess.run(model.initial_op)
             st_time = time.time()
             if self.config.is_training:
                 try:
                     for step in range(10001):
-                        x, y, seqLengths = self.data.next_batch(self.config.batch_size)
+                        x, y, seqLengths = self.data.next_batch(self.config.batch_size, False)
                         if not self.config.max_pooling_loss:
                             _, l = sess.run([model.optimizer, model.loss], feed_dict={model.inputX: x, model.inputY: y,
                                                                                       model.seqLengths: seqLengths})
                         else:
-                            _, l, test,test1 = sess.run([model.optimizer, model.loss, model.xent_background,model.xent_max_frame],
-                                                feed_dict={model.inputX: x, model.inputY: y,
-                                                           model.seqLengths: seqLengths})
-                            print('step',step,test,test1)
+                            _, l, xent_bg, xent_max, max_index = sess.run(
+                                [model.optimizer, model.loss, model.xent_background, model.xent_max_frame,
+                                 model.max_index],
+                                feed_dict={model.inputX: x, model.inputY: y,
+                                           model.seqLengths: seqLengths})
+                            print('step', step, xent_bg, xent_max)
+                            print(max_index)
 
                         if step % 200 == 0:
                             x, y, seqLengths, name = self.data.test_data()
@@ -202,7 +212,6 @@ class Runner(object):
         miss = label_correct - correct_trigger_num
 
         print('%d\t%d\t%d' % (label_correct, miss, false_accept))
-
 
         return np.asanyarray([miss, false_accept])
 
