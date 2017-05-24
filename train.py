@@ -34,7 +34,7 @@ from data_test import read_dataset
 import time
 
 model_path = './params/latest.ckpt'
-# model_path = None
+#model_path = None
 save_path = './params/'
 DEBUG = False
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -72,7 +72,7 @@ class Runner(object):
             st_time = time.time()
             if self.config.is_training:
                 try:
-                    for step in range(2001):
+                    for step in range(10001):
                         x, y, seqLengths = self.data.next_batch(self.config.batch_size)
                         if not self.config.max_pooling_loss:
                             _, l = sess.run([model.optimizer, model.loss], feed_dict={model.inputX: x, model.inputY: y,
@@ -81,7 +81,7 @@ class Runner(object):
                             _, l, test,test1 = sess.run([model.optimizer, model.loss, model.xent_background,model.xent_max_frame],
                                                 feed_dict={model.inputX: x, model.inputY: y,
                                                            model.seqLengths: seqLengths})
-                            print(test,test1)
+                            print('step',step,test,test1)
 
                         if step % 200 == 0:
                             x, y, seqLengths, name = self.data.test_data()

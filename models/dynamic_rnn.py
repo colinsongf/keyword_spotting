@@ -75,12 +75,12 @@ class DRNN(object):
             self.one = tf.constant(1, dtype=tf.float32, shape=(config.batch_size,))  # shape (batchsize,)s
             self.max_frame = tf.reduce_max(self.masked_softmax, (1, 2))  # shape (batchsize,)
             self.xent_max_frame = -tf.reduce_sum(tf.log(self.max_frame + 1e-10) * self.one)
-
+            self.xent_max_frame *= 100
             self.background_softmax = tf.slice(self.softmax, [0, 0, 0], [-1, -1, 1])
             self.background_lable = tf.slice(self.labels, [0, 0, 0], [-1, -1, 1])
             self.xent_background = -tf.reduce_sum(tf.log(self.background_softmax) * self.background_lable)
 
-            self.max_pooling_loss = self.xent_background + 100 * self.xent_max_frame
+            self.max_pooling_loss = self.xent_background + self.xent_max_frame
 
             self.var_op = tf.global_variables()
             self.var_trainable_op = tf.trainable_variables()
