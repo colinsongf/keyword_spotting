@@ -33,8 +33,8 @@ from functools import reduce
 from data_test import read_dataset
 import time
 
-# model_path = './params/latest.ckpt'
-model_path = None
+model_path = './params/latest.ckpt'
+# model_path = None
 save_path = './params/'
 DEBUG = False
 
@@ -145,7 +145,7 @@ class Runner(object):
                                                                 model.seqLengths: seqLengths})
                 # logits, labels = map((lambda a: a[:8]), (logits, labels))
                 for i, logit in enumerate(logits):
-                    logit[seqLen[i]:,:] = 0
+                    logit[seqLen[i]:, :] = 0
 
                 print(len(logits), len(labels), len(seqLen))
 
@@ -155,12 +155,12 @@ class Runner(object):
                 # print(len(moving_average))
 
                 prediction = [
-                    self.prediction(moving_avg, self.config.trigger_threshold, self.config.lockout)
-                    for moving_avg in moving_average]
+                    self.prediction(moving_avg, self.config.trigger_threshold, self.config.lockout, names[i])
+                    for i, moving_avg in enumerate(moving_average)]
                 # print(prediction[0].shape)
 
 
-                ind = 1
+                ind = 2
                 np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
                 print(str(names[ind]))
 
@@ -181,7 +181,9 @@ class Runner(object):
                 print('miss rate:' + str(miss_rate))
                 print('flase_accept_rate:' + str(false_accept_rate))
 
-    def prediction(self, moving_avg, threshold, lockout):
+    def prediction(self, moving_avg, threshold, lockout, f=None):
+        if f is not None:
+            print(f)
         # array is 2D array, moving avg for one record, whose shape is (t,p)
         # label is one-hot, which is also the same size of moving_avg
         # we assume label[0] is background
@@ -196,7 +198,7 @@ class Runner(object):
             while j < len_frame:
                 if moving_avg[j][i] > threshold:
                     prediction[j][i] = 1
-                    # print('lockout')
+                    print('lockout')
                     j += lockout
                 else:
                     j += 1

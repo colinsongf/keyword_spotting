@@ -36,7 +36,7 @@ class Config(object):
         self.keep_prob = 1.0
         self.grad_clip = -1
         self.lr_decay = 0.5
-        self.batch_size = 6
+        self.batch_size = 8
         self.validation_size = 8
         self.trigger_threshold = 0.8  # between (0,1), but this param is somehow arbitrary
 

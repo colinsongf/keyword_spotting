@@ -132,6 +132,8 @@ def dump2npy(tuples, path, keep_filename=False):
 
 if __name__ == '__main__':
     train_files = {'1.wav': (1.671, 2.5), '2.wav': (1.22, 2.22), '3.wav': (1.0018, 1.952),
+                   's_25E27F1693018046_乐乐你好.wav': (0, 0),
+                   's_53BDDB0117F07D72_乐乐你好.wav': (0, 0),
                    's_80A0481C765C1407_给妈妈发一块钱红包.wav': (0, 0),
                    's_AD78BEA480AC2F9F_图片可爱.wav': (0, 0),
                    's_CA2C6940CC4F52E1_是这样吗呵呵.wav': (0, 0)}
