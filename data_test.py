@@ -78,8 +78,9 @@ class DataSet(object):
 
     def next_batch(self, batch_size, shuffle=True):
         perm = np.arange(batch_size)
-        np.random.shuffle(perm)
-        return self.wave, self.label, self.seqLength
+        if shuffle:
+            np.random.shuffle(perm)
+        return self.wave[perm], self.label[perm], self.seqLength[perm]
 
 
 def read_dataset(dtype=dtypes.float32):
