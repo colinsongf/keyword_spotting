@@ -33,8 +33,8 @@ from functools import reduce
 from data_test import read_dataset
 import time
 
-model_path = './params/latest.ckpt'
-# model_path = None
+# model_path = './params/latest.ckpt'
+model_path = None
 save_path = './params/'
 DEBUG = False
 
@@ -95,12 +95,16 @@ class Runner(object):
 
                         if step % 200 == 0:
                             x, y, seqLengths, name = self.data.test_data()
-                            _, logits, labels = sess.run([model.optimizer, model.softmax, model.labels],
-                                                         feed_dict={model.inputX: x, model.inputY: y,
-                                                                    model.seqLengths: seqLengths})
-                            logits, labels = map((lambda a: a[:8]), (logits, labels))
-                            print(len(logits))
-                            print(len(labels))
+                            _, logits, labels, seqLen = sess.run(
+                                [model.optimizer, model.softmax, model.labels, model.seqLengths],
+                                feed_dict={model.inputX: x, model.inputY: y,
+                                           model.seqLengths: seqLengths})
+                            # logits, labels = map((lambda a: a[:8]), (logits, labels))
+
+                            for i, logit in enumerate(logits):
+                                logits[seqLen[i]:] = 0
+
+                            print(len(logits), len(labels), len(seqLen))
 
                             moving_average = [self.moving_average(record, self.config.smoothing_window, padding=True)
                                               for record in logits]
@@ -136,10 +140,14 @@ class Runner(object):
 
                 # print(len(seqLengths))
 
-                _, logits, labels = sess.run([model.optimizer, model.softmax, model.labels],
-                                             feed_dict={model.inputX: x, model.inputY: y,
-                                                        model.seqLengths: seqLengths})
-                logits, labels = map((lambda a: a[:8]), (logits, labels))
+                _, logits, labels, seqLen = sess.run([model.optimizer, model.softmax, model.labels, model.seqLengths],
+                                                     feed_dict={model.inputX: x, model.inputY: y,
+                                                                model.seqLengths: seqLengths})
+                # logits, labels = map((lambda a: a[:8]), (logits, labels))
+                for i, logit in enumerate(logits):
+                    logits[seqLen[i]:] = 0
+
+                print(len(logits), len(labels), len(seqLen))
 
                 moving_average = [self.moving_average(record, self.config.smoothing_window, padding=True)
                                   for record in logits]
@@ -152,7 +160,7 @@ class Runner(object):
                 # print(prediction[0].shape)
 
 
-                ind = 0
+                ind = 1
                 np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
                 print(str(names[ind]))
 

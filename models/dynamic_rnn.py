@@ -44,10 +44,11 @@ class DRNN(object):
             self.inputX = tf.placeholder(tf.float32,
                                          shape=(config.batch_size, None, config.num_features),
                                          name='inputX')  # [batchsize,len,features]
-            self.inputY = tf.placeholder(tf.int32, shape=(config.batch_size, None), name='inputY')
-            flatten_Y = tf.reshape(self.inputY, [-1])
-            one_hot_Y = tf.one_hot(indices=flatten_Y, depth=config.num_classes, axis=1, dtype=dtypes.float32)
-            self.labels = tf.reshape(one_hot_Y, (config.batch_size, -1, config.num_classes))
+            self.inputY = tf.placeholder(tf.float32, shape=(config.batch_size, None, config.num_classes), name='inputY')
+            # flatten_Y = tf.reshape(self.inputY, [-1])
+            # one_hot_Y = tf.one_hot(indices=flatten_Y, depth=config.num_classes, axis=1, dtype=dtypes.float32)
+            # self.labels = tf.reshape(one_hot_Y, (config.batch_size, -1, config.num_classes))
+            self.labels = self.inputY
             # print(self.labels.shape)
             self.seqLengths = tf.placeholder(tf.int32, shape=(config.batch_size), name='seqLengths')
 

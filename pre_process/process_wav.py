@@ -33,6 +33,41 @@ def time2frame(second, sr, step_size):
     return int(second * sr / step_size) if second > 0 else 0
 
 
+def test(f, begin, end):
+    name = f.split('/')[-1].split('.')[0]
+    y, sr = librosa.load(f, sr=samplerate)
+    # print(len(y))
+    # print('sr:' + str(sr))
+
+    mel_spectrogram = np.transpose(
+        librosa.feature.melspectrogram(y, sr=sr, n_fft=fft_size, hop_length=step_size, power=2., fmin=300,
+                                       fmax=8000, n_mels=20))
+    print(len(mel_spectrogram))
+
+    start_frame = time2frame(begin, sr, step_size)
+    end_frame = time2frame(end, sr, step_size)
+
+    label = np.zeros(mel_spectrogram.shape[0], dtype=np.int32)
+
+    # print(start_frame, end_frame)
+    label[start_frame:end_frame] = 1
+    np.set_printoptions(precision=8, threshold=np.inf, suppress=True)
+
+    print(mel_spectrogram.shape)
+    print(mel_spectrogram)
+    with open('mel.txt', 'a') as out:
+        out.write(str(mel_spectrogram))
+        out.write('\n-----------------------\n')
+        # print(labels.shape)
+
+
+def dense_to_ont_hot(labels_dense, num_classes):
+    len = labels_dense.shape[0]
+    labels_one_hot = np.zeros((len, num_classes))
+    labels_one_hot[np.arange(len), labels_dense] = 1
+    return labels_one_hot
+
+
 def process_file(f, fname, begin, end, copy=1):
     name = f.split('/')[-1].split('.')[0]
     y, sr = librosa.load(f, sr=samplerate)
@@ -53,6 +88,8 @@ def process_file(f, fname, begin, end, copy=1):
 
     # print(start_frame, end_frame)
     label[start_frame:end_frame] = 1
+    label = dense_to_ont_hot(label, config.num_classes)
+    # print(label.shape)
     with open('label.txt', 'a') as out:
         out.write(str(label))
         out.write('\n-----------------------\n')
@@ -75,7 +112,8 @@ def dump2npy(tuples, path, keep_filename=False):
         [np.pad(t[0], pad_width=((0, 0), (0, maxLen - t[0].shape[1]), (0, 0)), mode='constant', constant_values=0) for t
          in tuples])
     labels = np.concatenate(
-        [np.pad(t[1], pad_width=((0, 0), (0, maxLen - t[0].shape[1])), mode='constant', constant_values=0) for t in
+        [np.pad(t[1], pad_width=((0, 0), (0, maxLen - t[0].shape[1]), (0, 0)), mode='constant', constant_values=0) for t
+         in
          tuples])
     seqLengths = np.concatenate([t[2] for t in tuples])
     print(data.shape)
@@ -114,3 +152,4 @@ if __name__ == '__main__':
 
     valid_tuples = [process_file(wave_valid_dir + f, f, valid_files[f][0], valid_files[f][1], 1) for f in valid_files]
     dump2npy(valid_tuples, save_valid_dir, True)
+    # test(wave_train_dir+'1.wav', 1.671, 2.5)
