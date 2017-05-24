@@ -70,18 +70,20 @@ class DRNN(object):
                 tf.nn.softmax_cross_entropy_with_logits(labels=flatten_labels, logits=flatten_logits))
 
             # calculating maxpooling loss
-            self.crop_softmax = tf.slice(self.softmax, [0, 0, 1], [-1, -1, -1])
+            self.log_softmax = tf.log(self.softmax)
+            self.crop_log_softmax = tf.slice(self.log_softmax, [0, 0, 1], [-1, -1, -1])
             self.crop_labels = tf.slice(self.labels, [0, 0, 1], [-1, -1, -1])
-            self.masked_softmax = self.crop_softmax * self.crop_labels
-            self.one = tf.constant(1, dtype=tf.float32, shape=(config.batch_size,))  # shape (batchsize,)s
-            self.max_frame = tf.reduce_max(self.masked_softmax, (1, 2))  # shape (batchsize,)
-            self.xent_max_frame = -tf.reduce_sum(tf.log(self.max_frame + 1e-10) * self.one)
-            self.xent_max_frame *= 100
-            self.background_softmax = tf.slice(self.softmax, [0, 0, 0], [-1, -1, 1])
+            self.masked_log_softmax = self.crop_log_softmax * self.crop_labels
+            self.segment_len = tf.count_nonzero(self.masked_log_softmax, 1,dtype=tf.float32)  # shape (batchsize,class_num)
+            self.one = tf.constant(1, dtype=tf.float32,
+                                   shape=(config.batch_size, config.num_classes - 1))  # shape (batchsize,class_num)
+            self.max_frame = tf.reduce_max(self.masked_log_softmax, (1))  # shape (batchsize,class_num)
+            self.xent_max_frame = -tf.reduce_sum(self.max_frame * self.one * self.segment_len)
+            self.background_log_lsoftmax = tf.slice(self.softmax, [0, 0, 0], [-1, -1, 1])
             self.background_lable = tf.slice(self.labels, [0, 0, 0], [-1, -1, 1])
-            self.xent_background = -tf.reduce_sum(tf.log(self.background_softmax) * self.background_lable)
+            self.xent_background = -tf.reduce_sum(self.background_log_lsoftmax * self.background_lable)
 
-            self.flatten_masked_softmax = tf.reshape(self.masked_softmax, (config.batch_size, -1))
+            self.flatten_masked_softmax = tf.reshape(self.masked_log_softmax, (config.batch_size, -1))
             self.max_index = tf.arg_max(self.flatten_masked_softmax, 1)
 
             self.max_pooling_loss = self.xent_background + self.xent_max_frame

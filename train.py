@@ -33,8 +33,8 @@ from functools import reduce
 from data_test import read_dataset
 import time
 
-model_path = './params/latest.ckpt'
-# model_path = None
+# model_path = './params/latest.ckpt'
+model_path = None
 save_path = './params/'
 DEBUG = False
 
@@ -69,7 +69,7 @@ class Runner(object):
                 model.saver.restore(sess, model_path)
                 print(('Model restored from:' + model_path))
             else:
-                files = glob(save_path + '*')
+                files = glob(save_path + '*.ckpt.*')
                 if len(files) > 0:
                     print(files)
                     raise Exception(
