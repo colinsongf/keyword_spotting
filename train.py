@@ -145,7 +145,7 @@ class Runner(object):
                                                                 model.seqLengths: seqLengths})
                 # logits, labels = map((lambda a: a[:8]), (logits, labels))
                 for i, logit in enumerate(logits):
-                    logits[seqLen[i]:] = 0
+                    logit[seqLen[i]:,:] = 0
 
                 print(len(logits), len(labels), len(seqLen))
 
