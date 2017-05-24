@@ -39,7 +39,7 @@ save_path = './params/'
 DEBUG = False
 
 
-# os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 class Runner(object):
@@ -85,13 +85,13 @@ class Runner(object):
                             _, l = sess.run([model.optimizer, model.loss], feed_dict={model.inputX: x, model.inputY: y,
                                                                                       model.seqLengths: seqLengths})
                         else:
-                            _, l, xent_bg, xent_max, max_index = sess.run(
+                            _, l, xent_bg, xent_max, max_log = sess.run(
                                 [model.optimizer, model.loss, model.xent_background, model.xent_max_frame,
                                  model.max_index],
                                 feed_dict={model.inputX: x, model.inputY: y,
                                            model.seqLengths: seqLengths})
                             print('step', step, xent_bg, xent_max)
-                            print(max_index)
+                            # print(max_log)
 
                         if step % 200 == 0:
                             x, y, seqLengths, name = self.data.test_data()
