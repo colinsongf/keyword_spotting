@@ -19,7 +19,7 @@ def get_config():
 
 class Config(object):
     def __init__(self):
-        self.is_training = False
+        self.is_training = True
         self.max_pooling_loss = False
 
         self.cell_clip = 3.
@@ -28,7 +28,7 @@ class Config(object):
         self.learning_rate = 5e-5
         self.max_grad_norm = 5
         self.num_layers = 1
-        self.num_classes = 4  # word+1 for background
+        self.num_classes = 3  # word+1 for background
         self.num_features = 20
         self.hidden_size = 64
         self.num_proj = 32
