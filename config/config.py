@@ -20,7 +20,7 @@ def get_config():
 class Config(object):
     def __init__(self):
         self.is_training = True
-        self.max_pooling_loss = True
+        self.max_pooling_loss = False
 
         self.cell_clip = 3.
         self.num_layers = 1
@@ -36,7 +36,7 @@ class Config(object):
         self.keep_prob = 1.0
         self.grad_clip = -1
         self.lr_decay = 0.5
-        self.batch_size = 16
+        self.batch_size = 8
         self.validation_size = 8
         self.trigger_threshold = 0.7  # between (0,1), but this param is somehow arbitrary
 

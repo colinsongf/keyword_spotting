@@ -99,7 +99,10 @@ class DRNN(object):
 
             if config.grad_clip == -1:
                 # not apply gradient clipping
+
                 self.optimizer = tf.train.AdamOptimizer(config.learning_rate).minimize(self.loss)
+                # self.optimizer = tf.train.GradientDescentOptimizer(config.learning_rate).minimize(self.loss)
+                # self.optimizer = tf.train.MomentumOptimizer(config.learning_rate,)
             else:
                 # apply gradient clipping
                 grads, _ = tf.clip_by_global_norm(tf.gradients(self.loss, self.var_trainable_op), config.grad_clip)

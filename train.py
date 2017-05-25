@@ -74,7 +74,7 @@ class Runner(object):
             if self.config.is_training:
                 try:
                     for step in range(10001):
-                        x, y, seqLengths = self.data.next_batch()
+                        x, y, seqLengths = self.data.next_batch(shuffle=False)
 
                         if not self.config.max_pooling_loss:
                             _, l = sess.run([model.optimizer, model.loss], feed_dict={model.inputX: x, model.inputY: y,
@@ -82,11 +82,15 @@ class Runner(object):
                         else:
                             _, l, xent_bg, xent_max, max_log = sess.run(
                                 [model.optimizer, model.loss, model.xent_background, model.xent_max_frame,
-                                 model.max_index],
+                                 model.masked_log_softmax],
                                 feed_dict={model.inputX: x, model.inputY: y,
                                            model.seqLengths: seqLengths})
                             print('step', step, xent_bg, xent_max)
-                            # print(max_log)
+                            # print(max_log[0])
+                            # np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
+                            #
+                            # with open('logits.txt', 'w') as f:
+                            #     f.write(str(max_log[0]))
 
                         if step % 200 == 0:
                             x, y, seqLengths, name = self.data.test_data()
@@ -122,8 +126,9 @@ class Runner(object):
                         print('training shut down, the model will be save in %s' % save_path)
                         model.saver.save(sess, save_path=(save_path + 'latest.ckpt'))
 
-                print('training finished, total step %d, the model will be save in %s' % (step, save_path))
-                model.saver.save(sess, save_path=(save_path + 'latest.ckpt'))
+                if not DEBUG:
+                    print('training finished, total step %d, the model will be save in %s' % (step, save_path))
+                    model.saver.save(sess, save_path=(save_path + 'latest.ckpt'))
             else:
 
                 x, y, seqLengths, names = self.data.test_data()
@@ -152,7 +157,7 @@ class Runner(object):
                 # print(prediction[0].shape)
 
 
-                ind = 6
+                ind = 1
                 np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
                 print(str(names[ind]))
 
@@ -252,6 +257,8 @@ class Runner(object):
 
     def correctness(self, result):
         target = [1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        print(target)
+        print(result)
         assert len(result) == len(target)
         xor = map(lambda a, b: a ^ b, target, result)
         miss = sum(map(lambda a, b: a & b, xor, target))
