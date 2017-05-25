@@ -105,7 +105,7 @@ class DataSet(object):
         else:
             self._index_in_epoch += config.batch_size
             end = self._index_in_epoch
-            return self.wave[self.perm[start:end]], self.labels[self.perm[start:end]]
+            return self.wave[self.perm[start:end]], self.labels[self.perm[start:end]], self.seqLength[self.perm[start:end]]
 
 
 def read_dataset(dtype=dtypes.float32):

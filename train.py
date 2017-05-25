@@ -114,11 +114,8 @@ class Runner(object):
                                 for moving_avg in moving_average]
                             # print(prediction[0].shape)
 
-                            assert len(prediction) == len(labels)
-                            correctness = [self.correctness(pred, label, self.config.latency) for pred, label in
-                                           zip(prediction, labels)]
-                            correctness = reduce(lambda a, b: a + b, np.asarray(correctness))
-                            miss_rate, false_accept_rate = correctness / self.config.validation_size
+                            result = [self.decode(p, self.config.word_interval) for p in prediction]
+                            miss_rate, false_accept_rate = self.correctness(result)
                             print('--------------------------------')
                             print('step %d' % step)
                             print('loss:' + str(l))
@@ -172,14 +169,10 @@ class Runner(object):
                 with open('label.txt', 'w') as f:
                     f.write(str([labels[ind]]))
 
-                print([self.decode(p, self.config.word_interval) for p in prediction])
-                # assert len(prediction) == len(labels)
-                # correctness = [self.correctness(pred, label, self.config.latency) for pred, label in
-                #                zip(prediction, labels)]
-                # correctness = reduce(lambda a, b: a + b, np.asarray(correctness))
-                # miss_rate, false_accept_rate = correctness / self.config.validation_size
-                # print('miss rate:' + str(miss_rate))
-                # print('flase_accept_rate:' + str(false_accept_rate))
+                result = [self.decode(p, self.config.word_interval) for p in prediction]
+                miss_rate, false_accept_rate = self.correctness(result)
+                print('miss rate:' + str(miss_rate))
+                print('flase_accept_rate:' + str(false_accept_rate))
 
     def prediction(self, moving_avg, threshold, lockout, f=None):
         if f is not None:
@@ -222,7 +215,7 @@ class Runner(object):
                     if index == target:
                         if inter < word_interval:
                             if len(keyword) == 0:
-                                return True
+                                return 1
                             target = keyword.pop()
                             continue
 
@@ -231,7 +224,7 @@ class Runner(object):
                     inter = 0
                     if index == target:
                         if len(keyword) == 0:
-                            return True
+                            return 1
                         target = keyword.pop()
                         continue
                 else:
@@ -242,14 +235,14 @@ class Runner(object):
                         pre = index
                         if index == target:
                             if len(keyword) == 0:
-                                return True
+                                return 1
                             target = keyword.pop()
                         else:
                             keyword = list(raw)
                             target = keyword.pop()
                             if index == target:
                                 if len(keyword) == 0:
-                                    return True
+                                    return 1
                                 target = keyword.pop()
                                 continue
             else:
@@ -259,9 +252,17 @@ class Runner(object):
                 else:
                     pre = 0
 
-        return False
+        return 0
 
-    def correctness(self, prediction, label, latency):
+    def correctness(self, result):
+        target = [1, 1, 0, 0, 1, 0, 0, 0]
+        assert len(result) == len(target)
+        xor = target ^ result
+        miss = xor & target
+        false_accept = xor & target
+        return miss / len(target), false_accept / len(target)
+
+    def accuracy(self, prediction, label, latency):
         # for one record
 
         label[latency:, :] = label[latency:, :] + label[:-latency, :]
