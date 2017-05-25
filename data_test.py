@@ -15,6 +15,8 @@ import numpy as np
 from tensorflow.python.framework import dtypes
 from config.config import get_config
 import pickle
+from tensorflow.python.framework import random_seed
+import time
 
 config = get_config()
 save_train_dir = './data/train/'
@@ -58,10 +60,18 @@ class DataSet(object):
             # print(self.vi_seqLength.shape)
             # print(len(self.valid_name))
 
+        seed1, seed2 = random_seed.get_seed(time.time())
+        # If op level seed is not set, use whatever graph level seed is returned
+        np.random.seed(seed1)
+
     def padding(self, array, target_size):
         pad_num = target_size - len(array)
         dim = len(array.shape) - 1
         return np.pad(array, pad_width=((0, pad_num),) + ((0, 0),) * dim, mode='constant', constant_values=0)
+
+    @property
+    def epochs_completed(self):
+        return self._epochs_completed
 
     def test_data(self, name=None):
         perm = np.arange(config.batch_size)
@@ -93,8 +103,8 @@ class DataSet(object):
             rest_part = self.perm[start:self.train_size]
             # Shuffle the data
             if shuffle:
-                perm = np.arange(self.train_size)
-                np.random.shuffle(perm)
+                self.perm = np.arange(self.train_size)
+                np.random.shuffle(self.perm)
             # Start next epoch
             start = 0
             self._index_in_epoch = config.batch_size - rest_num
@@ -105,7 +115,8 @@ class DataSet(object):
         else:
             self._index_in_epoch += config.batch_size
             end = self._index_in_epoch
-            return self.wave[self.perm[start:end]], self.labels[self.perm[start:end]], self.seqLength[self.perm[start:end]]
+            return self.wave[self.perm[start:end]], self.labels[self.perm[start:end]], self.seqLength[
+                self.perm[start:end]]
 
 
 def read_dataset(dtype=dtypes.float32):
