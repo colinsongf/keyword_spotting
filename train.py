@@ -33,8 +33,8 @@ from functools import reduce
 from data_test import read_dataset
 import time
 
-# model_path = './params/latest.ckpt'
-model_path = None
+model_path = './params/latest.ckpt'
+# model_path = None
 save_path = './params/'
 DEBUG = False
 
@@ -159,7 +159,7 @@ class Runner(object):
                 # print(prediction[0].shape)
 
 
-                ind = 2
+                ind = 6
                 np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
                 print(str(names[ind]))
 
@@ -172,13 +172,14 @@ class Runner(object):
                 with open('label.txt', 'w') as f:
                     f.write(str([labels[ind]]))
 
-                assert len(prediction) == len(labels)
-                correctness = [self.correctness(pred, label, self.config.latency) for pred, label in
-                               zip(prediction, labels)]
-                correctness = reduce(lambda a, b: a + b, np.asarray(correctness))
-                miss_rate, false_accept_rate = correctness / self.config.validation_size
-                print('miss rate:' + str(miss_rate))
-                print('flase_accept_rate:' + str(false_accept_rate))
+                print([self.decode(p, self.config.word_interval) for p in prediction])
+                # assert len(prediction) == len(labels)
+                # correctness = [self.correctness(pred, label, self.config.latency) for pred, label in
+                #                zip(prediction, labels)]
+                # correctness = reduce(lambda a, b: a + b, np.asarray(correctness))
+                # miss_rate, false_accept_rate = correctness / self.config.validation_size
+                # print('miss rate:' + str(miss_rate))
+                # print('flase_accept_rate:' + str(false_accept_rate))
 
     def prediction(self, moving_avg, threshold, lockout, f=None):
         if f is not None:
@@ -202,9 +203,9 @@ class Runner(object):
 
     def decode(self, prediction, word_interval):
         raw = [3, 2, 1]
-        keyword = [3, 2, 1]
+        keyword = list(raw)
         # prediction based on moving_avg,shape(t,p),sth like one-hot, but can may overlapping
-        prediction = prediction[:, 1:]
+        # prediction = prediction[:, 1:]
         num_class = prediction.shape[1]
         len_frame = prediction.shape[0]
         pre = 0
@@ -215,33 +216,50 @@ class Runner(object):
         for frame in prediction:
             if frame.sum() > 0:
                 if pre == 0:
-                    assert frame.sum == 1
+                    assert frame.sum() == 1
                     index = np.nonzero(frame)[0]
-                    pre = index
+                    pre = index[0]
                     if index == target:
                         if inter < word_interval:
                             if len(keyword) == 0:
                                 return True
                             target = keyword.pop()
-                        else:
-                            keyword = raw
-                            target = keyword.pop()
+                            continue
 
+                    keyword = list(raw)
+                    target = keyword.pop()
                     inter = 0
+                    if index == target:
+                        if len(keyword) == 0:
+                            return True
+                        target = keyword.pop()
+                        continue
                 else:
                     if frame[pre] == 1:
                         continue
                     else:
                         index = np.nonzero(frame)[0]
+                        pre = index
                         if index == target:
                             if len(keyword) == 0:
                                 return True
                             target = keyword.pop()
+                        else:
+                            keyword = list(raw)
+                            target = keyword.pop()
+                            if index == target:
+                                if len(keyword) == 0:
+                                    return True
+                                target = keyword.pop()
+                                continue
             else:
                 if pre == 0:
-                    inter += 1
+                    if len(raw) - len(keyword) > 1:
+                        inter += 1
                 else:
                     pre = 0
+
+        return False
 
     def correctness(self, prediction, label, latency):
         # for one record
