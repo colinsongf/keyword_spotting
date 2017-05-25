@@ -34,7 +34,6 @@ from data_test import read_dataset
 import time
 
 model_path = './params/latest.ckpt'
-# model_path = None
 save_path = './params/'
 DEBUG = False
 
@@ -64,16 +63,12 @@ class Runner(object):
         print('fuck')
         with tf.Session(graph=model.graph) as sess:
             # restore from stored models
-            if model_path is not None:
+            files = glob(save_path + '*.ckpt.*')
+            if len(files) > 0:
                 model.saver.restore(sess, model_path)
                 print(('Model restored from:' + model_path))
             else:
-                files = glob(save_path + '*.ckpt.*')
-                if len(files) > 0:
-                    print(files)
-                    raise Exception(
-                        'existing param files. Please move them before initializing, otherwise will overwrite')
-                print('Initializing')
+                print("Model doesn't exist.\nInitializing........")
                 sess.run(model.initial_op)
             st_time = time.time()
             if self.config.is_training:
