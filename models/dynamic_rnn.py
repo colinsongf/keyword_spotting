@@ -79,7 +79,7 @@ class DRNN(object):
             self.one = tf.constant(1, dtype=tf.float32,
                                    shape=(config.batch_size, config.num_classes - 1))  # shape (batchsize,class_num)
             self.max_frame = tf.reduce_max(self.masked_log_softmax, (1))  # shape (batchsize,class_num)
-            self.xent_max_frame = tf.reduce_sum(self.max_frame * self.one * self.segment_len)
+            self.xent_max_frame = tf.reduce_sum(self.max_frame * self.one * self.segment_len * config.num_classes)
             self.background_log_softmax = tf.slice(self.log_softmax, [0, 0, 0], [-1, -1, 1])
             self.background_label = tf.slice(self.labels, [0, 0, 0], [-1, -1, 1])
             self.xent_background = tf.reduce_sum(self.background_log_softmax * self.background_label)

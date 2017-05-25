@@ -74,7 +74,7 @@ class Runner(object):
             if self.config.is_training:
                 try:
                     for step in range(10001):
-                        x, y, seqLengths = self.data.next_batch(shuffle=False)
+                        x, y, seqLengths = self.data.next_batch()
 
                         if not self.config.max_pooling_loss:
                             _, l = sess.run([model.optimizer, model.loss], feed_dict={model.inputX: x, model.inputY: y,
@@ -256,9 +256,9 @@ class Runner(object):
         return 0
 
     def correctness(self, result):
-        target = [1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        print(target)
-        print(result)
+        target = [1, 1, 0, 0, 1, 0, 0, 0]
+        while len(target) < len(result):
+            target.append(0)
         assert len(result) == len(target)
         xor = map(lambda a, b: a ^ b, target, result)
         miss = sum(map(lambda a, b: a & b, xor, target))
