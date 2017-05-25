@@ -79,7 +79,7 @@ class Runner(object):
             if self.config.is_training:
                 try:
                     for step in range(10001):
-                        x, y, seqLengths = self.data.next_batch(self.config.batch_size, False)
+                        x, y, seqLengths = self.data.next_batch()
                         if not self.config.max_pooling_loss:
                             _, l = sess.run([model.optimizer, model.loss], feed_dict={model.inputX: x, model.inputY: y,
                                                                                       model.seqLengths: seqLengths})
