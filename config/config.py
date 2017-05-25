@@ -43,6 +43,7 @@ class Config(object):
         # these three sizes are frames, which depend on STFT frame size
         self.smoothing_window = 31
         self.latency = 30
+        self.word_interval = 50
         self.lockout = 50
 
     def show(self):

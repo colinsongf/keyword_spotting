@@ -38,7 +38,6 @@ model_path = None
 save_path = './params/'
 DEBUG = False
 
-
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
@@ -198,11 +197,51 @@ class Runner(object):
             while j < len_frame:
                 if moving_avg[j][i] > threshold:
                     prediction[j][i] = 1
-                    print('lockout')
-                    j += lockout
-                else:
-                    j += 1
+                j += 1
         return prediction
+
+    def decode(self, prediction, word_interval):
+        raw = [3, 2, 1]
+        keyword = [3, 2, 1]
+        # prediction based on moving_avg,shape(t,p),sth like one-hot, but can may overlapping
+        prediction = prediction[:, 1:]
+        num_class = prediction.shape[1]
+        len_frame = prediction.shape[0]
+        pre = 0
+        inter = 0
+
+        target = keyword.pop()
+
+        for frame in prediction:
+            if frame.sum() > 0:
+                if pre == 0:
+                    assert frame.sum == 1
+                    index = np.nonzero(frame)[0]
+                    pre = index
+                    if index == target:
+                        if inter < word_interval:
+                            if len(keyword) == 0:
+                                return True
+                            target = keyword.pop()
+                        else:
+                            keyword = raw
+                            target = keyword.pop()
+
+                    inter = 0
+                else:
+                    if frame[pre] == 1:
+                        continue
+                    else:
+                        index = np.nonzero(frame)[0]
+                        if index == target:
+                            if len(keyword) == 0:
+                                return True
+                            target = keyword.pop()
+            else:
+                if pre == 0:
+                    inter += 1
+                else:
+                    pre = 0
 
     def correctness(self, prediction, label, latency):
         # for one record
