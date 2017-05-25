@@ -257,9 +257,9 @@ class Runner(object):
     def correctness(self, result):
         target = [1, 1, 0, 0, 1, 0, 0, 0]
         assert len(result) == len(target)
-        xor = target ^ result
-        miss = xor & target
-        false_accept = xor & target
+        xor = map(lambda a, b: a ^ b, target, result)
+        miss = sum(map(lambda a, b: a & b, xor, target))
+        false_accept = sum(map(lambda a, b: a & b, xor, target))
         return miss / len(target), false_accept / len(target)
 
     def accuracy(self, prediction, label, latency):
