@@ -259,6 +259,8 @@ class Runner(object):
         while len(target) < len(result):
             target.append(0)
         assert len(result) == len(target)
+        print(target)
+        print(result)
         xor = map(lambda a, b: a ^ b, target, result)
         miss = sum(map(lambda a, b: a & b, xor, target))
         false_accept = sum(map(lambda a, b: a & b, xor, target))

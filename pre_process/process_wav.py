@@ -86,7 +86,6 @@ def dense_to_ont_hot(labels_dense, num_classes):
 
 
 def process_record(f, fname, time, copy=1):
-    name = f.split('/')[-1].split('.')[0]
     y, sr = librosa.load(f, sr=samplerate)
     # print(len(y))
     # print('sr:' + str(sr))
@@ -104,7 +103,7 @@ def process_record(f, fname, time, copy=1):
         for i, t in enumerate(time):
             word = i + 1
             start_frame = time2frame(t[0], sr, step_size)
-            end_frame = time2frame(t[0], sr, step_size)
+            end_frame = time2frame(t[1], sr, step_size)
             label[start_frame:end_frame] = word
 
     label = dense_to_ont_hot(label, config.num_classes)
@@ -209,8 +208,10 @@ if __name__ == '__main__':
     # train_tuples = [process_file(wave_train_dir + f, f, train_files[f], 1) for f in train_files]
     # dump2npy(train_tuples, save_train_dir, True)
     #
-    valid_tuples = [process_record(wave_valid_dir + f, f, valid_files[f], 1) for f in valid_files]
-    dump2npy(valid_tuples, save_valid_dir, True)
+
+    # valid_tuples = [process_record(wave_valid_dir + f, f, valid_files[f], 1) for f in valid_files]
+    # dump2npy(valid_tuples, save_valid_dir, True)
+
     # test(wave_train_dir + '1.wav')
     #
     # a = linear2mel(audio2linear(librosa.load(wave_train_dir + '1.wav', sr=samplerate)[0]))
@@ -221,6 +222,7 @@ if __name__ == '__main__':
 
     with open(wave_train_dir + "segment.pkl", "rb") as f:
         labels = pickle.load(f)
+        print(labels[0])
     train_tuples = [process_record(wave_train_dir + f + '.wav', f, time_label) for f, time_label in labels]
 
     with open(wave_neg_train_dir + "neg-label-name.pkl", 'rb') as f:
