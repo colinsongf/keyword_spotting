@@ -31,12 +31,19 @@ def dense_to_ont_hot(labels_dense, num_classes):
 
 
 class DataSet(object):
-    def __init__(self, train_wave, train_label, train_seqLength, valid_wave, valid_labels, valid_seqLength, valid_name):
-        self.wave = train_wave
-        self.labels = train_label
-        self.seqLength = train_seqLength
+    def __init__(self, valid_wave, valid_labels, valid_seqLength, valid_name,
+                 is_training=True, train_wave=None, train_label=None, train_seqLength=None):
+        if is_training:
+            assert train_wave is not None
+            self.wave = train_wave
+            self.labels = train_label
+            self.seqLength = train_seqLength
 
-        self.train_size = len(self.wave)
+            self.train_size = len(self.wave)
+            self.perm = np.arange(self.train_size)
+
+        self.validation_size = len(valid_wave)
+        assert (self.validation_size % config.batch_size == 0)
 
         self.vi_wave = valid_wave
         self.vi_labels = valid_labels
@@ -44,7 +51,6 @@ class DataSet(object):
         self.valid_name = valid_name
         self._epochs_completed = 0
         self._index_in_epoch = 0
-        self.perm = np.arange(self.train_size)
 
         self.valid_name_dict = {}
         for i, name in enumerate(valid_name):
@@ -60,10 +66,6 @@ class DataSet(object):
             # print(self.vi_seqLength.shape)
             # print(len(self.valid_name))
 
-        seed1, seed2 = random_seed.get_seed(time.time())
-        # If op level seed is not set, use whatever graph level seed is returned
-        np.random.seed(seed1)
-
     def padding(self, array, target_size):
         pad_num = target_size - len(array)
         dim = len(array.shape) - 1
@@ -74,7 +76,7 @@ class DataSet(object):
         return self._epochs_completed
 
     def test_data(self, name=None):
-        perm = np.arange(config.batch_size)
+
         if name is not None:
             index = self.valid_name_dict[name]
             vi_wave = np.zeros(self.vi_wave.shape, dtype=np.float32)
@@ -85,8 +87,15 @@ class DataSet(object):
             vi_seq[0] = self.vi_seqLength[index]
             return vi_wave, vi_label, vi_seq, self.valid_name
         else:
-            return self.vi_wave[perm], self.vi_labels[perm], self.vi_seqLength[perm], self.valid_name[
-                                                                                      :config.batch_size]
+            perm = np.arange(config.batch_size)
+            return self.vi_wave[perm], self.vi_labels[perm], \
+                   self.vi_seqLength[perm], self.valid_name[:config.batch_size]
+
+    def validate(self):
+        for i in range(self.validation_size // config.batch_size):
+            yield self.vi_wave[i * config.batch_size: (i + 1) * config.batch_size], \
+                  self.vi_labels[i * config.batch_size: (i + 1) * config.batch_size], \
+                  self.vi_seqLength[i * config.batch_size: (i + 1) * config.batch_size]
 
     def next_batch(self, shuffle=True):
 
@@ -119,10 +128,14 @@ class DataSet(object):
                 self.perm[start:end]]
 
 
-def read_dataset(dtype=dtypes.float32):
-    train_wave = np.load(save_train_dir + 'wave.npy')
-    train_label = np.load(save_train_dir + 'labels.npy')
-    train_seqLen = np.load(save_train_dir + 'seqLen.npy')
+def read_dataset(is_training, dtype=dtypes.float32):
+    train_wave = None
+    train_label = None
+    train_seqLen = None
+    if is_training:
+        train_wave = np.load(save_train_dir + 'wave.npy')
+        train_label = np.load(save_train_dir + 'labels.npy')
+        train_seqLen = np.load(save_train_dir + 'seqLen.npy')
 
     valid_wave = np.load(save_valid_dir + 'wave.npy')
     valid_label = np.load(save_valid_dir + 'labels.npy')
@@ -133,10 +146,11 @@ def read_dataset(dtype=dtypes.float32):
     # print(label.shape)
     # labels = np.asarray([dense_to_ont_hot(l, config.num_classes) for l in label])
     return DataSet(train_wave=train_wave, train_label=train_label, train_seqLength=train_seqLen,
+                   is_training=is_training,
                    valid_wave=valid_wave, valid_labels=valid_label, valid_seqLength=valid_seqLen, valid_name=valid_name)
 
 
-read_dataset()
+read_dataset(True)
 # x = np.asarray([1, 2, 3, 4, 5])
 # y = dense_to_ont_hot(x, 8)
 # print(y)

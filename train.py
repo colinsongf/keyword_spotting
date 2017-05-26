@@ -17,14 +17,10 @@
 
 import sys
 from config.config import get_config
-from reader import read_dataset
+import time
 
 sys.dont_write_bytecode = True
-
-import time
-import datetime
 import os
-
 import numpy as np
 import tensorflow as tf
 from glob2 import glob
@@ -43,22 +39,15 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 class Runner(object):
     def __init__(self):
         self.config = get_config()
-
-    # @describe
-    # def load_data(self, args, mode, type):
-    #     if mode == 'train':
-    #         return load_batched_data(train_mfcc_dir, train_label_dir, batch_size, mode, type)
-    #     elif mode == 'test':
-    #         return load_batched_data(test_mfcc_dir, test_label_dir, batch_size, mode, type)
-    #     else:
-    #         raise TypeError('mode should be train or test.')
+        self.epoch = 0
+        self.step = 0
 
     def run(self):
         # load data
         model = DRNN(self.config)
         global model_path
         model.config.show()
-        self.data = read_dataset()
+        self.data = read_dataset(self.config.is_training)
 
         print('fuck')
         with tf.Session(graph=model.graph) as sess:
@@ -73,7 +62,8 @@ class Runner(object):
             st_time = time.time()
             if self.config.is_training:
                 try:
-                    for step in range(10001):
+                    while self.epoch < self.config.max_epoch:
+                        self.step += 1
                         x, y, seqLengths = self.data.next_batch()
 
                         if not self.config.max_pooling_loss:
@@ -85,49 +75,59 @@ class Runner(object):
                                  model.masked_log_softmax],
                                 feed_dict={model.inputX: x, model.inputY: y,
                                            model.seqLengths: seqLengths})
-                            print('step', step, xent_bg, xent_max)
+                            print('step', self.step, xent_bg, xent_max)
                             # print(max_log[0])
                             # np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
                             #
                             # with open('logits.txt', 'w') as f:
                             #     f.write(str(max_log[0]))
+        
+                        if self.data.epochs_completed > self.epoch:
+                            self.epoch += 1
 
-                        if step % 200 == 0:
-                            x, y, seqLengths, name = self.data.test_data()
-                            _, logits, labels, seqLen = sess.run(
-                                [model.optimizer, model.softmax, model.labels, model.seqLengths],
-                                feed_dict={model.inputX: x, model.inputY: y,
-                                           model.seqLengths: seqLengths})
-                            # logits, labels = map((lambda a: a[:8]), (logits, labels))
+                            miss_count = 0
+                            false_count = 0
 
-                            for i, logit in enumerate(logits):
-                                logits[seqLen[i]:] = 0
+                            for x, y, seqLengths in self.data.validate():
+                                _, logits, labels, seqLen = sess.run(
+                                    [model.optimizer, model.softmax, model.labels, model.seqLengths],
+                                    feed_dict={model.inputX: x, model.inputY: y,
+                                               model.seqLengths: seqLengths})
 
-                            print(len(logits), len(labels), len(seqLen))
+                                for i, logit in enumerate(logits):
+                                    logits[seqLen[i]:] = 0
 
-                            moving_average = [self.moving_average(record, self.config.smoothing_window, padding=True)
-                                              for record in logits]
+                                # print(len(logits), len(labels), len(seqLen))
 
-                            # print(moving_average[0].shape)
-                            prediction = [
-                                self.prediction(moving_avg, self.config.trigger_threshold, self.config.lockout)
-                                for moving_avg in moving_average]
-                            # print(prediction[0].shape)
+                                moving_average = [
+                                    self.moving_average(record, self.config.smoothing_window, padding=True)
+                                    for record in logits]
 
-                            result = [self.decode(p, self.config.word_interval) for p in prediction]
-                            miss_rate, false_accept_rate = self.correctness(result)
+                                # print(moving_average[0].shape)
+                                prediction = [
+                                    self.prediction(moving_avg, self.config.trigger_threshold, self.config.lockout)
+                                    for moving_avg in moving_average]
+                                # print(prediction[0].shape)
+
+                                result = [self.decode(p, self.config.word_interval) for p in prediction]
+                                miss, false_accept = self.correctness(result)
+                                miss_count += miss
+                                false_count += false_accept
+                            miss_rate = miss_count / self.config.validation_size
+                            false_accept_rate = false_count / self.config.validation_size
                             print('--------------------------------')
-                            print('step %d' % step)
+                            print('epoch %d' % self.epoch)
                             print('loss:' + str(l))
                             print('miss rate:' + str(miss_rate))
                             print('flase_accept_rate:' + str(false_accept_rate))
+
                 except KeyboardInterrupt:
                     if not DEBUG:
                         print('training shut down, the model will be save in %s' % save_path)
                         model.saver.save(sess, save_path=(save_path + 'latest.ckpt'))
 
                 if not DEBUG:
-                    print('training finished, total step %d, the model will be save in %s' % (step, save_path))
+                    print('training finished, total epoch %d, the model will be save in %s' % (self.epoch, save_path))
                     model.saver.save(sess, save_path=(save_path + 'latest.ckpt'))
             else:
 
@@ -209,8 +209,8 @@ class Runner(object):
 
         for frame in prediction:
             if frame.sum() > 0:
+                assert frame.sum() == 1
                 if pre == 0:
-                    assert frame.sum() == 1
                     index = np.nonzero(frame)[0]
                     pre = index[0]
                     if index == target:
@@ -219,13 +219,10 @@ class Runner(object):
                                 return 1
                             target = keyword.pop()
                             continue
-
                     keyword = list(raw)
                     target = keyword.pop()
                     inter = 0
                     if index == target:
-                        if len(keyword) == 0:
-                            return 1
                         target = keyword.pop()
                         continue
                 else:
@@ -255,7 +252,8 @@ class Runner(object):
 
         return 0
 
-    def correctness(self, result):
+
+    def correctness(self, result, target=None):
         target = [1, 1, 0, 0, 1, 0, 0, 0]
         while len(target) < len(result):
             target.append(0)
@@ -263,7 +261,7 @@ class Runner(object):
         xor = map(lambda a, b: a ^ b, target, result)
         miss = sum(map(lambda a, b: a & b, xor, target))
         false_accept = sum(map(lambda a, b: a & b, xor, target))
-        return miss / len(target), false_accept / len(target)
+        return miss, false_accept
 
     def accuracy(self, prediction, label, latency):
         # for one record

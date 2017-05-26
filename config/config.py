@@ -19,7 +19,7 @@ def get_config():
 
 class Config(object):
     def __init__(self):
-        self.is_training = False
+        self.is_training = True
         self.max_pooling_loss = False
 
         self.cell_clip = 3.
@@ -32,13 +32,13 @@ class Config(object):
         self.num_features = 20
         self.hidden_size = 64
         self.num_proj = 32
-        self.max_epoch = 20
+        self.max_epoch = 200
         self.keep_prob = 1.0
         self.grad_clip = -1
         self.lr_decay = 0.5
-        self.batch_size = 8
+        self.batch_size = 32
         self.validation_size = 8
-        self.trigger_threshold = 0.3  # between (0,1), but this param is somehow arbitrary
+        self.trigger_threshold = 0.8  # between (0,1), but this param is somehow arbitrary
 
         # these three sizes are frames, which depend on STFT frame size
         self.smoothing_window = 31

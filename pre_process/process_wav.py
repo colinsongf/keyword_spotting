@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 fft_size = 400
 step_size = 160
 samplerate = 16000
-wave_train_dir = '../testdata/train/'
+wave_train_dir = '../HelloLeLe824/'
 wave_valid_dir = '../testdata/valid/'
 save_train_dir = '../data/train/'
 save_valid_dir = '../data/valid/'
@@ -43,10 +43,11 @@ def test(f):
     # print('sr:' + str(sr))
 
     mel_spectrogram = np.transpose(
-        librosa.feature.melspectrogram(y, sr=sr, n_fft=fft_size, hop_length=step_size, power=2., fmin=300,
-                                       fmax=8000, n_mels=20))
+        librosa.feature.melspectrogram(y, sr=sr, n_fft=fft_size, hop_length=step_size, power=2.,
+                                       n_mels=20))
     # print(mel_spectrogram)
     print(mel_spectrogram.max())
+    print(mel_spectrogram.mean())
 
 
 def audio2linear(audio):
@@ -56,7 +57,7 @@ def audio2linear(audio):
         hop_length=step_size,
 
     )  # shape=(1 + n_fft/2, t)
-    linearspec = np.abs(stft_matrix)
+    linearspec = np.abs(stft_matrix) ** 2
     return linearspec
 
 
@@ -69,6 +70,10 @@ def linear2mel(linearspec):
         power=2.,
         n_mels=20
     )
+    melW = librosa.filters.mel(sr=samplerate, n_fft=fft_size, n_mels=20)
+    # melW /= np.max(melW, axis=-1)[:, None]
+    # print(melW.shape)
+    melX = np.dot(melW, linearspec)
     return melspec
 
 
@@ -79,7 +84,7 @@ def dense_to_ont_hot(labels_dense, num_classes):
     return labels_one_hot
 
 
-def process_file(f, fname, tuple, copy=1):
+def process_record(f, fname, time, copy=1):
     name = f.split('/')[-1].split('.')[0]
     y, sr = librosa.load(f, sr=samplerate)
     # print(len(y))
@@ -94,10 +99,10 @@ def process_file(f, fname, tuple, copy=1):
     # print('data shape is ', data.shape)
 
     label = np.zeros(mel_spectrogram.shape[0], dtype=np.int32)
-    for t in tuple:
-        word = t[0]
-        start_frame = time2frame(t[1], sr, step_size)
-        end_frame = time2frame(t[2], sr, step_size)
+    for i, t in enumerate(time):
+        word = i + 1
+        start_frame = time2frame(t[0], sr, step_size)
+        end_frame = time2frame(t[0], sr, step_size)
         label[start_frame:end_frame] = word
 
     label = dense_to_ont_hot(label, config.num_classes)
@@ -146,43 +151,47 @@ def dump2npy(tuples, path, keep_filename=False):
 
 
 if __name__ == '__main__':
-    train_files = {"1.wav": [[1, 1.645, 2.042], [2, 2.115, 2.506]],
-                   "2.wav": [[1, 1.167, 1.729], [2, 1.742, 2.206]],
-                   "3.wav": [[1, 0.999, 1.462], [2, 1.507, 1.977]],
-                   "s_25E27F1693018046_乐乐你好.wav": [[2, 2.220, 2.778], [1, 2.826, 3.376]],
-                   "s_53BDDB0117F07D72_乐乐你好.wav": [[2, 1.179, 1.743], [1, 1.803, 2.279]],
-                   "s_80A0481C765C1407_给妈妈发一块钱红包.wav": [],
-                   "s_AD78BEA480AC2F9F_图片可爱.wav": [],
-                   "s_CA2C6940CC4F52E1_是这样吗呵呵.wav": [],
-                   "s_6FA9C35E3679E5FE_啦啦啦你好.wav": [[1, 2.372, 2.954]],
-                   "s_49BCE41F1D122F19_乐乐你好.wav": [[2, 0.190, 0.633], [1, 0.639, 1.052]],
-                   "s_50B6C174A1387639_我要看欢乐颂.wav": [],
-                   "s_480B365B7D93C89B_乐乐打开微信.wav": [[2, 1.835, 2.450]],
-                   "s_A5B6C5D2A4DD4BB9_打开QQ音乐.wav": [],
-                   "s_B38A27C4F3E0532_你好的的.wav": [[1, 1.133, 1.790]],
-                   "s_C505F355CE631684_给冯奎打电话.wav": [],
-                   "s_D3C244933788F6A7_你是谁呀.wav": []
-                   }
-    valid_files = {"s_4E1959B1C3387558_你好乐乐.wav": [[1, 1.401, 2.678], [2, 2.765, 3.964]],
-                   "s_9DC4CAC83D317C69_你好乐乐.wav": [[1, 1.455, 1.987], [2, 2.045, 2.540]],
-                   "s_37B725D70B94FCC4_乐乐你好.wav": [[2, 1.307, 1.843], [1, 2.278, 2.660]],
-                   "s_758249C863F7975B_未打开天气.wav": [],
-                   "s_976396C89212A13B_你好乐乐.wav": [[1, 1.072, 2.325], [2, 2.403, 3.305]],
-                   "s_DD8A53F34A912C76_乐乐你他妈会什么.wav": [[2, 1.139, 1.635]],
-                   "s_F30C105D5129CFEB_给孙鹏发微信吃饭.wav": [],
-                   "s_F193089BC92BAFDF_你好你是傻逼吗.wav": [[1, 0.743, 1.253]]}
-
-    # valid_files = glob(wave_valid_dir + '*.wav')
-
-
-    train_tuples = [process_file(wave_train_dir + f, f, train_files[f], 1) for f in train_files]
-    dump2npy(train_tuples, save_train_dir, True)
-
-    valid_tuples = [process_file(wave_valid_dir + f, f, valid_files[f], 1) for f in valid_files]
-    dump2npy(valid_tuples, save_valid_dir, True)
+    # train_files = {"1.wav": [[1, 1.645, 2.042], [2, 2.115, 2.506]],
+    #                "2.wav": [[1, 1.167, 1.729], [2, 1.742, 2.206]],
+    #                "3.wav": [[1, 0.999, 1.462], [2, 1.507, 1.977]],
+    #                "s_25E27F1693018046_乐乐你好.wav": [[2, 2.220, 2.778], [1, 2.826, 3.376]],
+    #                "s_53BDDB0117F07D72_乐乐你好.wav": [[2, 1.179, 1.743], [1, 1.803, 2.279]],
+    #                "s_80A0481C765C1407_给妈妈发一块钱红包.wav": [],
+    #                "s_AD78BEA480AC2F9F_图片可爱.wav": [],
+    #                "s_CA2C6940CC4F52E1_是这样吗呵呵.wav": [],
+    #                "s_6FA9C35E3679E5FE_啦啦啦你好.wav": [[1, 2.372, 2.954]],
+    #                "s_49BCE41F1D122F19_乐乐你好.wav": [[2, 0.190, 0.633], [1, 0.639, 1.052]],
+    #                "s_50B6C174A1387639_我要看欢乐颂.wav": [],
+    #                "s_480B365B7D93C89B_乐乐打开微信.wav": [[2, 1.835, 2.450]],
+    #                "s_A5B6C5D2A4DD4BB9_打开QQ音乐.wav": [],
+    #                "s_B38A27C4F3E0532_你好的的.wav": [[1, 1.133, 1.790]],
+    #                "s_C505F355CE631684_给冯奎打电话.wav": [],
+    #                "s_D3C244933788F6A7_你是谁呀.wav": []
+    #                }
+    # valid_files = {"s_4E1959B1C3387558_你好乐乐.wav": [[1, 1.401, 2.678], [2, 2.765, 3.964]],
+    #                "s_9DC4CAC83D317C69_你好乐乐.wav": [[1, 1.455, 1.987], [2, 2.045, 2.540]],
+    #                "s_37B725D70B94FCC4_乐乐你好.wav": [[2, 1.307, 1.843], [1, 2.278, 2.660]],
+    #                "s_758249C863F7975B_未打开天气.wav": [],
+    #                "s_976396C89212A13B_你好乐乐.wav": [[1, 1.072, 2.325], [2, 2.403, 3.305]],
+    #                "s_DD8A53F34A912C76_乐乐你他妈会什么.wav": [[2, 1.139, 1.635]],
+    #                "s_F30C105D5129CFEB_给孙鹏发微信吃饭.wav": [],
+    #                "s_F193089BC92BAFDF_你好你是傻逼吗.wav": [[1, 0.743, 1.253]]}
+    #
+    #
+    # train_tuples = [process_file(wave_train_dir + f, f, train_files[f], 1) for f in train_files]
+    # dump2npy(train_tuples, save_train_dir, True)
+    #
+    # valid_tuples = [process_file(wave_valid_dir + f, f, valid_files[f], 1) for f in valid_files]
+    # dump2npy(valid_tuples, save_valid_dir, True)
     # test(wave_train_dir + '1.wav')
     #
     # a = linear2mel(audio2linear(librosa.load(wave_train_dir + '1.wav', sr=samplerate)[0]))
     # b = np.load('mel.npy')
     # print(a.max())
-    # print(b.max())
+    # print(a.mean())
+    # print(b.shape)
+
+    with open(wave_train_dir+"segment.pkl", "rb") as f:
+        labels = pickle.load(f)
+    train_tuples = [process_record(wave_train_dir + f + '.wav', f, time_label) for f, time_label in labels]
+    dump2npy(train_tuples, save_train_dir, True)
