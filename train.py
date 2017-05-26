@@ -111,6 +111,7 @@ class Runner(object):
 
                                 result = [self.decode(p, self.config.word_interval) for p in prediction]
                                 miss, false_accept = self.correctness(result)
+                                print(miss_count, false_count)
                                 miss_count += miss
                                 false_count += false_accept
                             miss_rate = miss_count / self.config.validation_size
@@ -129,7 +130,7 @@ class Runner(object):
                 if not DEBUG:
                     print('training finished, total epoch %d, the model will be save in %s' % (self.epoch, save_path))
                     model.saver.save(sess, save_path=(save_path + 'latest.ckpt'))
-                    print('total time:%f hours' % ((st_time - time.time()) / 3600))
+                    print('total time:%f hours' % ((time.time() - st_time) / 3600))
 
             else:
 
@@ -264,7 +265,7 @@ class Runner(object):
         xor = map(lambda a, b: a ^ b, target, result)
         miss = sum(map(lambda a, b: a & b, xor, target))
         false_accept = sum(map(lambda a, b: a & b, xor, target))
-        return miss/sum(target), false_accept
+        return miss / sum(target), false_accept
 
     def accuracy(self, prediction, label, latency):
         # for one record

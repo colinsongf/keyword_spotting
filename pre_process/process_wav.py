@@ -107,6 +107,7 @@ def process_record(f, fname, time, copy=1):
             label[start_frame:end_frame] = word
 
     label = dense_to_ont_hot(label, config.num_classes)
+    print(label[:,1:].sum())
 
     # np.set_printoptions(precision=1, threshold=np.inf, suppress=True)
     # print(label)
@@ -219,6 +220,9 @@ if __name__ == '__main__':
     # print(a.max())
     # print(a.mean())
     # print(b.shape)
+
+
+    train_tuples=[]
 
     with open(wave_train_dir + "segment.pkl", "rb") as f:
         labels = pickle.load(f)
