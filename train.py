@@ -39,7 +39,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 class Runner(object):
     def __init__(self):
         self.config = get_config()
-        self.epoch = 0
+        self.epoch = -1
         self.step = 0
 
     def run(self):
@@ -111,11 +111,12 @@ class Runner(object):
 
                                 result = [self.decode(p, self.config.word_interval) for p in prediction]
                                 miss, false_accept = self.correctness(result)
-                                print(miss_count, false_count)
+
                                 miss_count += miss
                                 false_count += false_accept
-                            miss_rate = miss_count / self.config.validation_size
-                            false_accept_rate = false_count / self.config.validation_size
+                                # print(miss_count, false_count)
+                            miss_rate = miss_count
+                            false_accept_rate = false_count
                             print('--------------------------------')
                             print('epoch %d' % self.epoch)
                             print('loss:' + str(l))
