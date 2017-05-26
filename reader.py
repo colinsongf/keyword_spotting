@@ -43,6 +43,7 @@ class DataSet(object):
             self.perm = np.arange(self.train_size)
 
         self.validation_size = len(valid_wave)
+        print(self.validation_size)
         assert (self.validation_size % config.batch_size == 0)
 
         self.vi_wave = valid_wave
@@ -104,7 +105,7 @@ class DataSet(object):
         if self._epochs_completed == 0 and start == 0 and shuffle:
             np.random.shuffle(self.perm)
         # Go to the next epoch
-        if start + config.batch_size > config.batch_size:
+        if start + config.batch_size > self.train_size:
             # Finished epoch
             self._epochs_completed += 1
             # Get the rest examples in this epoch

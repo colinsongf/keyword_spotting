@@ -81,7 +81,7 @@ class Runner(object):
                             #
                             # with open('logits.txt', 'w') as f:
                             #     f.write(str(max_log[0]))
-        
+
                         if self.data.epochs_completed > self.epoch:
                             self.epoch += 1
 
@@ -129,6 +129,8 @@ class Runner(object):
                 if not DEBUG:
                     print('training finished, total epoch %d, the model will be save in %s' % (self.epoch, save_path))
                     model.saver.save(sess, save_path=(save_path + 'latest.ckpt'))
+                    print('total time:%f hours' % ((st_time - time.time()) / 3600))
+
             else:
 
                 x, y, seqLengths, names = self.data.test_data()
@@ -251,7 +253,6 @@ class Runner(object):
                     pre = 0
 
         return 0
-
 
     def correctness(self, result, target=None):
         target = [1, 1, 0, 0, 1, 0, 0, 0]
