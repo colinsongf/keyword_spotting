@@ -19,7 +19,7 @@ def get_config():
 
 class Config(object):
     def __init__(self):
-        self.is_training = True
+        self.is_training = False
         self.max_pooling_loss = False
 
         self.cell_clip = 3.
