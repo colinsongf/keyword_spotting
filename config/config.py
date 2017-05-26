@@ -38,7 +38,7 @@ class Config(object):
         self.lr_decay = 0.5
         self.batch_size = 8
         self.validation_size = 8
-        self.trigger_threshold = 0.7  # between (0,1), but this param is somehow arbitrary
+        self.trigger_threshold = 0.3  # between (0,1), but this param is somehow arbitrary
 
         # these three sizes are frames, which depend on STFT frame size
         self.smoothing_window = 31

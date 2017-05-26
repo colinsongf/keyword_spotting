@@ -17,7 +17,7 @@
 
 import sys
 from config.config import get_config
-from data_test import read_dataset
+from reader import read_dataset
 
 sys.dont_write_bytecode = True
 
@@ -30,7 +30,7 @@ import tensorflow as tf
 from glob2 import glob
 from models.dynamic_rnn import DRNN
 from functools import reduce
-from data_test import read_dataset
+from reader import read_dataset
 import time
 
 model_path = './params/latest.ckpt'
@@ -157,7 +157,7 @@ class Runner(object):
                 # print(prediction[0].shape)
 
 
-                ind = 5
+                ind = 2
                 np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
                 print(str(names[ind]))
 

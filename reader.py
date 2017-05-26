@@ -5,7 +5,7 @@
 @author: ZiqiLiu
 
 
-@file: input_data.py
+@file: reader.py
 
 @time: 2017/5/11 下午12:33
 
