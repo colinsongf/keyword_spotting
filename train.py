@@ -255,14 +255,14 @@ class Runner(object):
         return 0
 
     def correctness(self, result, target=None):
-        target = [1, 1, 0, 0, 1, 0, 0, 0]
+        target = [1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1]
         while len(target) < len(result):
             target.append(0)
         assert len(result) == len(target)
         xor = map(lambda a, b: a ^ b, target, result)
         miss = sum(map(lambda a, b: a & b, xor, target))
         false_accept = sum(map(lambda a, b: a & b, xor, target))
-        return miss, false_accept
+        return miss/sum(target), false_accept
 
     def accuracy(self, prediction, label, latency):
         # for one record
