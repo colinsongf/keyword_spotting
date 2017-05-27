@@ -100,14 +100,17 @@ def process_record(f, fname, time, copy=1):
 
     label = np.zeros(mel_spectrogram.shape[0], dtype=np.int32)
     if len(time) > 0:
-        for i, t in enumerate(time):
-            word = i + 1
-            start_frame = time2frame(t[0], sr, step_size)
-            end_frame = time2frame(t[1], sr, step_size)
-            label[start_frame:end_frame] = word
 
+        for t in time:
+            print(t)
+            word = t[0]
+            start_frame = time2frame(t[1], sr, step_size)
+            end_frame = time2frame(t[2], sr, step_size)
+
+            print(start_frame,end_frame)
+            label[start_frame:end_frame] = word
     label = dense_to_ont_hot(label, config.num_classes)
-    print(label[:,1:].sum())
+    print(label[:, 1:].sum())
 
     # np.set_printoptions(precision=1, threshold=np.inf, suppress=True)
     # print(label)
@@ -194,14 +197,14 @@ if __name__ == '__main__':
                    "s_B38A27C4F3E0532_你好的的.wav": [[1, 1.133, 1.790]],
                    "s_C505F355CE631684_给冯奎打电话.wav": [],
                    "s_D3C244933788F6A7_你是谁呀.wav": [],
-                   "0.wav": [[1, 0, 0], [2, (0.92, 1.32), (1.36, 1.8)]],
-                   "1.wav": [[1, 1, 1], [2, (1.04, 1.8), (1.84, 2.44)]],
-                   "2.wav": [[1, 2, 2], [2, (1.12, 1.28), (1.32, 1.64)]],
-                   "3.wav": [[1, 3, 3], [2, (0.44, 1.0), (1.04, 1.28)]],
-                   "4.wav": [[1, 4, 4], [2, (0.8, 1.12), (1.16, 1.68)]],
-                   "5.wav": [[1, 5, 5], [2, (1.52, 1.72), (1.76, 2.04)]],
-                   "6.wav": [[1, 6, 6], [2, (1.2, 1.4), (1.44, 1.68)]],
-                   "7.wav": [[1, 7, 7], [2, (1.76, 1.96), (2.0, 2.24)]]
+                   "0.wav": [[1, 0.92, 1.32], [2, 1.36, 1.8]],
+                   "1.wav": [[1, 1.04, 1.8], [2, 1.84, 2.44]],
+                   "2.wav": [[1, 1.12, 1.28], [2, 1.32, 1.64]],
+                   "3.wav": [[1, 0.44, 1.0], [2, 1.04, 1.28]],
+                   "4.wav": [[1, 0.8, 1.12], [2, 1.16, 1.68]],
+                   "5.wav": [[1, 1.52, 1.72], [2, 1.76, 2.04]],
+                   "6.wav": [[1, 1.2, 1.4], [2, 1.44, 1.68]],
+                   "7.wav": [[1, 1.76, 1.96], [2, 2.0, 2.24]]
 
                    }
     #
@@ -222,14 +225,14 @@ if __name__ == '__main__':
     # print(b.shape)
 
 
-    train_tuples=[]
-
-    with open(wave_train_dir + "segment.pkl", "rb") as f:
-        labels = pickle.load(f)
-        print(labels[0])
-    train_tuples = [process_record(wave_train_dir + f + '.wav', f, time_label) for f, time_label in labels]
-
-    with open(wave_neg_train_dir + "neg-label-name.pkl", 'rb') as f:
-        labels = pickle.load(f)
-    train_tuples += [process_record(wave_neg_train_dir + f + '.wav', f, []) for _, f in labels]
-    dump2npy(train_tuples, save_train_dir, True)
+    # train_tuples=[]
+    #
+    # with open(wave_train_dir + "segment.pkl", "rb") as f:
+    #     labels = pickle.load(f)
+    #     print(labels[0])
+    # train_tuples = [process_record(wave_train_dir + f + '.wav', f, time_label) for f, time_label in labels]
+    #
+    # with open(wave_neg_train_dir + "neg-label-name.pkl", 'rb') as f:
+    #     labels = pickle.load(f)
+    # train_tuples += [process_record(wave_neg_train_dir + f + '.wav', f, []) for _, f in labels]
+    # dump2npy(train_tuples, save_train_dir, True)

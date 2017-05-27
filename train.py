@@ -161,7 +161,7 @@ class Runner(object):
                 # print(prediction[0].shape)
 
 
-                ind = 2
+                ind = 1
                 np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
                 print(str(names[ind]))
 
