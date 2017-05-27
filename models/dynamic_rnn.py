@@ -111,6 +111,11 @@ class DRNN(object):
             self.initial_op = tf.global_variables_initializer()
             self.saver = tf.train.Saver()
 
+    def dropout(self, x, keep_prob):
+        """ Apply dropout to a tensor
+        """
+        return tf.contrib.layers.dropout(x, keep_prob=keep_prob, is_training=True)
+
     def build_multi_dynamic_brnn(self,
                                  config,
                                  inputX,
@@ -134,7 +139,8 @@ class DRNN(object):
 
             # tensor of shape: [batch_size, max_time, input_size]
             hidden = outputs
-            hidden = dropout(hidden, config.keep_prob, config.is_training)
+            if config.mode == 'train':
+                hidden = self.dropout(hidden, config.keep_prob)
 
             if i != config.num_layers - 1:
                 hid_input = hidden

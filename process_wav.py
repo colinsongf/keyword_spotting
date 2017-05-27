@@ -212,8 +212,8 @@ if __name__ == '__main__':
     # dump2npy(train_tuples, save_train_dir, True)
     #
 
-    # valid_tuples = [process_record(wave_valid_dir + f, f, valid_files[f], 1) for f in valid_files]
-    # dump2npy(valid_tuples, save_valid_dir, True)
+    valid_tuples = [process_record(wave_valid_dir + f, f, valid_files[f], 1) for f in valid_files]
+    dump2npy(valid_tuples, save_valid_dir, True)
 
     # test(wave_train_dir + '1.wav')
     #

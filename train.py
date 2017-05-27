@@ -16,8 +16,8 @@
 # !/usr/bin/python
 
 import sys
+
 from config.config import get_config
-import time
 
 sys.dont_write_bytecode = True
 import os
@@ -25,57 +25,57 @@ import numpy as np
 import tensorflow as tf
 from glob2 import glob
 from models.dynamic_rnn import DRNN
-from functools import reduce
 from reader import read_dataset
+import argparse
 import time
 
-model_path = './params/latest.ckpt'
-save_path = './params/'
 DEBUG = False
-
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 class Runner(object):
-    def __init__(self):
-        self.config = get_config()
+    def __init__(self, config):
+        self.config = config
         self.epoch = -1
         self.step = 0
 
+        self.model = DRNN(self.config)
+        self.model.config.show()
+        self.data = read_dataset(self.config.mode)
+
     def run(self):
-        # load data
-        model = DRNN(self.config)
-        global model_path
-        model.config.show()
-        self.data = read_dataset(self.config.is_training)
 
         print('fuck')
-        with tf.Session(graph=model.graph) as sess:
+        with tf.Session(graph=self.model.graph) as sess:
             # restore from stored models
-            files = glob(save_path + '*.ckpt.*')
+            files = glob(self.config.model_path + '*.ckpt.*')
+
             if len(files) > 0:
-                model.saver.restore(sess, model_path)
-                print(('Model restored from:' + model_path))
+                self.model.saver.restore(sess, self.config.model_path)
+                print(('Model restored from:' + self.config.model_path))
             else:
                 print("Model doesn't exist.\nInitializing........")
-                sess.run(model.initial_op)
+                sess.run(self.model.initial_op)
             st_time = time.time()
-            if self.config.is_training:
+            if not os.path.exists(self.config.working_path):
+                os.makedirs(self.config.working_path)
+            if self.config.mode == 'train':
                 try:
                     while self.epoch < self.config.max_epoch:
                         self.step += 1
                         x, y, seqLengths = self.data.next_batch()
 
                         if not self.config.max_pooling_loss:
-                            _, l = sess.run([model.optimizer, model.loss], feed_dict={model.inputX: x, model.inputY: y,
-                                                                                      model.seqLengths: seqLengths})
+                            _, l = sess.run([self.model.optimizer, self.model.loss],
+                                            feed_dict={self.model.inputX: x, self.model.inputY: y,
+                                                       self.model.seqLengths: seqLengths})
                         else:
                             _, l, xent_bg, xent_max, max_log = sess.run(
-                                [model.optimizer, model.loss, model.xent_background, model.xent_max_frame,
-                                 model.masked_log_softmax],
-                                feed_dict={model.inputX: x, model.inputY: y,
-                                           model.seqLengths: seqLengths})
-                            print('step', self.step, xent_bg, xent_max)
+                                [self.model.optimizer, self.model.loss, self.model.xent_background,
+                                 self.model.xent_max_frame,
+                                 self.model.masked_log_softmax],
+                                feed_dict={self.model.inputX: x, self.model.inputY: y,
+                                           self.model.seqLengths: seqLengths})
+                            # print('step', self.step, xent_bg, xent_max)
                             # print(max_log[0])
                             # np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
                             #
@@ -90,9 +90,10 @@ class Runner(object):
 
                             for x, y, seqLengths in self.data.validate():
                                 _, logits, labels, seqLen = sess.run(
-                                    [model.optimizer, model.softmax, model.labels, model.seqLengths],
-                                    feed_dict={model.inputX: x, model.inputY: y,
-                                               model.seqLengths: seqLengths})
+                                    [self.model.optimizer, self.model.softmax, self.model.labels,
+                                     self.model.seqLengths],
+                                    feed_dict={self.model.inputX: x, self.model.inputY: y,
+                                               self.model.seqLengths: seqLengths})
 
                                 for i, logit in enumerate(logits):
                                     logits[seqLen[i]:] = 0
@@ -125,12 +126,13 @@ class Runner(object):
 
                 except KeyboardInterrupt:
                     if not DEBUG:
-                        print('training shut down, the model will be save in %s' % save_path)
-                        model.saver.save(sess, save_path=(save_path + 'latest.ckpt'))
+                        print('training shut down, the model will be save in %s' % self.config.working_path)
+                        self.model.saver.save(sess, save_path=(os.path.join(self.config.working_path, 'latest.ckpt')))
 
                 if not DEBUG:
-                    print('training finished, total epoch %d, the model will be save in %s' % (self.epoch, save_path))
-                    model.saver.save(sess, save_path=(save_path + 'latest.ckpt'))
+                    print('training finished, total epoch %d, the model will be save in %s' % (
+                        self.epoch, self.config.working_path))
+                    self.model.saver.save(sess, save_path=(os.path.join(self.config.working_path, 'latest.ckpt')))
                     print('total time:%f hours' % ((time.time() - st_time) / 3600))
 
             else:
@@ -141,9 +143,10 @@ class Runner(object):
 
                 # print(len(seqLengths))
 
-                _, logits, labels, seqLen = sess.run([model.optimizer, model.softmax, model.labels, model.seqLengths],
-                                                     feed_dict={model.inputX: x, model.inputY: y,
-                                                                model.seqLengths: seqLengths})
+                _, logits, labels, seqLen = sess.run(
+                    [self.model.optimizer, self.model.softmax, self.model.labels, self.model.seqLengths],
+                    feed_dict={self.model.inputX: x, self.model.inputY: y,
+                               self.model.seqLengths: seqLengths})
                 # logits, labels = map((lambda a: a[:8]), (logits, labels))
                 for i, logit in enumerate(logits):
                     logit[seqLen[i]:, :] = 0
@@ -161,7 +164,7 @@ class Runner(object):
                 # print(prediction[0].shape)
 
 
-                ind = 1
+                ind = 27
                 np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
                 print(str(names[ind]))
 
@@ -306,5 +309,35 @@ class Runner(object):
 
 
 if __name__ == '__main__':
-    runner = Runner()
+    config = get_config()
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--mode', help='train: train model, ' +
+                                       'valid: model validation, ',
+                        default=None)
+    parser.add_argument('--max', help='True: maxpooling, ' +
+                                      'False: cross entropy,', type=bool,
+                        default=None)
+    parser.add_argument('-m', '--model_path',
+                        help='The  model path for restoring',
+                        default=None)
+    parser.add_argument('-w', '--working_path',
+                        help='The  model path for  saving',
+                        default=None)
+    parser.add_argument('-g', '--gpu',
+                        help='visable GPU',
+                        default=None)
+    parser.add_argument('-thres', '--threshold', help='threshold for trigger', type=float)
+
+    flags = parser.parse_args().__dict__
+
+    for key in flags:
+        if flags[key] is not None:
+            if not hasattr(config, key):
+                print("WARNING: Invalid override with attribute %s" % (key))
+            else:
+                setattr(config, key, flags[key])
+
+    os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
+    runner = Runner(config)
     runner.run()

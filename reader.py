@@ -32,8 +32,8 @@ def dense_to_ont_hot(labels_dense, num_classes):
 
 class DataSet(object):
     def __init__(self, valid_wave, valid_labels, valid_seqLength, valid_name,
-                 is_training=True, train_wave=None, train_label=None, train_seqLength=None):
-        if is_training:
+                 mode='train', train_wave=None, train_label=None, train_seqLength=None):
+        if mode == 'train':
             assert train_wave is not None
             self.wave = train_wave
             self.labels = train_label
@@ -129,11 +129,11 @@ class DataSet(object):
                 self.perm[start:end]]
 
 
-def read_dataset(is_training, dtype=dtypes.float32):
+def read_dataset(mode, dtype=dtypes.float32):
     train_wave = None
     train_label = None
     train_seqLen = None
-    if is_training:
+    if mode=='train':
         train_wave = np.load(save_train_dir + 'wave.npy')
         train_label = np.load(save_train_dir + 'labels.npy')
         train_seqLen = np.load(save_train_dir + 'seqLen.npy')
@@ -147,7 +147,7 @@ def read_dataset(is_training, dtype=dtypes.float32):
     # print(label.shape)
     # labels = np.asarray([dense_to_ont_hot(l, config.num_classes) for l in label])
     return DataSet(train_wave=train_wave, train_label=train_label, train_seqLength=train_seqLen,
-                   is_training=is_training,
+                   mode=mode,
                    valid_wave=valid_wave, valid_labels=valid_label, valid_seqLength=valid_seqLen, valid_name=valid_name)
 
 

@@ -11,6 +11,7 @@
 
 @desc:
 '''
+import argparse
 
 
 def get_config():
@@ -19,8 +20,12 @@ def get_config():
 
 class Config(object):
     def __init__(self):
-        self.is_training = False
-        self.max_pooling_loss = False
+        self.mode = "train"  # train,valid
+        self.max_pooling_loss = True
+
+        self.model_path = './params/'
+        self.working_path = './params/'
+        self.gpu = "0"
 
         self.cell_clip = 3.
         self.num_layers = 1
