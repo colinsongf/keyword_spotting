@@ -50,7 +50,7 @@ class Runner(object):
             files = glob(self.config.model_path + '*.ckpt.*')
 
             if len(files) > 0:
-                self.model.saver.restore(sess, self.config.model_path)
+                self.model.saver.restore(sess, os.path.join(self.config.model_path, 'latest.ckpt'))
                 print(('Model restored from:' + self.config.model_path))
             else:
                 print("Model doesn't exist.\nInitializing........")
