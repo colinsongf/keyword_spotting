@@ -164,9 +164,10 @@ class Runner(object):
                 # print(prediction[0].shape)
 
 
-                ind = 27
+                ind = 30
                 np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
                 print(str(names[ind]))
+                np.save('test.npy',prediction[ind])
 
                 with open('logits.txt', 'w') as f:
                     f.write(str(logits[ind]))
@@ -176,6 +177,8 @@ class Runner(object):
                     f.write(str(prediction[ind]))
                 with open('label.txt', 'w') as f:
                     f.write(str([labels[ind]]))
+
+                print('-----',self.decode(prediction[ind],self.config.word_interval))
 
                 result = [self.decode(p, self.config.word_interval) for p in prediction]
                 miss_rate, false_accept_rate = self.correctness(result)
@@ -203,7 +206,7 @@ class Runner(object):
         return prediction
 
     def decode(self, prediction, word_interval):
-        raw = [3, 2, 1]
+        raw = [2,1]
         keyword = list(raw)
         # prediction based on moving_avg,shape(t,p),sth like one-hot, but can may overlapping
         # prediction = prediction[:, 1:]
