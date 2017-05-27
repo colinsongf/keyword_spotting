@@ -23,11 +23,11 @@ import matplotlib.pyplot as plt
 fft_size = 400
 step_size = 160
 samplerate = 16000
-wave_train_dir = '../rawdata/HelloLeLe824/'
-wave_neg_train_dir = '../rawdata/neg_wav/'
-wave_valid_dir = '../rawdata/valid/'
-save_train_dir = '../data/train/'
-save_valid_dir = '../data/valid/'
+wave_train_dir = './rawdata/HelloLeLe824/'
+wave_neg_train_dir = './rawdata/neg_wav/'
+wave_valid_dir = './rawdata/valid/'
+save_train_dir = './data/train/'
+save_valid_dir = './data/valid/'
 
 
 # 1:你 2：好 3：乐乐
