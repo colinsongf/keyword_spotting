@@ -102,15 +102,14 @@ def process_record(f, fname, time, copy=1):
     if len(time) > 0:
 
         for t in time:
-            print(t)
+
             word = t[0]
             start_frame = time2frame(t[1], sr, step_size)
             end_frame = time2frame(t[2], sr, step_size)
-
             print(start_frame,end_frame)
             label[start_frame:end_frame] = word
     label = dense_to_ont_hot(label, config.num_classes)
-    print(label[:, 1:].sum())
+
 
     # np.set_printoptions(precision=1, threshold=np.inf, suppress=True)
     # print(label)
@@ -141,9 +140,9 @@ def dump2npy(tuples, path, keep_filename=False):
          in
          tuples])
     seqLengths = np.concatenate([t[2] for t in tuples])
-    print(data.shape)
-    print(labels.shape)
-    print(seqLengths.shape)
+    # print(data.shape)
+    # print(labels.shape)
+    # print(seqLengths.shape)
     np.save(path + 'wave.npy', data)
     np.save(path + 'labels.npy', labels)
     np.save(path + 'seqLen.npy', seqLengths)
@@ -225,14 +224,14 @@ if __name__ == '__main__':
     # print(b.shape)
 
 
-    # train_tuples=[]
-    #
-    # with open(wave_train_dir + "segment.pkl", "rb") as f:
-    #     labels = pickle.load(f)
-    #     print(labels[0])
-    # train_tuples = [process_record(wave_train_dir + f + '.wav', f, time_label) for f, time_label in labels]
-    #
-    # with open(wave_neg_train_dir + "neg-label-name.pkl", 'rb') as f:
-    #     labels = pickle.load(f)
-    # train_tuples += [process_record(wave_neg_train_dir + f + '.wav', f, []) for _, f in labels]
-    # dump2npy(train_tuples, save_train_dir, True)
+    train_tuples=[]
+
+    with open(wave_train_dir + "segment.pkl", "rb") as f:
+        labels = pickle.load(f)
+        print(labels[0])
+    train_tuples = [process_record(wave_train_dir + f + '.wav', f, time_label) for f, time_label in labels]
+
+    with open(wave_neg_train_dir + "neg-label-name.pkl", 'rb') as f:
+        labels = pickle.load(f)
+    train_tuples += [process_record(wave_neg_train_dir + f + '.wav', f, []) for _, f in labels]
+    dump2npy(train_tuples, save_train_dir, True)
