@@ -28,6 +28,7 @@ from models.dynamic_rnn import DRNN
 from reader import read_dataset
 import argparse
 import time
+from utils.common import check_dir
 
 DEBUG = False
 
@@ -56,8 +57,7 @@ class Runner(object):
                 print("Model doesn't exist.\nInitializing........")
                 sess.run(self.model.initial_op)
             st_time = time.time()
-            if not os.path.exists(self.config.working_path):
-                os.makedirs(self.config.working_path)
+            check_dir(self.config.working_path)
             if self.config.mode == 'train':
                 try:
                     while self.epoch < self.config.max_epoch:
