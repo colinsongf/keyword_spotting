@@ -15,6 +15,7 @@ import librosa
 import numpy as np
 from config.config import get_config
 from glob2 import glob
+import os
 import pickle
 from utils.common import check_dir
 
@@ -25,8 +26,8 @@ wave_train_dir = './rawdata/HelloLeLe824/'
 wave_neg_train_dir = './rawdata/neg_wav/'
 wave_valid_dir = './rawdata/valid/'
 
-save_train_dir = './data/mel/train/'
-save_valid_dir = './data/mel/valid/'
+save_train_dir = os.path.join(config.data_path, 'train/')
+save_valid_dir = os.path.join(config.data_path, 'valid/')
 
 check_dir(save_train_dir)
 check_dir(save_valid_dir)
@@ -45,7 +46,11 @@ def test(f):
     mel_spectrogram = np.transpose(
         librosa.feature.melspectrogram(y, sr=sr, n_fft=config.fft_size, hop_length=config.step_size, power=2.,
                                        n_mels=config.num_features))
-    # print(mel_spectrogram)
+    # mfcc = np.transpose(
+    #     librosa.feature.mfcc(y, sr=sr, n_mfcc=40, n_fft=config.fft_size, hop_length=config.step_size, power=2.,
+    #                          n_mels=config.num_features))
+
+    print(mel_spectrogram.shape)
     print(mel_spectrogram.max())
     print(mel_spectrogram.mean())
 
@@ -70,7 +75,7 @@ def linear2mel(linearspec):
         power=2.,
         n_mels=20
     )
-    melW = librosa.filters.mel(sr=config.samplerate, n_fft=config.fft_size, n_mels=20)
+    melW = librosa.filters.mel(sr=config.samplerate, n_fft=config.fft_size, n_mels=config.num_features)
     # melW /= np.max(melW, axis=-1)[:, None]
     # print(melW.shape)
     melX = np.dot(melW, linearspec)
@@ -92,7 +97,11 @@ def process_record(f, fname, time, correctness=None, copy=1):
 
     mel_spectrogram = np.transpose(
         librosa.feature.melspectrogram(y, sr=sr, n_fft=config.fft_size, hop_length=config.step_size, power=2., fmin=300,
-                                       fmax=8000, n_mels=20))
+                                       fmax=8000, n_mels=config.num_features))
+
+    # mfcc = np.transpose(
+    #     librosa.feature.mfcc(y, sr=sr, n_mfcc=40, n_fft=config.fft_size, hop_length=config.step_size, power=2.,
+    #                          n_mels=config.num_features))
 
     data = np.stack([mel_spectrogram] * copy)
     # print('data shape is ', data.shape)
@@ -252,13 +261,6 @@ if __name__ == '__main__':
     valid_tuples = [process_record(wave_valid_dir + f, f, valid_files[f][1], valid_files[f][0], 1) for f in valid_files]
     dump2npy(valid_tuples, save_valid_dir, True, True)
 
-    # test(wave_train_dir + '1.wav')
-    #
-    # a = linear2mel(audio2linear(librosa.load(wave_train_dir + '1.wav', sr=samplerate)[0]))
-    # b = np.load('mel.npy')
-    # print(a.max())
-    # print(a.mean())
-    # print(b.shape)
 
 
     train_tuples = []
@@ -272,3 +274,11 @@ if __name__ == '__main__':
         labels = pickle.load(f)
     train_tuples += [process_record(wave_neg_train_dir + f + '.wav', f, []) for _, f in labels]
     dump2npy(train_tuples, save_train_dir, True, False)
+
+    # test(wave_train_dir + '1.wav')
+    #
+    # a = linear2mel(audio2linear(librosa.load(wave_train_dir + '1.wav', sr=samplerate)[0]))
+    # b = np.load('mel.npy')
+    # print(a.max())
+    # print(a.mean())
+    # print(b.shape)

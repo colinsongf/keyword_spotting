@@ -25,7 +25,7 @@ class Config(object):
 
         self.model_path = './params/'
         self.working_path = './params/'
-        self.data_path = './data/mel/'
+        self.data_path = './data/mel60/'
         self.gpu = "0"
 
         self.fft_size = 400
@@ -39,7 +39,7 @@ class Config(object):
         self.max_grad_norm = 5
         self.num_layers = 1
         self.num_classes = 3  # word+1 for background
-        self.num_features = 20
+        self.num_features = 60
         self.hidden_size = 64
         self.num_proj = 32
         self.max_epoch = 200
