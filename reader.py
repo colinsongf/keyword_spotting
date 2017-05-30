@@ -13,14 +13,8 @@
 """
 import numpy as np
 from tensorflow.python.framework import dtypes
-from config.config import get_config
 import pickle
-from tensorflow.python.framework import random_seed
-import time
-
-config = get_config()
-save_train_dir = './data/train/'
-save_valid_dir = './data/valid/'
+import os
 
 
 def dense_to_ont_hot(labels_dense, num_classes):
@@ -31,8 +25,9 @@ def dense_to_ont_hot(labels_dense, num_classes):
 
 
 class DataSet(object):
-    def __init__(self, valid_wave, valid_labels, valid_seqLength, valid_name,
+    def __init__(self, config, valid_wave, valid_labels, valid_seqLength, valid_name,
                  mode='train', train_wave=None, train_label=None, train_seqLength=None):
+        self.config = config
         if mode == 'train':
             assert train_wave is not None
             self.wave = train_wave
@@ -88,15 +83,15 @@ class DataSet(object):
             vi_seq[0] = self.vi_seqLength[index]
             return vi_wave, vi_label, vi_seq, self.valid_name
         else:
-            perm = np.arange(config.batch_size)
+            perm = np.arange(self.config.batch_size)
             return self.vi_wave[perm], self.vi_labels[perm], \
-                   self.vi_seqLength[perm], self.valid_name[:config.batch_size]
+                   self.vi_seqLength[perm], self.valid_name[:self.config.batch_size]
 
     def validate(self):
-        for i in range(self.validation_size // config.batch_size):
-            yield self.vi_wave[i * config.batch_size: (i + 1) * config.batch_size], \
-                  self.vi_labels[i * config.batch_size: (i + 1) * config.batch_size], \
-                  self.vi_seqLength[i * config.batch_size: (i + 1) * config.batch_size]
+        for i in range(self.validation_size // self.config.batch_size):
+            yield self.vi_wave[i * self.config.batch_size: (i + 1) * self.config.batch_size], \
+                  self.vi_labels[i * self.config.batch_size: (i + 1) * self.config.batch_size], \
+                  self.vi_seqLength[i * self.config.batch_size: (i + 1) * self.config.batch_size]
 
     def next_batch(self, shuffle=True):
 
@@ -105,7 +100,7 @@ class DataSet(object):
         if self._epochs_completed == 0 and start == 0 and shuffle:
             np.random.shuffle(self.perm)
         # Go to the next epoch
-        if start + config.batch_size > self.train_size:
+        if start + self.config.batch_size > self.train_size:
             # Finished epoch
             self._epochs_completed += 1
             # Get the rest examples in this epoch
@@ -117,23 +112,27 @@ class DataSet(object):
                 np.random.shuffle(self.perm)
             # Start next epoch
             start = 0
-            self._index_in_epoch = config.batch_size - rest_num
+            self._index_in_epoch = self.config.batch_size - rest_num
             end = self._index_in_epoch
             new_part = self.perm[start:end]
             temp_index = np.concatenate((rest_part, new_part), axis=0)
             return self.wave[temp_index], self.labels[temp_index], self.seqLength[temp_index]
         else:
-            self._index_in_epoch += config.batch_size
+            self._index_in_epoch += self.config.batch_size
             end = self._index_in_epoch
             return self.wave[self.perm[start:end]], self.labels[self.perm[start:end]], self.seqLength[
                 self.perm[start:end]]
 
 
-def read_dataset(mode, dtype=dtypes.float32):
+def read_dataset(config, dtype=dtypes.float32):
+    data_dir = config.data_path
+    save_train_dir = os.path.join(data_dir, '/train/')
+    save_valid_dir = os.path.join(data_dir, '/valid/')
+
     train_wave = None
     train_label = None
     train_seqLen = None
-    if mode=='train':
+    if config.mode == 'train':
         train_wave = np.load(save_train_dir + 'wave.npy')
         train_label = np.load(save_train_dir + 'labels.npy')
         train_seqLen = np.load(save_train_dir + 'seqLen.npy')
@@ -146,8 +145,8 @@ def read_dataset(mode, dtype=dtypes.float32):
     # print(wave.shape)
     # print(label.shape)
     # labels = np.asarray([dense_to_ont_hot(l, config.num_classes) for l in label])
-    return DataSet(train_wave=train_wave, train_label=train_label, train_seqLength=train_seqLen,
-                   mode=mode,
+    return DataSet(config=config, train_wave=train_wave, train_label=train_label, train_seqLength=train_seqLen,
+                   mode=config.mode,
                    valid_wave=valid_wave, valid_labels=valid_label, valid_seqLength=valid_seqLen, valid_name=valid_name)
 
 

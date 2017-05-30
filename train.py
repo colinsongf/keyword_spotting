@@ -40,7 +40,7 @@ class Runner(object):
 
         self.model = DRNN(self.config)
         self.model.config.show()
-        self.data = read_dataset(self.config.mode)
+        self.data = read_dataset(self.config)
 
     def run(self):
 
@@ -164,10 +164,10 @@ class Runner(object):
                 # print(prediction[0].shape)
 
 
-                ind = 30
+                ind = 16
                 np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
                 print(str(names[ind]))
-                np.save('test.npy',prediction[ind])
+                np.save('test.npy', prediction[ind])
 
                 with open('logits.txt', 'w') as f:
                     f.write(str(logits[ind]))
@@ -178,7 +178,7 @@ class Runner(object):
                 with open('label.txt', 'w') as f:
                     f.write(str([labels[ind]]))
 
-                print('-----',self.decode(prediction[ind],self.config.word_interval))
+                print('-----', self.decode(prediction[ind], self.config.word_interval))
 
                 result = [self.decode(p, self.config.word_interval) for p in prediction]
                 miss_rate, false_accept_rate = self.correctness(result)
@@ -206,7 +206,7 @@ class Runner(object):
         return prediction
 
     def decode(self, prediction, word_interval):
-        raw = [2,1]
+        raw = [2]
         keyword = list(raw)
         # prediction based on moving_avg,shape(t,p),sth like one-hot, but can may overlapping
         # prediction = prediction[:, 1:]
@@ -263,7 +263,9 @@ class Runner(object):
         return 0
 
     def correctness(self, result, target=None):
-        target = [1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1]
+        target = [1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+
         while len(target) < len(result):
             target.append(0)
         assert len(result) == len(target)
@@ -318,8 +320,8 @@ if __name__ == '__main__':
     parser.add_argument('--mode', help='train: train model, ' +
                                        'valid: model validation, ',
                         default=None)
-    parser.add_argument('--max', help='True: maxpooling, ' +
-                                      'False: cross entropy,', type=bool,
+    parser.add_argument('-max', '--max_pooling_loss', help='1: maxpooling, ' +
+                                                           '0: cross entropy,', type=int,
                         default=None)
     parser.add_argument('-m', '--model_path',
                         help='The  model path for restoring',
@@ -330,7 +332,9 @@ if __name__ == '__main__':
     parser.add_argument('-g', '--gpu',
                         help='visable GPU',
                         default=None)
-    parser.add_argument('-thres', '--threshold', help='threshold for trigger', type=float)
+    parser.add_argument('-thres', '--threshold', help='threshold for trigger', type=float, default=None)
+    parser.add_argument('--data_path', help='data path', default=None)
+    parser.add_argument('--feature_num', help='data path', type=int, default=None)
 
     flags = parser.parse_args().__dict__
 
@@ -342,5 +346,6 @@ if __name__ == '__main__':
                 setattr(config, key, flags[key])
 
     os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
+    print(flags)
     runner = Runner(config)
     runner.run()

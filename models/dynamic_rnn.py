@@ -26,7 +26,7 @@ from tensorflow.python.ops.rnn import dynamic_rnn
 import tensorflow.python.training.moving_averages
 
 from utils.common import describe
-from utils.common import dropout
+
 
 cell_fn = core_rnn_cell_impl.LSTMCell
 
