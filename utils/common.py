@@ -48,3 +48,17 @@ def describe(func):
 def check_dir(dir):
     if not os.path.exists(dir):
         os.makedirs(dir)
+
+
+def path_join(path1, path2):
+    if (path1.endswith('/')):
+        if (path2.startswith('/')):
+            return path1 + path2[1:]
+        else:
+            return path1 + path2
+
+    else:
+        if (path2.startswith(('/'))):
+            return path1 + path2
+        else:
+            return path1 + '/' + path2
