@@ -44,10 +44,10 @@ def point2frame(point, sr=config.samplerate, n_fft=config.fft_size, step_size=co
 def time2point(second, sr=config.samplerate):
     return int(second * sr)
 
-
 def adjust(y, start, end):
+
     start = time2point(start)
-    end = time2point(end)
+    end = min(len(y),time2point(end))
     y = np.abs(y)
     window_size = 160
     mean = y.mean()
