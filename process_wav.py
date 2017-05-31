@@ -74,8 +74,8 @@ def test(f):
     print((np.abs(seg).mean()))
     print(np.percentile(np.abs(y), 50))
     # print('sr:' + str(sr)))
-    t = adjust(y, time2point(1.76), time2point(2.72))
-    print(t)
+    t = adjust(y, 1.84, 2.84)
+    print('======',t)
 
     mel_spectrogram = np.transpose(
         librosa.feature.melspectrogram(y, sr=sr, n_fft=config.fft_size, hop_length=config.step_size, power=2.,
@@ -97,10 +97,9 @@ def dense_to_ont_hot(labels_dense, num_classes):
 
 
 def process_record(f, fname, time, correctness=None, copy=1):
+    print(f)
+
     y, sr = librosa.load(f, sr=config.samplerate)
-    # print(len(y))
-    # print('sr:' + str(sr))
-    # print(fname)
 
     mel_spectrogram = np.transpose(
         librosa.feature.melspectrogram(y, sr=sr, n_fft=config.fft_size, hop_length=config.step_size, power=2., fmin=300,
@@ -278,7 +277,7 @@ if __name__ == '__main__':
 
 
 
-    # test(wave_train_dir + '59.wav')
+    # test(wave_train_dir + '160.wav')
     #
     # a = linear2mel(audio2linear(librosa.load(wave_train_dir + '1.wav', sr=samplerate)[0]))
     # b = np.load('mel.npy')
