@@ -33,23 +33,49 @@ check_dir(save_train_dir)
 check_dir(save_valid_dir)
 
 
-def time2frame(second, sr, step_size):
+def time2frame(second, sr=config.samplerate, n_fft=config.fft_size, step_size=config.step_size):
     return int((second * sr - 200) / step_size) if second > 0 else 0
 
 
-def time2point(second, sr):
+def point2frame(point, sr=config.samplerate, step_size=config.step_size):
+    return (point - 200) // step_size
+
+
+def time2point(second, sr=config.samplerate):
     return int(second * sr)
+
+
+def adjust(y, start, end):
+    start = time2point(start)
+    end = time2point(end)
+    y = np.abs(y)
+    window_size = 160
+    mean = y.mean()
+    quatile = np.percentile(y, 25)
+    threshold = (quatile + mean) / 2
+    while start < end:
+        if (y[start:start + window_size].mean() > threshold):
+            break
+        start += window_size
+    assert (start < end)
+    while end > start:
+        if (y[end - window_size: end].mean() > threshold):
+            break
+        end -= window_size
+    return point2frame(start), point2frame(end)
 
 
 def test(f):
     name = f.split('/')[-1].split('.')[0]
     y, sr = librosa.load(f, sr=config.samplerate)
     print(y.shape)
-    seg = y[int(1.76 * 16000): int(2.72 * 16000)]
+    seg = y[int(1.92 * 16000): int(2.72 * 16000)]
     begin = y[:int(1.76 * 16000)]
-    print((np.abs(begin).mean()))
+    print((np.abs(seg).mean()))
     print(np.percentile(np.abs(y), 50))
     # print('sr:' + str(sr)))
+    t = adjust(y, time2point(1.76), time2point(2.72))
+    print(t)
 
     mel_spectrogram = np.transpose(
         librosa.feature.melspectrogram(y, sr=sr, n_fft=config.fft_size, hop_length=config.step_size, power=2.,
@@ -61,33 +87,6 @@ def test(f):
     print(mel_spectrogram.shape)
     print(mel_spectrogram.max())
     print(mel_spectrogram.mean())
-
-
-def audio2linear(audio):
-    stft_matrix = librosa.core.stft(
-        y=audio,
-        n_fft=config.fft_size,
-        hop_length=config.step_size,
-
-    )  # shape=(1 + n_fft/2, t)
-    linearspec = np.abs(stft_matrix) ** 2
-    return linearspec
-
-
-def linear2mel(linearspec):
-    melspec = librosa.feature.melspectrogram(
-        S=linearspec,
-        sr=config.samplerate,
-        n_fft=config.fft_size,
-        hop_length=config.step_size,
-        power=2.,
-        n_mels=20
-    )
-    melW = librosa.filters.mel(sr=config.samplerate, n_fft=config.fft_size, n_mels=config.num_features)
-    # melW /= np.max(melW, axis=-1)[:, None]
-    # print(melW.shape)
-    melX = np.dot(melW, linearspec)
-    return melspec
 
 
 def dense_to_ont_hot(labels_dense, num_classes):
@@ -116,12 +115,10 @@ def process_record(f, fname, time, correctness=None, copy=1):
 
     label = np.zeros(mel_spectrogram.shape[0], dtype=np.int32)
     if len(time) > 0:
-
         for t in time:
             word = t[0]
-            start_frame = time2frame(t[1], sr, config.step_size)
-            end_frame = time2frame(t[2], sr, config.step_size)
-            print(t[1], t[2])
+            start_frame, end_frame = adjust(y, t[1], t[2])
+            # print(t[1], t[2])
             label[start_frame:end_frame] = word
     label = dense_to_ont_hot(label, config.num_classes)
 
@@ -259,9 +256,6 @@ if __name__ == '__main__':
     #                "39.wav": [[1, 1.44, 1.92], [2, 1.96, 2.52]]
     #                }
     #
-    #
-    # train_tuples = [process_file(wave_train_dir + f, f, train_files[f], 1) for f in train_files]
-    # dump2npy(train_tuples, save_train_dir, True)
 
 
     with open('./rawdata/valid/valid.pkl', 'rb')as f:
@@ -270,17 +264,17 @@ if __name__ == '__main__':
     valid_tuples = [process_record(wave_valid_dir + f[0], f[0], f[1][1], f[1][0], 1) for f in valid_files]
     dump2npy(valid_tuples, save_valid_dir, True, True)
 
-    # train_tuples = []
-    #
-    # with open(wave_train_dir + "segment.pkl", "rb") as f:
-    #     labels = pickle.load(f)
-    #     print(labels[0])
-    # train_tuples = [process_record(wave_train_dir + f + '.wav', f, time_label) for f, time_label in labels]
-    #
-    # with open(wave_neg_train_dir + "neg-label-name.pkl", 'rb') as f:
-    #     labels = pickle.load(f)
-    # train_tuples += [process_record(wave_neg_train_dir + f + '.wav', f, []) for _, f in labels]
-    # dump2npy(train_tuples, save_train_dir, True, False)
+    train_tuples = []
+
+    with open(wave_train_dir + "segment.pkl", "rb") as f:
+        labels = pickle.load(f)
+        print(labels[0])
+    train_tuples = [process_record(wave_train_dir + f + '.wav', f, time_label) for f, time_label in labels]
+
+    with open(wave_neg_train_dir + "neg-label-name.pkl", 'rb') as f:
+        labels = pickle.load(f)
+    train_tuples += [process_record(wave_neg_train_dir + f + '.wav', f, []) for _, f in labels]
+    dump2npy(train_tuples, save_train_dir, True, False)
 
 
 
