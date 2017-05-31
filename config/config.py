@@ -23,8 +23,8 @@ class Config(object):
         self.mode = "valid"  # train,valid
         self.max_pooling_loss = False
 
-        self.model_path = './params/'
-        self.working_path = './params/'
+        self.model_path = './params//mel60/'
+        self.working_path = './params/mel60/'
         self.data_path = './data/mel60/'
         self.gpu = "0"
 

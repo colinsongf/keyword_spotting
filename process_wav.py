@@ -46,9 +46,9 @@ def test(f):
     mel_spectrogram = np.transpose(
         librosa.feature.melspectrogram(y, sr=sr, n_fft=config.fft_size, hop_length=config.step_size, power=2.,
                                        n_mels=config.num_features))
-    # mfcc = np.transpose(
-    #     librosa.feature.mfcc(y, sr=sr, n_mfcc=40, n_fft=config.fft_size, hop_length=config.step_size, power=2.,
-    #                          n_mels=config.num_features))
+    mfcc = np.transpose(
+        librosa.feature.mfcc(y, sr=sr, n_mfcc=40, n_fft=config.fft_size, hop_length=config.step_size, power=2.,
+                             n_mels=config.num_features))
 
     print(mel_spectrogram.shape)
     print(mel_spectrogram.max())
