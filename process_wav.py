@@ -121,7 +121,7 @@ def process_record(f, fname, time, correctness=None, copy=1):
             word = t[0]
             start_frame = time2frame(t[1], sr, config.step_size)
             end_frame = time2frame(t[2], sr, config.step_size)
-            # print(t[1], t[2])
+            print(t[1], t[2])
             label[start_frame:end_frame] = word
     label = dense_to_ont_hot(label, config.num_classes)
 
@@ -157,9 +157,10 @@ def dump2npy(tuples, path, keep_filename=False, keep_correctness=False):
     print(data.shape)
     print(labels.shape)
     print(seqLengths.shape)
-    np.save(path + 'wave.npy', data)
-    np.save(path + 'labels.npy', labels)
-    np.save(path + 'seqLen.npy', seqLengths)
+    np.save(path_join(path, 'wave.npy'), data)
+    np.save(path_join(path, 'labels.npy'), labels)
+    np.save(path_join(path, 'seqLen.npy'), seqLengths)
+    print('data saved in %s' % path)
     if keep_filename:
         files = [t[3] for t in tuples]
         # print(files)
@@ -266,20 +267,20 @@ if __name__ == '__main__':
     with open('./rawdata/valid/valid.pkl', 'rb')as f:
         valid_files = pickle.load(f)
 
-    valid_tuples = [process_record(wave_valid_dir + f, f, valid_files[f][1], valid_files[f][0], 1) for f in valid_files]
+    valid_tuples = [process_record(wave_valid_dir + f[0], f[0], f[1][1], f[1][0], 1) for f in valid_files]
     dump2npy(valid_tuples, save_valid_dir, True, True)
 
-    train_tuples = []
-
-    with open(wave_train_dir + "segment.pkl", "rb") as f:
-        labels = pickle.load(f)
-        print(labels[0])
-    train_tuples = [process_record(wave_train_dir + f + '.wav', f, time_label) for f, time_label in labels]
-
-    with open(wave_neg_train_dir + "neg-label-name.pkl", 'rb') as f:
-        labels = pickle.load(f)
-    train_tuples += [process_record(wave_neg_train_dir + f + '.wav', f, []) for _, f in labels]
-    dump2npy(train_tuples, save_train_dir, True, False)
+    # train_tuples = []
+    #
+    # with open(wave_train_dir + "segment.pkl", "rb") as f:
+    #     labels = pickle.load(f)
+    #     print(labels[0])
+    # train_tuples = [process_record(wave_train_dir + f + '.wav', f, time_label) for f, time_label in labels]
+    #
+    # with open(wave_neg_train_dir + "neg-label-name.pkl", 'rb') as f:
+    #     labels = pickle.load(f)
+    # train_tuples += [process_record(wave_neg_train_dir + f + '.wav', f, []) for _, f in labels]
+    # dump2npy(train_tuples, save_train_dir, True, False)
 
 
 
