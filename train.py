@@ -60,6 +60,7 @@ class Runner(object):
             check_dir(self.config.working_path)
             if self.config.mode == 'train':
                 try:
+                    best_miss_rate = 1
                     while self.epoch < self.config.max_epoch:
                         self.step += 1
                         x, y, seqLengths = self.data.next_batch()
@@ -127,6 +128,11 @@ class Runner(object):
                             print('miss rate:' + str(miss_rate))
                             print('flase_accept_rate:' + str(false_accept_rate))
 
+                            if miss_rate > best_miss_rate:
+                                best_miss_rate = miss_rate
+                                self.model.saver.save(sess,
+                                                      save_path=(path_join(self.config.working_path, 'best.ckpt')))
+
                 except KeyboardInterrupt:
                     if not DEBUG:
                         print('training shut down, the model will be save in %s' % self.config.working_path)
@@ -167,7 +173,7 @@ class Runner(object):
                 # print(prediction[0].shape)
 
 
-                ind = 25
+                ind = 1
                 np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
                 print(str(names[ind]))
                 np.save('test.npy', prediction[ind])
@@ -209,7 +215,7 @@ class Runner(object):
         return prediction
 
     def decode(self, prediction, word_interval):
-        raw = [2, 1]
+        raw = [2]
         keyword = list(raw)
         # prediction based on moving_avg,shape(t,p),sth like one-hot, but can may overlapping
         # prediction = prediction[:, 1:]
