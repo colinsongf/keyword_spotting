@@ -54,9 +54,9 @@ def test(f):
     mel_spectrogram = np.transpose(
         librosa.feature.melspectrogram(y, sr=sr, n_fft=config.fft_size, hop_length=config.step_size, power=2.,
                                        n_mels=config.num_features))
-    mfcc = np.transpose(
-        librosa.feature.mfcc(y, sr=sr, n_mfcc=40, n_fft=config.fft_size, hop_length=config.step_size, power=2.,
-                             n_mels=config.num_features))
+    # mfcc = np.transpose(
+    #     librosa.feature.mfcc(y, sr=sr, n_mfcc=40, n_fft=config.fft_size, hop_length=config.step_size, power=2.,
+    #                          n_mels=config.num_features))
 
     print(mel_spectrogram.shape)
     print(mel_spectrogram.max())
@@ -261,29 +261,29 @@ if __name__ == '__main__':
     #
     # train_tuples = [process_file(wave_train_dir + f, f, train_files[f], 1) for f in train_files]
     # dump2npy(train_tuples, save_train_dir, True)
-    #
-
-    # with open('./rawdata/valid/valid.pkl', 'rb')as f:
-    #     valid_files = pickle.load(f)
-    #
-    # valid_tuples = [process_record(wave_valid_dir + f, f, valid_files[f][1], valid_files[f][0], 1) for f in valid_files]
-    # dump2npy(valid_tuples, save_valid_dir, True, True)
-    #
-    # train_tuples = []
-    #
-    # with open(wave_train_dir + "segment.pkl", "rb") as f:
-    #     labels = pickle.load(f)
-    #     print(labels[0])
-    # train_tuples = [process_record(wave_train_dir + f + '.wav', f, time_label) for f, time_label in labels]
-    #
-    # with open(wave_neg_train_dir + "neg-label-name.pkl", 'rb') as f:
-    #     labels = pickle.load(f)
-    # train_tuples += [process_record(wave_neg_train_dir + f + '.wav', f, []) for _, f in labels]
-    # dump2npy(train_tuples, save_train_dir, True, False)
 
 
+    with open('./rawdata/valid/valid.pkl', 'rb')as f:
+        valid_files = pickle.load(f)
 
-    test(wave_train_dir + '59.wav')
+    valid_tuples = [process_record(wave_valid_dir + f, f, valid_files[f][1], valid_files[f][0], 1) for f in valid_files]
+    dump2npy(valid_tuples, save_valid_dir, True, True)
+
+    train_tuples = []
+
+    with open(wave_train_dir + "segment.pkl", "rb") as f:
+        labels = pickle.load(f)
+        print(labels[0])
+    train_tuples = [process_record(wave_train_dir + f + '.wav', f, time_label) for f, time_label in labels]
+
+    with open(wave_neg_train_dir + "neg-label-name.pkl", 'rb') as f:
+        labels = pickle.load(f)
+    train_tuples += [process_record(wave_neg_train_dir + f + '.wav', f, []) for _, f in labels]
+    dump2npy(train_tuples, save_train_dir, True, False)
+
+
+
+    # test(wave_train_dir + '59.wav')
     #
     # a = linear2mel(audio2linear(librosa.load(wave_train_dir + '1.wav', sr=samplerate)[0]))
     # b = np.load('mel.npy')

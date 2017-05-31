@@ -48,7 +48,7 @@ class Runner(object):
         print('fuck')
         with tf.Session(graph=self.model.graph) as sess:
             # restore from stored models
-            files = glob(self.config.model_path + '*.ckpt.*')
+            files = glob(path_join(self.config.model_path, '*.ckpt.*'))
 
             if len(files) > 0:
                 self.model.saver.restore(sess, path_join(self.config.model_path, 'latest.ckpt'))
@@ -140,7 +140,7 @@ class Runner(object):
 
             else:
 
-                x, y, seqLengths, names = self.data.test_data()
+                x, y, seqLengths, names, valid_correctness = self.data.test_data()
 
                 # x, y, seqLengths, names = self.data.test_data(self.config.validation_size,                                                              's_F193089BC92BAFDF_你好你是傻逼吗.wav')
 
@@ -167,7 +167,7 @@ class Runner(object):
                 # print(prediction[0].shape)
 
 
-                ind = 16
+                ind = 25
                 np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
                 print(str(names[ind]))
                 np.save('test.npy', prediction[ind])
@@ -184,7 +184,7 @@ class Runner(object):
                 print('-----', self.decode(prediction[ind], self.config.word_interval))
 
                 result = [self.decode(p, self.config.word_interval) for p in prediction]
-                miss, target, false_accept = self.correctness(result)
+                miss, target, false_accept = self.correctness(result, valid_correctness)
                 print('miss rate:' + str(miss / target))
                 print('flase_accept_rate:' + str(false_accept))
 
