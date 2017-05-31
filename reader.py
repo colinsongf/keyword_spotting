@@ -13,6 +13,7 @@
 """
 import numpy as np
 from tensorflow.python.framework import dtypes
+from utils.common import path_join
 import pickle
 import os
 
@@ -126,8 +127,8 @@ class DataSet(object):
 
 def read_dataset(config, dtype=dtypes.float32):
     data_dir = config.data_path
-    save_train_dir = os.path.join(data_dir, 'train/')
-    save_valid_dir = os.path.join(data_dir, 'valid/')
+    save_train_dir = path_join(data_dir, 'train/')
+    save_valid_dir = path_join(data_dir, 'valid/')
 
     train_wave = None
     train_label = None

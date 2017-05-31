@@ -17,7 +17,7 @@ from config.config import get_config
 from glob2 import glob
 import os
 import pickle
-from utils.common import check_dir
+from utils.common import check_dir, path_join
 
 config = get_config()
 import matplotlib.pyplot as plt
@@ -26,8 +26,8 @@ wave_train_dir = './rawdata/HelloLeLe824/'
 wave_neg_train_dir = './rawdata/neg_wav/'
 wave_valid_dir = './rawdata/valid/'
 
-save_train_dir = os.path.join(config.data_path, 'train/')
-save_valid_dir = os.path.join(config.data_path, 'valid/')
+save_train_dir = path_join(config.data_path, 'train/')
+save_valid_dir = path_join(config.data_path, 'valid/')
 
 check_dir(save_train_dir)
 check_dir(save_valid_dir)
@@ -260,8 +260,6 @@ if __name__ == '__main__':
 
     valid_tuples = [process_record(wave_valid_dir + f, f, valid_files[f][1], valid_files[f][0], 1) for f in valid_files]
     dump2npy(valid_tuples, save_valid_dir, True, True)
-
-
 
     train_tuples = []
 

@@ -28,7 +28,7 @@ from models.dynamic_rnn import DRNN
 from reader import read_dataset
 import argparse
 import time
-from utils.common import check_dir
+from utils.common import check_dir, path_join
 
 DEBUG = False
 
@@ -51,7 +51,7 @@ class Runner(object):
             files = glob(self.config.model_path + '*.ckpt.*')
 
             if len(files) > 0:
-                self.model.saver.restore(sess, os.path.join(self.config.model_path, 'latest.ckpt'))
+                self.model.saver.restore(sess, path_join(self.config.model_path, 'latest.ckpt'))
                 print(('Model restored from:' + self.config.model_path))
             else:
                 print("Model doesn't exist.\nInitializing........")
@@ -127,12 +127,12 @@ class Runner(object):
                 except KeyboardInterrupt:
                     if not DEBUG:
                         print('training shut down, the model will be save in %s' % self.config.working_path)
-                        self.model.saver.save(sess, save_path=(os.path.join(self.config.working_path, 'latest.ckpt')))
+                        self.model.saver.save(sess, save_path=(path_join(self.config.working_path, 'latest.ckpt')))
 
                 if not DEBUG:
                     print('training finished, total epoch %d, the model will be save in %s' % (
                         self.epoch, self.config.working_path))
-                    self.model.saver.save(sess, save_path=(os.path.join(self.config.working_path, 'latest.ckpt')))
+                    self.model.saver.save(sess, save_path=(path_join(self.config.working_path, 'latest.ckpt')))
                     print('total time:%f hours' % ((time.time() - st_time) / 3600))
 
             else:
