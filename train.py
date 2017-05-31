@@ -209,7 +209,7 @@ class Runner(object):
         return prediction
 
     def decode(self, prediction, word_interval):
-        raw = [2]
+        raw = [2, 1]
         keyword = list(raw)
         # prediction based on moving_avg,shape(t,p),sth like one-hot, but can may overlapping
         # prediction = prediction[:, 1:]
