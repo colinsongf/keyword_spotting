@@ -89,7 +89,7 @@ class Runner(object):
                             false_count = 0
                             target_count = 0
 
-                            for x, y, seqLengths in self.data.validate():
+                            for x, y, seqLengths, valid_correctness in self.data.validate():
                                 _, logits, labels, seqLen = sess.run(
                                     [self.model.optimizer, self.model.softmax, self.model.labels,
                                      self.model.seqLengths],
@@ -112,7 +112,7 @@ class Runner(object):
                                 # print(prediction[0].shape)
 
                                 result = [self.decode(p, self.config.word_interval) for p in prediction]
-                                miss, target, false_accept = self.correctness(result)
+                                miss, target, false_accept = self.correctness(result, valid_correctness)
 
                                 miss_count += miss
                                 target_count += target
@@ -184,9 +184,9 @@ class Runner(object):
                 print('-----', self.decode(prediction[ind], self.config.word_interval))
 
                 result = [self.decode(p, self.config.word_interval) for p in prediction]
-                miss_rate, false_accept_rate = self.correctness(result)
-                print('miss rate:' + str(miss_rate))
-                print('flase_accept_rate:' + str(false_accept_rate))
+                miss, target, false_accept = self.correctness(result)
+                print('miss rate:' + str(miss / target))
+                print('flase_accept_rate:' + str(false_accept))
 
     def prediction(self, moving_avg, threshold, lockout, f=None):
         if f is not None:
@@ -265,12 +265,7 @@ class Runner(object):
 
         return 0
 
-    def correctness(self, result, target=None):
-        target = [1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-                  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-
-        while len(target) < len(result):
-            target.append(0)
+    def correctness(self, result, target):
         assert len(result) == len(target)
         print(target)
         print(result)

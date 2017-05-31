@@ -26,7 +26,7 @@ def dense_to_ont_hot(labels_dense, num_classes):
 
 
 class DataSet(object):
-    def __init__(self, config, valid_wave, valid_labels, valid_seqLength, valid_name,
+    def __init__(self, config, valid_wave, valid_labels, valid_seqLength, valid_name, valid_correctness,
                  mode='train', train_wave=None, train_label=None, train_seqLength=None):
         self.config = config
         if mode == 'train':
@@ -46,6 +46,7 @@ class DataSet(object):
         self.vi_labels = valid_labels
         self.vi_seqLength = valid_seqLength
         self.valid_name = valid_name
+        self.valid_correctness = valid_correctness
         self._epochs_completed = 0
         self._index_in_epoch = 0
 
@@ -76,13 +77,15 @@ class DataSet(object):
         else:
             perm = np.arange(self.config.batch_size)
             return self.vi_wave[perm], self.vi_labels[perm], \
-                   self.vi_seqLength[perm], self.valid_name[:self.config.batch_size]
+                   self.vi_seqLength[perm], self.valid_name[:self.config.batch_size], \
+                   self.valid_correctness[:self.config.batch_size]
 
     def validate(self):
         for i in range(self.validation_size // self.config.batch_size):
             yield self.vi_wave[i * self.config.batch_size: (i + 1) * self.config.batch_size], \
                   self.vi_labels[i * self.config.batch_size: (i + 1) * self.config.batch_size], \
-                  self.vi_seqLength[i * self.config.batch_size: (i + 1) * self.config.batch_size]
+                  self.vi_seqLength[i * self.config.batch_size: (i + 1) * self.config.batch_size], \
+                  self.valid_correctness[i * self.config.batch_size: (i + 1) * self.config.batch_size]
 
     def next_batch(self, shuffle=True):
 
@@ -133,11 +136,13 @@ def read_dataset(config, dtype=dtypes.float32):
     valid_seqLen = np.load(save_valid_dir + 'seqLen.npy')
     with open(save_valid_dir + 'filename.pkl', 'rb') as fs:
         valid_name = pickle.load(fs)
+    with open(save_valid_dir + 'correctness.pkl', 'rb') as fs:
+        valid_correctness = pickle.load(fs)
     # print(wave.shape)
     # print(label.shape)
     # labels = np.asarray([dense_to_ont_hot(l, config.num_classes) for l in label])
     return DataSet(config=config, train_wave=train_wave, train_label=train_label, train_seqLength=train_seqLen,
-                   mode=config.mode,
+                   mode=config.mode, valid_correctness=valid_correctness,
                    valid_wave=valid_wave, valid_labels=valid_label, valid_seqLength=valid_seqLen, valid_name=valid_name)
 
 # x = np.asarray([1, 2, 3, 4, 5])
