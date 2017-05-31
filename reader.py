@@ -52,16 +52,6 @@ class DataSet(object):
         self.valid_name_dict = {}
         for i, name in enumerate(valid_name):
             self.valid_name_dict[name] = i
-        if len(valid_wave) < config.batch_size:
-            self.vi_wave = self.padding(self.vi_wave, config.batch_size)
-            self.vi_labels = self.padding(self.vi_labels, config.batch_size)
-            self.vi_seqLength = self.padding(self.vi_seqLength, config.batch_size)
-            self.valid_name += [''] * (config.batch_size - len(valid_wave))
-
-            # print(self.vi_wave.shape)
-            # print(self.vi_label.shape)
-            # print(self.vi_seqLength.shape)
-            # print(len(self.valid_name))
 
     def padding(self, array, target_size):
         pad_num = target_size - len(array)
@@ -150,8 +140,6 @@ def read_dataset(config, dtype=dtypes.float32):
                    mode=config.mode,
                    valid_wave=valid_wave, valid_labels=valid_label, valid_seqLength=valid_seqLen, valid_name=valid_name)
 
-
-read_dataset(True)
 # x = np.asarray([1, 2, 3, 4, 5])
 # y = dense_to_ont_hot(x, 8)
 # print(y)

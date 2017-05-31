@@ -87,6 +87,7 @@ class Runner(object):
 
                             miss_count = 0
                             false_count = 0
+                            target_count = 0
 
                             for x, y, seqLengths in self.data.validate():
                                 _, logits, labels, seqLen = sess.run(
@@ -111,13 +112,15 @@ class Runner(object):
                                 # print(prediction[0].shape)
 
                                 result = [self.decode(p, self.config.word_interval) for p in prediction]
-                                miss, false_accept = self.correctness(result)
+                                miss, target, false_accept = self.correctness(result)
 
                                 miss_count += miss
+                                target_count += target
                                 false_count += false_accept
                                 # print(miss_count, false_count)
-                            miss_rate = miss_count
-                            false_accept_rate = false_count
+
+                            miss_rate = miss_count / target_count
+                            false_accept_rate = false_count / self.config.validation_size
                             print('--------------------------------')
                             print('epoch %d' % self.epoch)
                             print('loss:' + str(l))
@@ -271,10 +274,10 @@ class Runner(object):
         assert len(result) == len(target)
         print(target)
         print(result)
-        xor = map(lambda a, b: a ^ b, target, result)
-        miss = sum(map(lambda a, b: a & b, xor, target))
-        false_accept = sum(map(lambda a, b: a & b, xor, target))
-        return miss / sum(target), false_accept
+        xor = [a ^ b for a, b in zip(target, result)]
+        miss = sum([a & b for a, b in zip(xor, target)])
+        false_accept = sum([a & b for a, b in zip(xor, result)])
+        return miss, sum(target), false_accept
 
     def accuracy(self, prediction, label, latency):
         # for one record
