@@ -23,9 +23,10 @@ class Config(object):
         self.mode = "valid"  # train,valid
         self.max_pooling_loss = False
 
-        self.model_path = './params/mel60/'
-        self.working_path = './params/mel60/'
-        self.data_path = './data/mel60/'
+        self.model_path = './params/mfcc/'
+        self.working_path = './params/mfcc/'
+        self.data_path = './data/mfcc/'
+        # self.data_path = './test/data/azure_garbage/'
         self.gpu = "0"
 
         self.fft_size = 400
@@ -46,12 +47,11 @@ class Config(object):
         self.keep_prob = 1.0
         self.grad_clip = -1
         self.lr_decay = 0.5
-        self.batch_size = 64
-        self.validation_size = 64
-        self.trigger_threshold = 0.7  # between (0,1), but this param is somehow arbitrary
+        self.batch_size = 32
+        self.trigger_threshold = 0.5  # between (0,1), but this param is somehow arbitrary
 
         # these three sizes are frames, which depend on STFT frame size
-        self.smoothing_window = 15
+        self.smoothing_window = 9
         self.latency = 30
         self.word_interval = 50
         self.lockout = 50

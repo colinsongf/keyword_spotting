@@ -40,7 +40,7 @@ class DataSet(object):
 
         self.validation_size = len(valid_wave)
         print(self.validation_size)
-        assert (self.validation_size % config.batch_size == 0)
+        # assert (self.validation_size % config.batch_size == 0)
 
         self.vi_wave = valid_wave
         self.vi_labels = valid_labels
@@ -85,7 +85,8 @@ class DataSet(object):
             yield self.vi_wave[i * self.config.batch_size: (i + 1) * self.config.batch_size], \
                   self.vi_labels[i * self.config.batch_size: (i + 1) * self.config.batch_size], \
                   self.vi_seqLength[i * self.config.batch_size: (i + 1) * self.config.batch_size], \
-                  self.valid_correctness[i * self.config.batch_size: (i + 1) * self.config.batch_size]
+                  self.valid_correctness[i * self.config.batch_size: (i + 1) * self.config.batch_size], \
+                  self.valid_name[i * self.config.batch_size: (i + 1) * self.config.batch_size]
 
     def next_batch(self, shuffle=True):
 

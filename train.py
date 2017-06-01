@@ -98,7 +98,7 @@ class Runner(object):
                                                self.model.seqLengths: seqLengths})
 
                                 for i, logit in enumerate(logits):
-                                    logits[seqLen[i]:] = 0
+                                    logit[seqLen[i]:] = 0
 
                                 # print(len(logits), len(labels), len(seqLen))
 
@@ -145,54 +145,109 @@ class Runner(object):
                     print('total time:%f hours' % ((time.time() - st_time) / 3600))
 
             else:
+                miss_count = 0
+                false_count = 0
+                target_count = 0
+                total_count = 0
 
-                x, y, seqLengths, names, valid_correctness = self.data.test_data()
+                iter = 0
+                for x, y, seqLengths, valid_correctness, names in self.data.validate():
+                    # print(names)
+                    iter += 1
+                    # if iter > 1:
+                    #     break
+                    _, logits, labels, seqLen = sess.run(
+                        [self.model.optimizer, self.model.softmax, self.model.labels,
+                         self.model.seqLengths],
+                        feed_dict={self.model.inputX: x, self.model.inputY: y,
+                                   self.model.seqLengths: seqLengths})
+                    total_count += len(logits)
+                    for i, logit in enumerate(logits):
+                        logit[seqLen[i]:] = 0
 
-                # x, y, seqLengths, names = self.data.test_data(self.config.validation_size,                                                              's_F193089BC92BAFDF_你好你是傻逼吗.wav')
+                    # print(len(logits), len(labels), len(seqLen))
 
-                # print(len(seqLengths))
+                    moving_average = [
+                        self.moving_average(record, self.config.smoothing_window, padding=True)
+                        for record in logits]
 
-                _, logits, labels, seqLen = sess.run(
-                    [self.model.optimizer, self.model.softmax, self.model.labels, self.model.seqLengths],
-                    feed_dict={self.model.inputX: x, self.model.inputY: y,
-                               self.model.seqLengths: seqLengths})
-                # logits, labels = map((lambda a: a[:8]), (logits, labels))
-                for i, logit in enumerate(logits):
-                    logit[seqLen[i]:, :] = 0
+                    # print(moving_average[0].shape)
+                    prediction = [
+                        self.prediction(moving_avg, self.config.trigger_threshold, self.config.lockout)
+                        for moving_avg in moving_average]
+                    # print(prediction[0].shape)
 
-                print(len(logits), len(labels), len(seqLen))
+                    result = [self.decode(p, self.config.word_interval) for p in prediction]
+                    miss, target, false_accept = self.correctness(result, valid_correctness)
 
-                moving_average = [self.moving_average(record, self.config.smoothing_window, padding=True)
-                                  for record in logits]
+                    miss_count += miss
+                    target_count += target
+                    false_count += false_accept
+                    ind =8
+                    np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
+                    print(str(names[ind]))
 
-                # print(len(moving_average))
+                    with open('logits.txt', 'w') as f:
+                        f.write(str(logits[ind]))
+                    with open('moving_avg.txt', 'w') as f:
+                        f.write(str(moving_average[ind]))
+                    with open('trigger.txt', 'w') as f:
+                        f.write(str(prediction[ind]))
+                    with open('label.txt', 'w') as f:
+                        f.write(str([labels[ind]]))
 
-                prediction = [
-                    self.prediction(moving_avg, self.config.trigger_threshold, self.config.lockout, names[i])
-                    for i, moving_avg in enumerate(moving_average)]
-                # print(prediction[0].shape)
+                # miss_rate = miss_count / target_count
+                # false_accept_rate = false_count / total_count
+                print('--------------------------------')
+                print('miss rate: %d/%d' % (miss_count, target_count))
+                print('flase_accept_rate: %d/%d' % (false_count, total_count))
 
 
-                ind = 1
-                np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
-                print(str(names[ind]))
-                np.save('test.npy', prediction[ind])
-
-                with open('logits.txt', 'w') as f:
-                    f.write(str(logits[ind]))
-                with open('moving_avg.txt', 'w') as f:
-                    f.write(str(moving_average[ind]))
-                with open('trigger.txt', 'w') as f:
-                    f.write(str(prediction[ind]))
-                with open('label.txt', 'w') as f:
-                    f.write(str([labels[ind]]))
-
-                print('-----', self.decode(prediction[ind], self.config.word_interval))
-
-                result = [self.decode(p, self.config.word_interval) for p in prediction]
-                miss, target, false_accept = self.correctness(result, valid_correctness)
-                print('miss rate:' + str(miss / target))
-                print('flase_accept_rate:' + str(false_accept))
+                # x, y, seqLengths, names, valid_correctness = self.data.validate()
+                #
+                #
+                # _, logits, labels, seqLen = sess.run(
+                #     [self.model.optimizer, self.model.softmax, self.model.labels, self.model.seqLengths],
+                #     feed_dict={self.model.inputX: x, self.model.inputY: y,
+                #                self.model.seqLengths: seqLengths})
+                #
+                #
+                # for i, logit in enumerate(logits):
+                #     logit[seqLen[i]:, :] = 0
+                #
+                # print(len(logits), len(labels), len(seqLen))
+                #
+                # moving_average = [self.moving_average(record, self.config.smoothing_window, padding=True)
+                #                   for record in logits]
+                #
+                # # print(len(moving_average))
+                #
+                # prediction = [
+                #     self.prediction(moving_avg, self.config.trigger_threshold, self.config.lockout, names[i])
+                #     for i, moving_avg in enumerate(moving_average)]
+                # # print(prediction[0].shape)
+                #
+                #
+                # ind = 28
+                # np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
+                # print(str(names[ind]))
+                # np.save('test.npy', prediction[ind])
+                #
+                # with open('logits.txt', 'w') as f:
+                #     f.write(str(logits[ind]))
+                # with open('moving_avg.txt', 'w') as f:
+                #     f.write(str(moving_average[ind]))
+                # with open('trigger.txt', 'w') as f:
+                #     f.write(str(prediction[ind]))
+                # with open('label.txt', 'w') as f:
+                #     f.write(str([labels[ind]]))
+                #
+                # print('-----', self.decode(prediction[ind], self.config.word_interval))
+                #
+                # result = [self.decode(p, self.config.word_interval) for p in prediction]
+                # miss, target, false_accept = self.correctness(result, valid_correctness)
+                # print('miss rate:' + str(miss / target))
+                # print('flase_accept_rate:' + str(false_accept))
 
     def prediction(self, moving_avg, threshold, lockout, f=None):
         if f is not None:
@@ -215,7 +270,7 @@ class Runner(object):
         return prediction
 
     def decode(self, prediction, word_interval):
-        raw = [2]
+        raw = [2, 1]
         keyword = list(raw)
         # prediction based on moving_avg,shape(t,p),sth like one-hot, but can may overlapping
         # prediction = prediction[:, 1:]
