@@ -76,7 +76,7 @@ class Runner(object):
                                  self.model.masked_log_softmax],
                                 feed_dict={self.model.inputX: x, self.model.inputY: y,
                                            self.model.seqLengths: seqLengths})
-                            # print('step', self.step, xent_bg, xent_max)
+                            print('step', self.step, xent_bg, xent_max)
                             # print(max_log[0])
                             # np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
                             #
@@ -128,7 +128,7 @@ class Runner(object):
                             print('miss rate:' + str(miss_rate))
                             print('flase_accept_rate:' + str(false_accept_rate))
 
-                            if miss_rate > best_miss_rate:
+                            if miss_rate < best_miss_rate:
                                 best_miss_rate = miss_rate
                                 self.model.saver.save(sess,
                                                       save_path=(path_join(self.config.working_path, 'best.ckpt')))
