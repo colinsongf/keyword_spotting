@@ -90,7 +90,7 @@ class Runner(object):
                             false_count = 0
                             target_count = 0
 
-                            for x, y, seqLengths, valid_correctness in self.data.validate():
+                            for x, y, seqLengths, valid_correctness,names in self.data.validate():
                                 _, logits, labels, seqLen = sess.run(
                                     [self.model.optimizer, self.model.softmax, self.model.labels,
                                      self.model.seqLengths],
