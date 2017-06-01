@@ -23,9 +23,9 @@ class Config(object):
         self.mode = "valid"  # train,valid
         self.max_pooling_loss = False
 
-        self.model_path = './params/mfcc/'
-        self.working_path = './params/mfcc/'
-        self.data_path = './data/mfcc/'
+        self.model_path = './params/mel60/'
+        self.working_path = './params/mel60/'
+        self.data_path = './data/mel60/'
         # self.data_path = './test/data/azure_garbage/'
         self.gpu = "0"
 
