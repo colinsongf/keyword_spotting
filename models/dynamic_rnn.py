@@ -27,7 +27,6 @@ import tensorflow.python.training.moving_averages
 
 from utils.common import describe
 
-
 cell_fn = core_rnn_cell_impl.LSTMCell
 
 
@@ -55,10 +54,15 @@ class DRNN(object):
             outputs = self.build_multi_dynamic_brnn(config, self.inputX, self.seqLengths)
             with tf.name_scope('fc-layer'):
                 with tf.variable_scope('fc'):
-                    weightsClasses = tf.Variable(
-                        tf.truncated_normal([config.num_proj, config.num_classes], name='weightsClasses'))
+                    if config.use_project:
+                        weightsClasses = tf.Variable(
+                            tf.truncated_normal([config.num_proj, config.num_classes], name='weightsClasses'))
+                        flatten_outputs = tf.reshape(outputs, (-1, config.num_proj))
+                    else:
+                        weightsClasses = tf.Variable(
+                            tf.truncated_normal([config.hidden_size, config.num_classes], name='weightsClasses'))
+                        flatten_outputs = tf.reshape(outputs, (-1, config.hidden_size))
                     biasesClasses = tf.Variable(tf.zeros([config.num_classes]), name='biasesClasses')
-                    flatten_outputs = tf.reshape(outputs, (-1, config.num_proj))
                     flatten_logits = tf.matmul(flatten_outputs, weightsClasses) + biasesClasses
                     self.softmax = tf.reshape(tf.nn.softmax(flatten_logits),
                                               (config.batch_size, -1, config.num_classes))

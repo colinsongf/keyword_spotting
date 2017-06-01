@@ -42,12 +42,14 @@ class Config(object):
         self.num_classes = 3  # word+1 for background
         self.num_features = 60
         self.hidden_size = 64
-        self.num_proj = 32
+        self.use_project = False
+        self.num_proj = None
         self.max_epoch = 200
         self.keep_prob = 1.0
         self.grad_clip = -1
         self.lr_decay = 0.5
         self.batch_size = 32
+        self.validation_size = 64
         self.trigger_threshold = 0.5  # between (0,1), but this param is somehow arbitrary
 
         # these three sizes are frames, which depend on STFT frame size
