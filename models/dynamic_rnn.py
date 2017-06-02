@@ -129,7 +129,8 @@ class DRNN(object):
                        use_peepholes=True,
                        cell_clip=config.cell_clip,
                        initializer=None,
-                       num_proj=config.num_proj, proj_clip=None,
+                       num_proj=config.num_proj if config.use_project else None,
+                       proj_clip=None,
                        forget_bias=1.0,
                        state_is_tuple=True,
                        activation=tf.tanh)

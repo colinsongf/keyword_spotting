@@ -43,7 +43,7 @@ class Config(object):
         self.num_features = 60
         self.hidden_size = 64
         self.use_project = False
-        self.num_proj = None
+        self.num_proj = 32
         self.max_epoch = 200
         self.keep_prob = 1.0
         self.grad_clip = -1
