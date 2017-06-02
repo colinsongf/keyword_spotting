@@ -90,9 +90,9 @@ class Runner(object):
                             false_count = 0
                             target_count = 0
 
-                            for x, y, seqLengths, valid_correctness,names in self.data.validate():
-                                _, logits, labels, seqLen = sess.run(
-                                    [self.model.optimizer, self.model.softmax, self.model.labels,
+                            for x, y, seqLengths, valid_correctness, names in self.data.validate():
+                                logits, labels, seqLen = sess.run(
+                                    [self.model.softmax, self.model.labels,
                                      self.model.seqLengths],
                                     feed_dict={self.model.inputX: x, self.model.inputY: y,
                                                self.model.seqLengths: seqLengths})
@@ -156,8 +156,8 @@ class Runner(object):
                     iter += 1
                     # if iter > 1:
                     #     break
-                    _, logits, labels, seqLen = sess.run(
-                        [self.model.optimizer, self.model.softmax, self.model.labels,
+                    logits, labels, seqLen = sess.run(
+                        [self.model.softmax, self.model.labels,
                          self.model.seqLengths],
                         feed_dict={self.model.inputX: x, self.model.inputY: y,
                                    self.model.seqLengths: seqLengths})
@@ -183,7 +183,7 @@ class Runner(object):
                     miss_count += miss
                     target_count += target
                     false_count += false_accept
-                    ind =8
+                    ind = 8
                     np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
                     print(str(names[ind]))
 
