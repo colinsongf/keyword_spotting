@@ -20,8 +20,8 @@ def get_config():
 
 class Config(object):
     def __init__(self):
-        self.mode = "valid"  # train,valid
-        self.max_pooling_loss = False
+        self.mode = "train"  # train,valid
+        self.max_pooling_loss = True
 
         self.model_path = './params/mel60/'
         self.working_path = './params/mel60/'

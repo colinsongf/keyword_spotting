@@ -36,7 +36,7 @@ DEBUG = False
 class Runner(object):
     def __init__(self, config):
         self.config = config
-        self.epoch = -1
+        self.epoch = 0
         self.step = 0
 
         self.model = DRNN(self.config)
@@ -63,6 +63,8 @@ class Runner(object):
                     best_miss_rate = 1
                     while self.epoch < self.config.max_epoch:
                         self.step += 1
+                        if self.step > 1:
+                            break
                         x, y, seqLengths = self.data.next_batch()
 
                         if not self.config.max_pooling_loss:
@@ -70,13 +72,30 @@ class Runner(object):
                                             feed_dict={self.model.inputX: x, self.model.inputY: y,
                                                        self.model.seqLengths: seqLengths})
                         else:
-                            _, l, xent_bg, xent_max, max_log = sess.run(
-                                [self.model.optimizer, self.model.loss, self.model.xent_background,
-                                 self.model.xent_max_frame,
+                            # _, l, xent_bg, xent_max, max_log = sess.run(
+                            #     [self.model.optimizer, self.model.loss, self.model.xent_background,
+                            #      self.model.xent_max_frame,
+                            #      self.model.masked_log_softmax],
+                            #     feed_dict={self.model.inputX: x, self.model.inputY: y,
+                            #                self.model.seqLengths: seqLengths})
+                            _, max_frame,bk_label,lbs,mask_softmax = sess.run(
+                                [self.model.optimizer, self.model.max_frame, self.model.background_label,
+                                 self.model.labels,
                                  self.model.masked_log_softmax],
                                 feed_dict={self.model.inputX: x, self.model.inputY: y,
                                            self.model.seqLengths: seqLengths})
-                            print('step', self.step, xent_bg, xent_max)
+                            print(mask_softmax.shape)
+                            print(max_frame.shape)
+
+                            np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
+                            with open('logits.txt', 'w') as f:
+                                f.write(str(max_frame[0]))
+                            with open('moving_avg.txt', 'w') as f:
+                                f.write(str(bk_label[0]))
+                            with open('trigger.txt', 'w') as f:
+                                f.write(str(lbs[0]))
+                            with open('label.txt', 'w') as f:
+                                f.write(str(mask_softmax[0]))
                             # print(max_log[0])
                             # np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
                             #
