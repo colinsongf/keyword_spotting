@@ -51,7 +51,7 @@ class Runner(object):
             files = glob(path_join(self.config.model_path, '*.ckpt.*'))
 
             if len(files) > 0:
-                self.model.saver.restore(sess, path_join(self.config.model_path, 'latest.ckpt'))
+                self.model.saver.restore(sess, path_join(self.config.model_path, self.config.model_name))
                 print(('Model restored from:' + self.config.model_path))
             else:
                 print("Model doesn't exist.\nInitializing........")
@@ -63,8 +63,8 @@ class Runner(object):
                     best_miss_rate = 1
                     while self.epoch < self.config.max_epoch:
                         self.step += 1
-                        if self.step > 1:
-                            break
+                        # if self.step > 1:
+                        #     break
                         x, y, seqLengths = self.data.next_batch()
 
                         if not self.config.max_pooling_loss:
@@ -78,7 +78,7 @@ class Runner(object):
                             #      self.model.masked_log_softmax],
                             #     feed_dict={self.model.inputX: x, self.model.inputY: y,
                             #                self.model.seqLengths: seqLengths})
-                            _, max_frame,bk_label,lbs,mask_softmax = sess.run(
+                            _, max_frame, bk_label, lbs, mask_softmax = sess.run(
                                 [self.model.optimizer, self.model.max_frame, self.model.background_label,
                                  self.model.labels,
                                  self.model.masked_log_softmax],
@@ -96,11 +96,11 @@ class Runner(object):
                                 f.write(str(lbs[0]))
                             with open('label.txt', 'w') as f:
                                 f.write(str(mask_softmax[0]))
-                            # print(max_log[0])
-                            # np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
-                            #
-                            # with open('logits.txt', 'w') as f:
-                            #     f.write(str(max_log[0]))
+                                # print(max_log[0])
+                                # np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
+                                #
+                                # with open('logits.txt', 'w') as f:
+                                #     f.write(str(max_log[0]))
 
                         if self.data.epochs_completed > self.epoch:
                             self.epoch += 1
@@ -140,7 +140,7 @@ class Runner(object):
                                 # print(miss_count, false_count)
 
                             miss_rate = miss_count / target_count
-                            false_accept_rate = false_count / self.config.validation_size
+                            false_accept_rate = false_count / self.data.validation_size
                             print('--------------------------------')
                             print('epoch %d' % self.epoch)
                             print('loss:' + str(l))
@@ -173,6 +173,8 @@ class Runner(object):
                 for x, y, seqLengths, valid_correctness, names in self.data.validate():
                     # print(names)
                     iter += 1
+                    # if iter != 1:
+                    #     continue
                     # if iter > 1:
                     #     break
                     logits, labels, seqLen = sess.run(
@@ -199,13 +201,14 @@ class Runner(object):
                     result = [self.decode(p, self.config.word_interval) for p in prediction]
                     miss, target, false_accept = self.correctness(result, valid_correctness)
 
+
                     miss_count += miss
                     target_count += target
                     false_count += false_accept
-                    ind = 8
+                    ind = 18
                     np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
                     print(str(names[ind]))
-
+                    print(result[ind], valid_correctness[ind])
                     with open('logits.txt', 'w') as f:
                         f.write(str(logits[ind]))
                     with open('moving_avg.txt', 'w') as f:
@@ -220,53 +223,6 @@ class Runner(object):
                 print('--------------------------------')
                 print('miss rate: %d/%d' % (miss_count, target_count))
                 print('flase_accept_rate: %d/%d' % (false_count, total_count))
-
-
-                # x, y, seqLengths, names, valid_correctness = self.data.validate()
-                #
-                #
-                # _, logits, labels, seqLen = sess.run(
-                #     [self.model.optimizer, self.model.softmax, self.model.labels, self.model.seqLengths],
-                #     feed_dict={self.model.inputX: x, self.model.inputY: y,
-                #                self.model.seqLengths: seqLengths})
-                #
-                #
-                # for i, logit in enumerate(logits):
-                #     logit[seqLen[i]:, :] = 0
-                #
-                # print(len(logits), len(labels), len(seqLen))
-                #
-                # moving_average = [self.moving_average(record, self.config.smoothing_window, padding=True)
-                #                   for record in logits]
-                #
-                # # print(len(moving_average))
-                #
-                # prediction = [
-                #     self.prediction(moving_avg, self.config.trigger_threshold, self.config.lockout, names[i])
-                #     for i, moving_avg in enumerate(moving_average)]
-                # # print(prediction[0].shape)
-                #
-                #
-                # ind = 28
-                # np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
-                # print(str(names[ind]))
-                # np.save('test.npy', prediction[ind])
-                #
-                # with open('logits.txt', 'w') as f:
-                #     f.write(str(logits[ind]))
-                # with open('moving_avg.txt', 'w') as f:
-                #     f.write(str(moving_average[ind]))
-                # with open('trigger.txt', 'w') as f:
-                #     f.write(str(prediction[ind]))
-                # with open('label.txt', 'w') as f:
-                #     f.write(str([labels[ind]]))
-                #
-                # print('-----', self.decode(prediction[ind], self.config.word_interval))
-                #
-                # result = [self.decode(p, self.config.word_interval) for p in prediction]
-                # miss, target, false_accept = self.correctness(result, valid_correctness)
-                # print('miss rate:' + str(miss / target))
-                # print('flase_accept_rate:' + str(false_accept))
 
     def prediction(self, moving_avg, threshold, lockout, f=None):
         if f is not None:
@@ -299,11 +255,11 @@ class Runner(object):
         inter = 0
 
         target = keyword.pop()
-
+        # try:
         for frame in prediction:
             if frame.sum() > 0:
-                assert frame.sum() == 1
                 if pre == 0:
+                    assert frame.sum() == 1
                     index = np.nonzero(frame)[0]
                     pre = index[0]
                     if index == target:
@@ -344,6 +300,14 @@ class Runner(object):
                     pre = 0
 
         return 0
+        # except Exception as e:
+        #
+        #     print('exception!!')
+        #     np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
+        #     with open('test.txt', 'w') as f:
+        #         f.write(str(prediction))
+        #         return 1
+
 
     def correctness(self, result, target):
         assert len(result) == len(target)
@@ -354,26 +318,6 @@ class Runner(object):
         false_accept = sum([a & b for a, b in zip(xor, result)])
         return miss, sum(target), false_accept
 
-    def accuracy(self, prediction, label, latency):
-        # for one record
-
-        label[latency:, :] = label[latency:, :] + label[:-latency, :]
-        label = np.clip(label, 0, 1)
-        correct_trigger = prediction * label
-        label_correct = 0
-        # this only work for wav that keyword only appear once
-        for i in range(1, label.shape[1]):
-            if label[:, i].sum() > 0:
-                label_correct += 1
-
-        correct_trigger_num = correct_trigger.sum()
-
-        false_accept = prediction.sum() - correct_trigger_num
-        miss = label_correct - correct_trigger_num
-
-        print('%d\t%d\t%d' % (label_correct, miss, false_accept))
-
-        return np.asanyarray([miss, false_accept])
 
     def moving_average(self, array, n=5, padding=True):
         # array is 2D array, logits for one record, shape (t,p)

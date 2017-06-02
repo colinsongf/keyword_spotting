@@ -20,12 +20,13 @@ def get_config():
 
 class Config(object):
     def __init__(self):
-        self.mode = "train"  # train,valid
+        self.mode = "valid"  # train,valid
         self.max_pooling_loss = True
 
         self.model_path = './params/mel60/'
         self.working_path = './params/mel60/'
         self.data_path = './data/mel60/'
+        self.model_name = 'latest.ckpt'
         # self.data_path = './test/data/azure_garbage/'
         self.gpu = "0"
 
@@ -49,13 +50,12 @@ class Config(object):
         self.grad_clip = -1
         self.lr_decay = 0.5
         self.batch_size = 32
-        self.validation_size = 64
-        self.trigger_threshold = 0.5  # between (0,1), but this param is somehow arbitrary
+        self.trigger_threshold = 0.40  # between (0,1), but this param is somehow arbitrary
 
         # these three sizes are frames, which depend on STFT frame size
-        self.smoothing_window = 9
+        self.smoothing_window = 5
         self.latency = 30
-        self.word_interval = 50
+        self.word_interval = 70
         self.lockout = 50
 
     def show(self):

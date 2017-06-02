@@ -101,14 +101,14 @@ def process_record(f, fname, time, correctness=None, copy=1):
 
     y, sr = librosa.load(f, sr=config.samplerate)
 
-    mel_spectrogram = np.transpose(
-        librosa.feature.melspectrogram(y, sr=sr, n_fft=config.fft_size, hop_length=config.step_size, power=2., fmin=300,
-                                       fmax=8000, n_mels=config.num_features))
-
     # mel_spectrogram = np.transpose(
-    #     librosa.feature.mfcc(y, sr=sr, n_mfcc=config.num_features, n_fft=config.fft_size, hop_length=config.step_size,
-    #                          power=2.,
-    #                          fmin=300, fmax=8000, n_mels=config.num_features))
+    #     librosa.feature.melspectrogram(y, sr=sr, n_fft=config.fft_size, hop_length=config.step_size, power=2., fmin=300,
+    #                                    fmax=8000, n_mels=config.num_features))
+
+    mel_spectrogram = np.transpose(
+        librosa.feature.mfcc(y, sr=sr, n_mfcc=config.num_features, n_fft=config.fft_size, hop_length=config.step_size,
+                             power=2.,
+                             fmin=300, fmax=8000, n_mels=config.num_features))
 
     data = np.stack([mel_spectrogram] * copy)
     # print('data shape is ', data.shape)
