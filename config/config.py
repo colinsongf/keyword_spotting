@@ -24,9 +24,9 @@ class Config(object):
         self.max_pooling_loss = True
         self.spectrogram = 'mfcc' #mfcc,mel
 
-        self.model_path = './params/mfcc/'
-        self.working_path = './params/mfcc/'
-        self.data_path = './data/mfcc/'
+        self.model_path = './params/lele_mfcc/'
+        self.working_path = './params/lele_mfcc/'
+        self.data_path = './data/lele_mfcc/'
         self.model_name = 'latest.ckpt'
         # self.data_path = './test/data/azure_garbage/'
         self.gpu = "0"
@@ -41,7 +41,7 @@ class Config(object):
         self.learning_rate = 1e-5
         self.max_grad_norm = 5
         self.num_layers = 1
-        self.num_classes = 3  # word+1 for background
+        self.num_classes = 2  # word+1 for background
         self.num_features = 60
         self.hidden_size = 64
         self.use_project = False
