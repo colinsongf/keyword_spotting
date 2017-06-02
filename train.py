@@ -72,35 +72,35 @@ class Runner(object):
                                             feed_dict={self.model.inputX: x, self.model.inputY: y,
                                                        self.model.seqLengths: seqLengths})
                         else:
-                            # _, l, xent_bg, xent_max, max_log = sess.run(
-                            #     [self.model.optimizer, self.model.loss, self.model.xent_background,
-                            #      self.model.xent_max_frame,
-                            #      self.model.masked_log_softmax],
-                            #     feed_dict={self.model.inputX: x, self.model.inputY: y,
-                            #                self.model.seqLengths: seqLengths})
-                            _, max_frame, bk_label, lbs, mask_softmax = sess.run(
-                                [self.model.optimizer, self.model.max_frame, self.model.background_label,
-                                 self.model.labels,
+                            _, l, xent_bg, xent_max, max_log = sess.run(
+                                [self.model.optimizer, self.model.loss, self.model.xent_background,
+                                 self.model.xent_max_frame,
                                  self.model.masked_log_softmax],
                                 feed_dict={self.model.inputX: x, self.model.inputY: y,
                                            self.model.seqLengths: seqLengths})
-                            print(mask_softmax.shape)
-                            print(max_frame.shape)
+                            # _, max_frame, bk_label, lbs, mask_softmax = sess.run(
+                            #     [self.model.optimizer, self.model.max_frame, self.model.background_label,
+                            #      self.model.labels,
+                            #      self.model.masked_log_softmax],
+                            #     feed_dict={self.model.inputX: x, self.model.inputY: y,
+                            #                self.model.seqLengths: seqLengths})
+                            # print(mask_softmax.shape)
+                            # print(max_frame.shape)
+                            # np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
+                            # with open('logits.txt', 'w') as f:
+                            #     f.write(str(max_frame[0]))
+                            # with open('moving_avg.txt', 'w') as f:
+                            #     f.write(str(bk_label[0]))
+                            # with open('trigger.txt', 'w') as f:
+                            #     f.write(str(lbs[0]))
+                            # with open('label.txt', 'w') as f:
+                            #     f.write(str(mask_softmax[0]))
 
-                            np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
-                            with open('logits.txt', 'w') as f:
-                                f.write(str(max_frame[0]))
-                            with open('moving_avg.txt', 'w') as f:
-                                f.write(str(bk_label[0]))
-                            with open('trigger.txt', 'w') as f:
-                                f.write(str(lbs[0]))
-                            with open('label.txt', 'w') as f:
-                                f.write(str(mask_softmax[0]))
-                                # print(max_log[0])
-                                # np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
-                                #
-                                # with open('logits.txt', 'w') as f:
-                                #     f.write(str(max_log[0]))
+                            print(xent_bg, xent_max)
+                            # np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
+
+                            # with open('logits.txt', 'w') as f:
+                            #     f.write(str(max_log[0]))
 
                         if self.data.epochs_completed > self.epoch:
                             self.epoch += 1
@@ -173,10 +173,11 @@ class Runner(object):
                 for x, y, seqLengths, valid_correctness, names in self.data.validate():
                     # print(names)
                     iter += 1
-                    # if iter != 1:
-                    #     continue
-                    # if iter > 1:
-                    #     break
+                    if iter != 1:
+                        continue
+                    ind = 4
+                    np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
+                    print(str(names[ind]))
                     logits, labels, seqLen = sess.run(
                         [self.model.softmax, self.model.labels,
                          self.model.seqLengths],
@@ -187,7 +188,10 @@ class Runner(object):
                         logit[seqLen[i]:] = 0
 
                     # print(len(logits), len(labels), len(seqLen))
-
+                    with open('logits.txt', 'w') as f:
+                        f.write(str(logits[ind]))
+                    with open('label.txt', 'w') as f:
+                        f.write(str([labels[ind]]))
                     moving_average = [
                         self.moving_average(record, self.config.smoothing_window, padding=True)
                         for record in logits]
@@ -198,6 +202,9 @@ class Runner(object):
                         for moving_avg in moving_average]
                     # print(prediction[0].shape)
 
+
+                    with open('trigger.txt', 'w') as f:
+                        f.write(str(prediction[ind]))
                     result = [self.decode(p, self.config.word_interval) for p in prediction]
                     miss, target, false_accept = self.correctness(result, valid_correctness)
 
@@ -205,18 +212,14 @@ class Runner(object):
                     miss_count += miss
                     target_count += target
                     false_count += false_accept
-                    ind = 18
-                    np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
-                    print(str(names[ind]))
+
+
+
                     print(result[ind], valid_correctness[ind])
-                    with open('logits.txt', 'w') as f:
-                        f.write(str(logits[ind]))
                     with open('moving_avg.txt', 'w') as f:
                         f.write(str(moving_average[ind]))
-                    with open('trigger.txt', 'w') as f:
-                        f.write(str(prediction[ind]))
-                    with open('label.txt', 'w') as f:
-                        f.write(str([labels[ind]]))
+
+
 
                 # miss_rate = miss_count / target_count
                 # false_accept_rate = false_count / total_count

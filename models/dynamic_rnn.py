@@ -91,7 +91,6 @@ class DRNN(object):
 
             self.max_pooling_loss = self.xent_background + self.xent_max_frame
 
-            self.var_op = tf.global_variables()
             self.var_trainable_op = tf.trainable_variables()
 
             if config.max_pooling_loss:
