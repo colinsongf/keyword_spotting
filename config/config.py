@@ -21,13 +21,13 @@ def get_config():
 class Config(object):
     def __init__(self):
         self.mode = "train"  # train,valid
-        self.max_pooling_loss = True
+        self.max_pooling_loss = False
         self.spectrogram = 'mfcc' #mfcc,mel
 
         self.model_path = './params/lele_mfcc/'
         self.working_path = './params/lele_mfcc/'
         self.data_path = './data/lele_mfcc/'
-        self.model_name = 'latest.ckpt'
+        self.model_name = 'best.ckpt'
         # self.data_path = './test/data/azure_garbage/'
         self.gpu = "0"
 
@@ -38,7 +38,7 @@ class Config(object):
         self.cell_clip = 3.
         self.num_layers = 1
         self.init_scale = 0.1
-        self.learning_rate = 1e-5
+        self.learning_rate = 5e-5
         self.max_grad_norm = 5
         self.num_layers = 1
         self.num_classes = 2  # word+1 for background
@@ -46,12 +46,12 @@ class Config(object):
         self.hidden_size = 64
         self.use_project = False
         self.num_proj = 32
-        self.max_epoch = 50
+        self.max_epoch = 200
         self.keep_prob = 1.0
         self.grad_clip = -1
         self.lr_decay = 0.5
         self.batch_size = 32
-        self.trigger_threshold = 0.4  # between (0,1), but this param is somehow arbitrary
+        self.trigger_threshold = 0.7  # between (0,1), but this param is somehow arbitrary
 
         # these three sizes are frames, which depend on STFT frame size
         self.smoothing_window = 5

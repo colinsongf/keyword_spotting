@@ -22,8 +22,7 @@ from utils.common import check_dir, path_join
 config = get_config()
 import matplotlib.pyplot as plt
 
-wave_train_dir = './rawdata/HelloLeLe824/'
-wave_neg_train_dir = './rawdata/neg_wav/'
+wave_train_dir = './rawdata/train/'
 wave_valid_dir = './rawdata/valid/'
 
 save_train_dir = path_join(config.data_path, 'train/')
@@ -203,9 +202,9 @@ if __name__ == '__main__':
         print(labels[0])
     train_tuples = [process_record(wave_train_dir + f + '.wav', f, time_label) for f, time_label in labels]
 
-    with open(wave_neg_train_dir + "neg-label-name.pkl", 'rb') as f:
+    with open(wave_train_dir + "neg_lele.pkl", 'rb') as f:
         labels = pickle.load(f)
-    train_tuples += [process_record(wave_neg_train_dir + f + '.wav', f, []) for _, f in labels]
+    train_tuples += [process_record(wave_train_dir + f + '.wav', f, []) for _, f in labels]
     dump2npy(train_tuples, save_train_dir, True, False)
 
     # test_data()

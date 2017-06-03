@@ -36,7 +36,7 @@ DEBUG = False
 class Runner(object):
     def __init__(self, config):
         self.config = config
-        self.epoch = 0
+        self.epoch = -1
         self.step = 0
 
         self.model = DRNN(self.config)
@@ -156,12 +156,14 @@ class Runner(object):
                     if not DEBUG:
                         print('training shut down, the model will be save in %s' % self.config.working_path)
                         self.model.saver.save(sess, save_path=(path_join(self.config.working_path, 'latest.ckpt')))
+                        print('best miss rate:%f' % best_miss_rate)
 
                 if not DEBUG:
                     print('training finished, total epoch %d, the model will be save in %s' % (
                         self.epoch, self.config.working_path))
                     self.model.saver.save(sess, save_path=(path_join(self.config.working_path, 'latest.ckpt')))
                     print('total time:%f hours' % ((time.time() - st_time) / 3600))
+                    print('best miss rate:%f' % best_miss_rate)
 
             else:
                 miss_count = 0
@@ -173,9 +175,9 @@ class Runner(object):
                 for x, y, seqLengths, valid_correctness, names in self.data.validate():
                     # print(names)
                     iter += 1
-                    # if iter != 1:
-                    #     continue
-                    ind = 12
+                    if iter != 1:
+                        continue
+                    ind = 6
                     np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
                     print(str(names[ind]))
                     logits, labels, seqLen = sess.run(
@@ -208,18 +210,13 @@ class Runner(object):
                     result = [self.decode(p, self.config.word_interval) for p in prediction]
                     miss, target, false_accept = self.correctness(result, valid_correctness)
 
-
                     miss_count += miss
                     target_count += target
                     false_count += false_accept
 
-
-
                     print(result[ind], valid_correctness[ind])
                     with open('moving_avg.txt', 'w') as f:
                         f.write(str(moving_average[ind]))
-
-
 
                 # miss_rate = miss_count / target_count
                 # false_accept_rate = false_count / total_count
@@ -311,7 +308,6 @@ class Runner(object):
         #         f.write(str(prediction))
         #         return 1
 
-
     def correctness(self, result, target):
         assert len(result) == len(target)
         print(target)
@@ -320,7 +316,6 @@ class Runner(object):
         miss = sum([a & b for a, b in zip(xor, target)])
         false_accept = sum([a & b for a, b in zip(xor, result)])
         return miss, sum(target), false_accept
-
 
     def moving_average(self, array, n=5, padding=True):
         # array is 2D array, logits for one record, shape (t,p)
