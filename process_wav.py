@@ -200,11 +200,11 @@ if __name__ == '__main__':
     with open(wave_train_dir + "segment_lele.pkl", "rb") as f:
         labels = pickle.load(f)
         print(labels[0])
-    train_tuples = [process_record(wave_train_dir + f + '.wav', f, time_label) for f, time_label in labels]
+    train_tuples = [process_record(wave_train_dir + f, f, time_label) for f, time_label in labels]
 
     with open(wave_train_dir + "neg_lele.pkl", 'rb') as f:
         labels = pickle.load(f)
-    train_tuples += [process_record(wave_train_dir + f + '.wav', f, []) for _, f in labels]
+    train_tuples += [process_record(wave_train_dir + f, f, []) for f, _ in labels]
     dump2npy(train_tuples, save_train_dir, True, False)
 
     # test_data()
