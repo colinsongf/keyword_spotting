@@ -80,11 +80,13 @@ class DRNN(object):
             self.masked_log_softmax = self.crop_log_softmax * self.crop_labels
             self.segment_len = tf.count_nonzero(self.masked_log_softmax, 1,
                                                 dtype=tf.float32)  # shape (batchsize,class_num)
-            self.max_frame = tf.reduce_max(self.masked_log_softmax,1)  # shape (batchsize,class_num)
-            self.xent_max_frame = tf.reduce_sum(self.max_frame)
+            self.max_frame = tf.reduce_max(self.masked_log_softmax, 1)  # shape (batchsize,class_num)
+            self.xent_max_frame = tf.reduce_sum(self.max_frame * self.segment_len)
             self.background_log_softmax = tf.slice(self.log_softmax, [0, 0, 0], [-1, -1, 1])
             self.background_label = tf.slice(self.labels, [0, 0, 0], [-1, -1, 1])
-            self.xent_background = tf.reduce_sum(self.background_log_softmax * self.background_label)
+            self.xent_background = tf.reduce_sum(
+                tf.reduce_sum(self.background_log_softmax * self.background_label, (1, 2)) / tf.cast(self.seqLengths,
+                                                                                                     tf.float32))
 
             self.flatten_masked_softmax = tf.reshape(self.masked_log_softmax, (config.batch_size, -1))
             self.max_index = tf.arg_max(self.flatten_masked_softmax, 1)

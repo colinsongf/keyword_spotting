@@ -21,7 +21,7 @@ def get_config():
 class Config(object):
     def __init__(self):
         self.mode = "train"  # train,valid
-        self.max_pooling_loss = False
+        self.max_pooling_loss = True
         self.spectrogram = 'mfcc' #mfcc,mel
 
         self.model_path = './params/lele_mfcc/'
@@ -46,12 +46,12 @@ class Config(object):
         self.hidden_size = 64
         self.use_project = False
         self.num_proj = 32
-        self.max_epoch = 200
+        self.max_epoch = 50
         self.keep_prob = 1.0
         self.grad_clip = -1
         self.lr_decay = 0.5
         self.batch_size = 32
-        self.trigger_threshold = 0.5  # between (0,1), but this param is somehow arbitrary
+        self.trigger_threshold = 0.4  # between (0,1), but this param is somehow arbitrary
 
         # these three sizes are frames, which depend on STFT frame size
         self.smoothing_window = 5

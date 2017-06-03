@@ -96,7 +96,7 @@ class Runner(object):
                             # with open('label.txt', 'w') as f:
                             #     f.write(str(mask_softmax[0]))
 
-                            print(xent_bg, xent_max)
+                            # print(xent_bg, xent_max)
                             # np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
 
                             # with open('logits.txt', 'w') as f:
@@ -173,9 +173,9 @@ class Runner(object):
                 for x, y, seqLengths, valid_correctness, names in self.data.validate():
                     # print(names)
                     iter += 1
-                    if iter != 1:
-                        continue
-                    ind = 4
+                    # if iter != 1:
+                    #     continue
+                    ind = 12
                     np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
                     print(str(names[ind]))
                     logits, labels, seqLen = sess.run(
