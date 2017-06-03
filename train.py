@@ -140,14 +140,14 @@ class Runner(object):
                                 # print(miss_count, false_count)
 
                             miss_rate = miss_count / target_count
-                            false_accept_rate = false_count / self.data.validation_size
+                            false_accept_rate = false_count / (self.data.validation_size - target_count)
                             print('--------------------------------')
                             print('epoch %d' % self.epoch)
                             print('loss:' + str(l))
                             print('miss rate:' + str(miss_rate))
                             print('flase_accept_rate:' + str(false_accept_rate))
 
-                            if miss_rate < best_miss_rate:
+                            if miss_rate + false_accept_rate < best_miss_rate:
                                 best_miss_rate = miss_rate
                                 self.model.saver.save(sess,
                                                       save_path=(path_join(self.config.working_path, 'best.ckpt')))
