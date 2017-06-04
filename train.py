@@ -60,7 +60,7 @@ class Runner(object):
             check_dir(self.config.working_path)
             if self.config.mode == 'train':
                 try:
-                    best_miss_rate = 1
+                    best = 1
                     while self.epoch < self.config.max_epoch:
                         self.step += 1
                         # if self.step > 1:
@@ -147,8 +147,8 @@ class Runner(object):
                             print('miss rate:' + str(miss_rate))
                             print('flase_accept_rate:' + str(false_accept_rate))
 
-                            if miss_rate + false_accept_rate < best_miss_rate:
-                                best_miss_rate = miss_rate
+                            if miss_rate + false_accept_rate < best:
+                                best = miss_rate + false_accept_rate
                                 self.model.saver.save(sess,
                                                       save_path=(path_join(self.config.working_path, 'best.ckpt')))
 
@@ -163,7 +163,7 @@ class Runner(object):
                         self.epoch, self.config.working_path))
                     self.model.saver.save(sess, save_path=(path_join(self.config.working_path, 'latest.ckpt')))
                     print('total time:%f hours' % ((time.time() - st_time) / 3600))
-                    print('best miss rate:%f' % best_miss_rate)
+                    print('best miss rate:%f' % best)
 
             else:
                 miss_count = 0
