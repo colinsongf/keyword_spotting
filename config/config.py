@@ -22,12 +22,14 @@ class Config(object):
     def __init__(self):
         self.mode = "train"  # train,valid
         self.max_pooling_loss = False
-        self.spectrogram = 'mfcc' #mfcc,mel
+        self.spectrogram = 'mfcc'  # mfcc,mel
 
         self.model_path = './params/lele_mfcc/'
         self.working_path = './params/lele_mfcc/'
         self.data_path = './data/lele_mfcc/'
+        # self.data_path = '/ssd/liuziqi/lele_mfcc/'
         self.model_name = 'best.ckpt'
+        self.rawdata_path = './rawdata/'
         # self.data_path = './test/data/azure_garbage/'
         self.gpu = "0"
 

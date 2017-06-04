@@ -22,8 +22,8 @@ from utils.common import check_dir, path_join
 config = get_config()
 import matplotlib.pyplot as plt
 
-wave_train_dir = './rawdata/train/'
-wave_valid_dir = './rawdata/valid/'
+wave_train_dir = config.rawdata_path + 'train/'
+wave_valid_dir = config.rawdata_path + 'valid/'
 
 save_train_dir = path_join(config.data_path, 'train/')
 save_valid_dir = path_join(config.data_path, 'valid/')
