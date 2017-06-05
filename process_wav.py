@@ -196,16 +196,16 @@ if __name__ == '__main__':
     valid_tuples = [process_record(wave_valid_dir + f[0], f[0], f[1][1], f[1][0], 1) for f in valid_files]
     dump2npy(valid_tuples, save_valid_dir, True, True)
 
-    train_tuples = []
-    with open(wave_train_dir + "segment_lele.pkl", "rb") as f:
-        labels = pickle.load(f)
-        print(labels[0])
-    train_tuples = [process_record(wave_train_dir + f, f, time_label) for f, time_label in labels]
-
-    with open(wave_train_dir + "neg_lele.pkl", 'rb') as f:
-        labels = pickle.load(f)
-    train_tuples += [process_record(wave_train_dir + f, f, []) for f, _ in labels]
-    dump2npy(train_tuples, save_train_dir, True, False)
+    # train_tuples = []
+    # with open(wave_train_dir + "segment_lele_extra.pkl", "rb") as f:
+    #     labels = pickle.load(f)
+    #     print(labels[0])
+    # train_tuples = [process_record(wave_train_dir + f, f, time_label) for f, time_label in labels]
+    #
+    # with open(wave_train_dir + "neg_lele_extra.pkl", 'rb') as f:
+    #     labels = pickle.load(f)
+    # train_tuples += [process_record(wave_train_dir + f, f, []) for f, _ in labels]
+    # dump2npy(train_tuples, save_train_dir, True, False)
 
     # test_data()
 

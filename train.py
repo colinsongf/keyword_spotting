@@ -177,9 +177,9 @@ class Runner(object):
                 for x, y, seqLengths, valid_correctness, names in self.data.validate():
                     # print(names)
                     iter += 1
-                    if iter != 1:
+                    if iter != 2:
                         continue
-                    ind = 6
+                    ind = 2
                     np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
                     print(str(names[ind]))
                     logits, labels, seqLen = sess.run(
@@ -224,7 +224,7 @@ class Runner(object):
                 # false_accept_rate = false_count / total_count
                 print('--------------------------------')
                 print('miss rate: %d/%d' % (miss_count, target_count))
-                print('flase_accept_rate: %d/%d' % (false_count, total_count))
+                print('flase_accept_rate: %d/%d' % (false_count, total_count-target_count))
 
     def prediction(self, moving_avg, threshold, lockout, f=None):
         if f is not None:
