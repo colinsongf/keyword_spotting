@@ -180,6 +180,7 @@ def test_data():
     from glob import glob
 
     pkl = glob('./test/*.pkl')
+
     for p in pkl:
         with open(p, 'rb')as f:
             valid_files = pickle.load(f)

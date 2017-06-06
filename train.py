@@ -177,8 +177,8 @@ class Runner(object):
                 for x, y, seqLengths, valid_correctness, names in self.data.validate():
                     # print(names)
                     iter += 1
-                    if iter != 2:
-                        continue
+                    # if iter != 7:
+                    #     continue
                     ind = 2
                     np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
                     print(str(names[ind]))
