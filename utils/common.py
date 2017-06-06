@@ -62,3 +62,20 @@ def path_join(path1, path2):
             return path1 + path2
         else:
             return path1 + '/' + path2
+
+
+def dense2sparse(array_1d):
+    indices = []
+    values = []
+    for i, v in enumerate(array_1d):
+        if v == 0:
+            continue
+        indices.append(i)
+        values.append(v)
+    return indices, values, len(array_1d)
+
+
+def sparse2dense(indices, values, len):
+    dense = np.zeros(len, dtype=np.int32)
+    for i, v in zip(indices, values):
+        dense[i] = v
