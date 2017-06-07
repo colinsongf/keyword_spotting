@@ -50,21 +50,26 @@ def adjust(y, start, end):
     end = min(len(y), time2point(end))
     y = np.abs(y)
     window_size = config.step_size
-    total_max = y.max()
+    total_max = np.percentile(y, 99.95)
     total_mean = y.mean()
-    threshold_max = total_max / 4
+    threshold_max = total_max / 3.5
     threshold_mean = (np.percentile(y, 50) + total_mean) / 2
     while start < end:
         if y[start:start + window_size].max() > threshold_max \
                 and y[start:start + window_size].mean() > threshold_mean:
             break
         start += window_size
-    assert (start < end)
+    if start >= end:
+        print('can not process this record')
+        return (None, None)
     while end > start:
         if np.percentile(y[end - window_size: end], 99) > threshold_max \
                 and y[start:start + window_size].mean() > threshold_mean:
             break
         end -= window_size
+    if start >= end:
+        print('can not process this record')
+        return (None, None)
     return point2frame(start), point2frame(end)
 
 
@@ -131,6 +136,7 @@ def make_tfrecord(audio_list, time_list, fname):
     for ex in example_list:
         writer.write(ex.SerializeToString())
     writer.close()
+    print(fname, 'created')
 
 
 def process_valid_data(f, fname, correctness):
@@ -224,9 +230,9 @@ def generate_trainning_data(path):
 
 
 if __name__ == '__main__':
-# sort_wave(wave_train_dir + "segment_nihaolele_extra.pkl")
-# filter_wave(wave_train_dir + "segment_nihaolele_extra.pkl.sorted")
-    generate_trainning_data(wave_train_dir+'segment_nihaolele_extra.pkl.sorted.filtered')
+    # sort_wave(wave_train_dir + "segment_nihaolele_extra.pkl")
+    # filter_wave(wave_train_dir + "segment_nihaolele_extra.pkl.sorted")
+    generate_trainning_data(wave_train_dir + 'segment_nihaolele_extra.pkl.sorted.filtered')
 # generate_valid_data(wave_valid_dir + "valid.pkl")
 # make_example(wave_train_dir+'azure_228965.wav',[[1, 4.12, 8.88]])
 
