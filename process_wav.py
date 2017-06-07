@@ -213,12 +213,22 @@ def filter_wave(pkl_path):
     print('number after filter:', len(filter_out))
 
 
-if __name__ == '__main__':
-    # sort_wave(wave_train_dir + "segment_nihaolele_extra.pkl")
-    # filter_wave(wave_train_dir + "segment_nihaolele_extra.pkl.sorted")
+def generate_trainning_data(path):
+    with open(path, 'rb') as f:
+        wav_list = pickle.load(f)
+    audio_list = [i[0] for i in wav_list]
+    time_list = [i[1] for i in wav_list]
+    for i in range(len(wav_list) // config.batch_size):
+        make_tfrecord(audio_list[i * config.batch_size:(i + 1) * config.batch_size],
+                      time_list[i * config.batch_size:(i + 1) * config.batch_size], 'data' + str(i) + '.tfrecord')
 
-    # generate_valid_data(wave_valid_dir + "valid.pkl")
-    make_example(wave_train_dir+'azure_228965.wav',[[1, 4.12, 8.88]])
+
+if __name__ == '__main__':
+# sort_wave(wave_train_dir + "segment_nihaolele_extra.pkl")
+# filter_wave(wave_train_dir + "segment_nihaolele_extra.pkl.sorted")
+    generate_trainning_data(wave_train_dir+'segment_nihaolele_extra.pkl.sorted.filtered')
+# generate_valid_data(wave_valid_dir + "valid.pkl")
+# make_example(wave_train_dir+'azure_228965.wav',[[1, 4.12, 8.88]])
 
 # train_tuples = []
 # with open(wave_train_dir + "segment_lele_extra.pkl", "rb") as f:
