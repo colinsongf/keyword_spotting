@@ -115,7 +115,7 @@ def make_example(f, time_label):
 
             # print(t[1], t[2])
             label[start_frame:end_frame] = word
-    global_len.append(len(spectrogram))
+    # global_len.append(len(spectrogram))
     one_hot = dense_to_ont_hot(label, config.num_classes)
 
     spectrogram = spectrogram.tolist()
@@ -244,7 +244,6 @@ if __name__ == '__main__':
     # sort_wave(wave_train_dir + "segment_nihaolele_extra.pkl")
     # filter_wave(wave_train_dir + "segment_nihaolele_extra.pkl.sorted")
     generate_trainning_data(wave_train_dir + 'segment_nihaolele_extra.pkl.sorted.filtered')
-    for i in global_len:
-        print(i)
-        # generate_valid_data(wave_valid_dir + "valid.pkl")
-        # make_example(wave_train_dir+'azure_228965.wav',[[1, 4.12, 8.88]])
+
+    # generate_valid_data(wave_valid_dir + "valid.pkl")
+    # make_example(wave_train_dir+'azure_228965.wav',[[1, 4.12, 8.88]])

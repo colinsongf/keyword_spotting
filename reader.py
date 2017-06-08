@@ -33,6 +33,7 @@ class DataSet(object):
         self.config = config
         if mode == 'train':
             filename = glob(path_join(train_dir, '*.tfrecords'))
+            filename = sorted(filename)
             self.file_size = len(filename)
             if self.file_size == 0:
                 raise Exception('tfrecords not found')
@@ -76,7 +77,7 @@ class DataSet(object):
     def next_batch(self, shuffle=True):
 
         (keys, values) = self.reader.read_up_to(self.filename_queue, self.config.batch_size)
-
+        self.keys = keys
         context_features = {
             "seq_len": tf.FixedLenFeature([1], dtype=tf.int64),
         }
@@ -86,7 +87,7 @@ class DataSet(object):
         }
         audio_list = []
         label_list = []
-        len_list = []
+        self.len_list = []
 
         for i in range(self.config.batch_size):
             context, sequence = tf.parse_single_sequence_example(
@@ -100,17 +101,17 @@ class DataSet(object):
             seq_len = tf.shape(audio)[0]
             audio_list.append(audio)
             label_list.append(label)
-            len_list.append(seq_len)
-        seq_lengths = tf.stack(len_list, name='seq_lengths')
-        max_length = tf.reduce_max(seq_lengths)
+            self.len_list.append(seq_len)
+        seq_lengths = tf.stack(self.len_list, name='seq_lengths')
+        self.max_length = tf.reduce_max(seq_lengths)
 
         new_audio_list = []
         new_label_list = []
         for i in range(self.config.batch_size):
             audio_padding = tf.zeros([1, self.config.num_features])
-            audio_padding = tf.tile(audio_padding, [max_length - len_list[i], 1])
+            audio_padding = tf.tile(audio_padding, [self.max_length - self.len_list[i], 1])
             label_padding = tf.zeros([1, self.config.num_classes])
-            label_padding = tf.tile(label_padding, [max_length - len_list[i], 1])
+            label_padding = tf.tile(label_padding, [self.max_length - self.len_list[i], 1])
 
             new_audio = tf.concat([audio_list[i], audio_padding], 0)
             new_audio_list.append(new_audio)
@@ -118,7 +119,7 @@ class DataSet(object):
             new_label_list.append(new_label)
         # return max_length, len_list, keys
         return tf.stack(new_audio_list, name='input_audio'), \
-               tf.stack(new_label_list, name='input_label'), seq_lengths, max_length, keys,len_list
+               tf.stack(new_label_list, name='input_label'), seq_lengths, max_length, keys, len_list
 
 
 def read_dataset(config, dtype=dtypes.float32):

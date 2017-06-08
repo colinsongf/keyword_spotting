@@ -83,7 +83,7 @@ class Runner(object):
                             # print(ma, keys[0],unit, sorted(lenl, reverse=True))
                             _, l, m, epoch, keys, len_list = sess.run(
                                 [self.model.optimizer, self.model.loss, self.model.max_len, self.data.epochs_completed,
-                                 self.model.keys], self.model.len_list)
+                                 self.model.keys,self.model.len_list])
                             print(keys[0], m, )
                         else:
                             _, l, epoch, xent_bg, xent_max, max_log = sess.run(
@@ -97,7 +97,7 @@ class Runner(object):
                         #     self.epoch += 1
                         #     continue
                         if epoch > self.epoch:
-                            print('epoch time ', (time.time() - last_time) / 3600)
+                            print('epoch time ', (time.time() - last_time) / 60)
                             last_time = time.time()
                             self.epoch += 1
 
@@ -159,9 +159,11 @@ class Runner(object):
                         print('training shut down, the model will be save in %s' % self.config.working_path)
                         self.model.saver.save(sess, save_path=(path_join(self.config.working_path, 'latest.ckpt')))
                         print('best miss rate:%f\tbest false rate"%f' % (best_miss, best_false))
-                except Exception:
-                    print(len_list)
-                    print(m)
+                except Exception as e:
+                    ma,lenl,keys=sess.run([self.data.max_length,self.data.len_list,self.data.keys])
+
+                    print(e)
+                    print(ma)
                     print(keys[0])
 
                 finally:
