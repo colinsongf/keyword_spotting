@@ -46,6 +46,7 @@ class Runner(object):
         with tf.Graph().as_default(), tf.Session() as sess:
 
             self.data = read_dataset(self.config)
+
             self.model = DRNN(self.config, self.data.next_batch())
             self.model.config.show()
 
@@ -60,7 +61,6 @@ class Runner(object):
                 sess.run(self.model.initial_op)
 
             sess.run(tf.local_variables_initializer())
-
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
@@ -81,10 +81,11 @@ class Runner(object):
                             # ma, lenl, epoch, unit,keys = sess.run(
                             #     [self.ma, self.lenl, self.data.epochs_completed, self.data.test, self.keys])
                             # print(ma, keys[0],unit, sorted(lenl, reverse=True))
-                            _, l, m, epoch, keys, len_list = sess.run(
+                            unit = sess.run([self.data.test])
+                            _, l, m, epoch, keys = sess.run(
                                 [self.model.optimizer, self.model.loss, self.model.max_len, self.data.epochs_completed,
-                                 self.model.keys,self.model.len_list])
-                            print(keys[0], m, )
+                                 self.model.keys])
+                            print(keys[0], m, unit)
                         else:
                             _, l, epoch, xent_bg, xent_max, max_log = sess.run(
                                 [self.model.optimizer, self.model.loss, self.data.epochs_completed,
@@ -160,11 +161,14 @@ class Runner(object):
                         self.model.saver.save(sess, save_path=(path_join(self.config.working_path, 'latest.ckpt')))
                         print('best miss rate:%f\tbest false rate"%f' % (best_miss, best_false))
                 except Exception as e:
-                    ma,lenl,keys=sess.run([self.data.max_length,self.data.len_list,self.data.keys])
+                    ma, lenl, keys, label_list = sess.run(
+                        [self.data.max_length, self.data.len_list, self.data.keys.self.data.new_label_list])
 
                     print(e)
+                    print(lenl)
                     print(ma)
                     print(keys[0])
+                    print(label_list)
 
                 finally:
                     print('total time:%f hours' % ((time.time() - st_time) / 3600))

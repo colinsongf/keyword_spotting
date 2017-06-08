@@ -38,7 +38,7 @@ class DataSet(object):
             if self.file_size == 0:
                 raise Exception('tfrecords not found')
             print(filename)
-            self.filename_queue = tf.train.string_input_producer(filename, config.max_epoch, shuffle=False,
+            self.filename_queue = tf.train.string_input_producer(filename, config.max_epoch, shuffle=True,
                                                                  capacity=16384)
             self.reader = tf.TFRecordReader()
 
@@ -106,20 +106,20 @@ class DataSet(object):
         self.max_length = tf.reduce_max(seq_lengths)
 
         new_audio_list = []
-        new_label_list = []
+        self.new_label_list = []
         for i in range(self.config.batch_size):
             audio_padding = tf.zeros([1, self.config.num_features])
             audio_padding = tf.tile(audio_padding, [self.max_length - self.len_list[i], 1])
             label_padding = tf.zeros([1, self.config.num_classes])
-            label_padding = tf.tile(label_padding, [self.max_length - self.len_list[i], 1])
+            label_padding = tf.tile(label_padding, [self.max_length - self.len_list[i], 1], name='fuck' + str(i))
 
             new_audio = tf.concat([audio_list[i], audio_padding], 0)
             new_audio_list.append(new_audio)
             new_label = tf.concat([label_list[i], label_padding], 0)
-            new_label_list.append(new_label)
+            self.new_label_list.append(new_label)
         # return max_length, len_list, keys
-        return tf.stack(new_audio_list, name='input_audio'), \
-               tf.stack(new_label_list, name='input_label'), seq_lengths, max_length, keys, len_list
+        return tf.stack(new_audio_list, name='input_audio'), tf.stack(self.new_label_list, name='input_label'), \
+               seq_lengths, self.max_length, keys, self.len_list
 
 
 def read_dataset(config, dtype=dtypes.float32):

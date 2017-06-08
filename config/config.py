@@ -32,7 +32,7 @@ class Config(object):
         # self.working_path = './params/lele_mfcc/'
         # self.data_path = './data/lele_mfcc/'
 
-        self.data_path = '/ssd/liuziqi/mel60/'
+        # self.data_path = '/ssd/liuziqi/mel60/'
         self.model_name = 'latest.ckpt'
         self.rawdata_path = './rawdata/'
         # self.data_path = './test/data/azure_garbage/'

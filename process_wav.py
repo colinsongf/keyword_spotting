@@ -117,6 +117,8 @@ def make_example(f, time_label):
             label[start_frame:end_frame] = word
     # global_len.append(len(spectrogram))
     one_hot = dense_to_ont_hot(label, config.num_classes)
+    assert(len(one_hot)==len(spectrogram))
+
 
     spectrogram = spectrogram.tolist()
     one_hot = one_hot.tolist()
