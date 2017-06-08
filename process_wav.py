@@ -99,8 +99,7 @@ def process_wave(f):
     return mel_spectrogram, y
 
 
-def make_example(f, time_label):
-    # print(f)
+def make_record(f, time_label):
     spectrogram, wave = process_wave(f)
     seq_len = spectrogram.shape[0]
     label = np.zeros(seq_len, dtype=np.int32)
@@ -111,14 +110,17 @@ def make_example(f, time_label):
             if start_frame is None:
                 print('can not process this record')
                 print(f)
-                return None
+                return None, None, None
 
             # print(t[1], t[2])
             label[start_frame:end_frame] = word
     # global_len.append(len(spectrogram))
     one_hot = dense_to_ont_hot(label, config.num_classes)
-    assert(len(one_hot)==len(spectrogram))
+    assert (len(one_hot) == len(spectrogram))
+    return spectrogram, one_hot, seq_len
 
+
+def make_example(spectrogram, one_hot, seq_len):
     spectrogram = spectrogram.tolist()
     one_hot = one_hot.tolist()
     ex = tf.train.SequenceExample()
@@ -214,22 +216,30 @@ def filter_wave(pkl_path):
     print('number after filter:', len(filter_out))
 
 
+def batch_padding(tup_list):
+    new_list = []
+    max_len = max([t[2] for t in tup_list])
+    for t in tup_list:
+        
+
 def generate_trainning_data(path):
     with open(path, 'rb') as f:
         wav_list = pickle.load(f)
     audio_list = [i[0] for i in wav_list]
     time_list = [i[1] for i in wav_list]
     assert len(audio_list) == len(time_list)
-    ex_list = []
+    tuple_list = []
     counter = 0
     record_count = 0
     for i, audio in enumerate(audio_list):
-        ex = make_example(path_join(wave_train_dir, audio), time_list[i])
-        if ex:
+        spec, label, seq_len = make_record(path_join(wave_train_dir, audio), time_list[i])
+        if spec:
             counter += 1
-            ex_list.append(ex)
+            tuple_list.append((spec, label, seq_len))
         if counter == config.tfrecord_size:
+
             fname = 'data' + increment_id(record_count, 3) + '.tfrecords'
+            ex_list = [make_example(spec, label, seq_len) for spec, label, seq_len in tuple_list]
             writer = tf.python_io.TFRecordWriter(
                 path_join(path_join(config.data_path, 'train/'), fname))
             for ex in ex_list:
@@ -237,7 +247,7 @@ def generate_trainning_data(path):
             writer.close()
             record_count += 1
             counter = 0
-            ex_list.clear()
+            tuple_list.clear()
             print(fname, 'created')
 
 
