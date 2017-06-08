@@ -39,14 +39,16 @@ class Runner(object):
         self.epoch = -1
         self.step = 0
 
-        self.model = DRNN(self.config)
-        self.model.config.show()
-        self.data = read_dataset(self.config)
-
     def run(self):
 
         print('fuck')
-        with tf.Session(graph=self.model.graph) as sess:
+
+        with tf.Graph().as_default(), tf.Session() as sess:
+
+            self.data = read_dataset(self.config)
+            self.model = DRNN(self.config, self.data.next_batch())
+            self.model.config.show()
+
             # restore from stored models
             files = glob(path_join(self.config.model_path, '*.ckpt.*'))
 
@@ -56,66 +58,51 @@ class Runner(object):
             else:
                 print("Model doesn't exist.\nInitializing........")
                 sess.run(self.model.initial_op)
+
+            sess.run(tf.local_variables_initializer())
+
+            coord = tf.train.Coordinator()
+            threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+
             st_time = time.time()
             check_dir(self.config.working_path)
             if self.config.mode == 'train':
                 best_miss = 1
                 best_false = 1
+                last_time = time.time()
                 try:
-                    while self.epoch < self.config.max_epoch:
+                    while not coord.should_stop():
                         self.step += 1
                         # if self.step > 1:
                         #     break
-                        x, y, seqLengths = self.data.next_batch()
-
                         if not self.config.max_pooling_loss:
-                            _, l = sess.run([self.model.optimizer, self.model.loss],
-                                            feed_dict={self.model.inputX: x, self.model.inputY: y,
-                                                       self.model.seqLengths: seqLengths})
+                            # self.ma, self.lenl = self.data.next_batch()
+                            # ma, lenl,epoch = sess.run([self.ma,self.lenl,self.data.epochs_completed])
+                            # print(ma,sorted(lenl,reverse=True))
+                            _, l, m, epoch, keys = sess.run(
+                                [self.model.optimizer, self.model.loss, self.model.max_len, self.data.epochs_completed,
+                                 self.model.keys])
                         else:
-                            _, l, xent_bg, xent_max, max_log = sess.run(
-                                [self.model.optimizer, self.model.loss, self.model.xent_background,
+                            _, l, epoch, xent_bg, xent_max, max_log = sess.run(
+                                [self.model.optimizer, self.model.loss, self.data.epochs_completed,
+                                 self.model.xent_background,
                                  self.model.xent_max_frame,
-                                 self.model.masked_log_softmax],
-                                feed_dict={self.model.inputX: x, self.model.inputY: y,
-                                           self.model.seqLengths: seqLengths})
-                            # _, max_frame, bk_label, lbs, mask_softmax = sess.run(
-                            #     [self.model.optimizer, self.model.max_frame, self.model.background_label,
-                            #      self.model.labels,
-                            #      self.model.masked_log_softmax],
-                            #     feed_dict={self.model.inputX: x, self.model.inputY: y,
-                            #                self.model.seqLengths: seqLengths})
-                            # print(mask_softmax.shape)
-                            # print(max_frame.shape)
-                            # np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
-                            # with open('logits.txt', 'w') as f:
-                            #     f.write(str(max_frame[0]))
-                            # with open('moving_avg.txt', 'w') as f:
-                            #     f.write(str(bk_label[0]))
-                            # with open('trigger.txt', 'w') as f:
-                            #     f.write(str(lbs[0]))
-                            # with open('label.txt', 'w') as f:
-                            #     f.write(str(mask_softmax[0]))
+                                 self.model.masked_log_softmax])
 
-                            # print(xent_bg, xent_max)
-                            # np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
-
-                            # with open('logits.txt', 'w') as f:
-                            #     f.write(str(max_log[0]))
-
-                        if self.data.epochs_completed > self.epoch:
+                        if epoch > self.epoch:
+                            print('epoch time ', time.time() - last_time)
+                            last_time = time.time()
                             self.epoch += 1
 
                             miss_count = 0
                             false_count = 0
                             target_count = 0
 
-                            for x, y, seqLengths, valid_correctness, names in self.data.validate():
+                            for x, seqLengths, valid_correctness, names in self.data.validate():
                                 logits, labels, seqLen = sess.run(
                                     [self.model.softmax, self.model.labels,
                                      self.model.seqLengths],
-                                    feed_dict={self.model.inputX: x, self.model.inputY: y,
-                                               self.model.seqLengths: seqLengths})
+                                    feed_dict={self.model.inputX: x, self.model.seqLengths: seqLengths})
 
                                 for i, logit in enumerate(logits):
                                     logit[seqLen[i]:] = 0
@@ -153,19 +140,25 @@ class Runner(object):
                                 best_false = false_accept_rate
                                 self.model.saver.save(sess,
                                                       save_path=(path_join(self.config.working_path, 'best.ckpt')))
-
+                    if not DEBUG:
+                        print('training finished, total epoch %d, the model will be save in %s' % (
+                            self.epoch, self.config.working_path))
+                        self.model.saver.save(sess, save_path=(path_join(self.config.working_path, 'latest.ckpt')))
+                        print('best miss rate:%f\tbest false rate"%f' % (best_miss, best_false))
+                except tf.errors.OutOfRangeError:
+                    print('Done training -- epoch limit reached')
                 except KeyboardInterrupt:
                     if not DEBUG:
                         print('training shut down, the model will be save in %s' % self.config.working_path)
                         self.model.saver.save(sess, save_path=(path_join(self.config.working_path, 'latest.ckpt')))
                         print('best miss rate:%f\tbest false rate"%f' % (best_miss, best_false))
 
-                if not DEBUG:
-                    print('training finished, total epoch %d, the model will be save in %s' % (
-                        self.epoch, self.config.working_path))
-                    self.model.saver.save(sess, save_path=(path_join(self.config.working_path, 'latest.ckpt')))
+                finally:
                     print('total time:%f hours' % ((time.time() - st_time) / 3600))
-                    print('best miss rate:%f\tbest false rate"%f' % (best_miss, best_false))
+                    # When done, ask the threads to stop.
+                    coord.request_stop()
+                    coord.join(threads)
+
 
             else:
                 miss_count = 0
@@ -224,7 +217,7 @@ class Runner(object):
                 # false_accept_rate = false_count / total_count
                 print('--------------------------------')
                 print('miss rate: %d/%d' % (miss_count, target_count))
-                print('flase_accept_rate: %d/%d' % (false_count, total_count-target_count))
+                print('flase_accept_rate: %d/%d' % (false_count, total_count - target_count))
 
     def prediction(self, moving_avg, threshold, lockout, f=None):
         if f is not None:
@@ -247,7 +240,7 @@ class Runner(object):
         return prediction
 
     def decode(self, prediction, word_interval):
-        raw = [1]
+        raw = [2, 1]
         keyword = list(raw)
         # prediction based on moving_avg,shape(t,p),sth like one-hot, but can may overlapping
         # prediction = prediction[:, 1:]

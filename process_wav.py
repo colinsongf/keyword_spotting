@@ -60,7 +60,6 @@ def adjust(y, start, end):
             break
         start += window_size
     if start >= end:
-        print('can not process this record')
         return (None, None)
     while end > start:
         if np.percentile(y[end - window_size: end], 99) > threshold_max \
@@ -68,7 +67,6 @@ def adjust(y, start, end):
             break
         end -= window_size
     if start >= end:
-        print('can not process this record')
         return (None, None)
     return point2frame(start), point2frame(end)
 
@@ -101,46 +99,41 @@ def process_wave(f):
 
 
 def make_example(f, time_label):
-    print(f)
+    # print(f)
     spectrogram, wave = process_wave(f)
-
-    label = np.zeros(spectrogram.shape[0], dtype=np.int32)
+    seq_len = spectrogram.shape[0]
+    label = np.zeros(seq_len, dtype=np.int32)
     if len(time_label) > 0:
         for t in time_label:
             word = t[0]
             start_frame, end_frame = adjust(wave, t[1], t[2])
+            if start_frame is None:
+                print('can not process this record')
+                print(f)
+                return None
+
             # print(t[1], t[2])
             label[start_frame:end_frame] = word
 
-    label_indices, label_values, label_len = dense2sparse(label)
+    one_hot = dense_to_ont_hot(label, config.num_classes)
 
     spectrogram = spectrogram.tolist()
-    example = tf.train.SequenceExample()
-    example.context.feature["label_indices"]. \
-        int64_list.value.extend(label_indices)
-    example.context.feature["label_values"]. \
-        int64_list.value.extend(label_values)
-    example.context.feature["label_len"]. \
-        int64_list.value.append(label_len)
-    fl_audio = example.feature_lists.feature_list["audio"]
+    one_hot = one_hot.tolist()
+    ex = tf.train.SequenceExample()
 
-    for frame in spectrogram:
+    ex.context.feature["seq_len"].int64_list.value.append(seq_len)
+
+    fl_audio = ex.feature_lists.feature_list["audio"]
+    fl_label = ex.feature_lists.feature_list["label"]
+    for frame, frame_label in zip(spectrogram, one_hot):
         fl_audio.feature.add().float_list.value.extend(frame)
+        fl_label.feature.add().float_list.value.extend(frame_label)
 
-    return example
-
-
-def make_tfrecord(audio_list, time_list, fname):
-    example_list = [make_example(path_join(wave_train_dir, f), time) for f, time in zip(audio_list, time_list)]
-    writer = tf.python_io.TFRecordWriter(path_join(config.data_path, fname))
-    for ex in example_list:
-        writer.write(ex.SerializeToString())
-    writer.close()
-    print(fname, 'created')
+    return ex
 
 
 def process_valid_data(f, fname, correctness):
-    print(f)
+    # print(f)
 
     mel_spectrogram, y = process_wave(f)
 
@@ -224,9 +217,26 @@ def generate_trainning_data(path):
         wav_list = pickle.load(f)
     audio_list = [i[0] for i in wav_list]
     time_list = [i[1] for i in wav_list]
-    for i in range(len(wav_list) // config.batch_size):
-        make_tfrecord(audio_list[i * config.batch_size:(i + 1) * config.batch_size],
-                      time_list[i * config.batch_size:(i + 1) * config.batch_size], 'data' + str(i) + '.tfrecord')
+    assert len(audio_list) == len(time_list)
+    ex_list = []
+    counter = 0
+    record_count = 0
+    for i, audio in enumerate(audio_list):
+        ex = make_example(path_join(wave_train_dir, audio), time_list[i])
+        if ex:
+            counter += 1
+            ex_list.append(ex)
+        if counter == config.tfrecord_size:
+            fname = 'data' + str(record_count) + '.tfrecord'
+            writer = tf.python_io.TFRecordWriter(
+                path_join(path_join(config.data_path, 'train/'), fname))
+            for ex in ex_list:
+                writer.write(ex.SerializeToString())
+            writer.close()
+            record_count += 1
+            counter = 0
+            ex_list.clear()
+            print(fname, 'created')
 
 
 if __name__ == '__main__':

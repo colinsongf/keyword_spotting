@@ -20,20 +20,20 @@ def get_config():
 
 class Config(object):
     def __init__(self):
-        self.mode = "valid"  # train,valid
+        self.mode = "train"  # train,valid
         self.max_pooling_loss = False
         self.spectrogram = 'mel'  # mfcc,mel
 
-        self.model_path = './params/lele_mel60/'
-        self.working_path = './params/lele_mel60/'
-        self.data_path = './data/lele_mel60/'
+        self.model_path = './params/mel60/'
+        self.working_path = './params/mel60/'
+        self.data_path = './data/mel60/'
 
         # self.model_path = './params/lele_mfcc/'
         # self.working_path = './params/lele_mfcc/'
         # self.data_path = './data/lele_mfcc/'
 
         # self.data_path = '/ssd/liuziqi/lele_mfcc/'
-        self.model_name = 'best.ckpt'
+        self.model_name = 'latest.ckpt'
         self.rawdata_path = './rawdata/'
         # self.data_path = './test/data/azure_garbage/'
         self.gpu = "0"
@@ -48,7 +48,7 @@ class Config(object):
         self.learning_rate = 5e-5
         self.max_grad_norm = 5
         self.num_layers = 1
-        self.num_classes = 2  # word+1 for background
+        self.num_classes = 3  # word+1 for background
         self.num_features = 60
         self.hidden_size = 64
         self.use_project = False
@@ -58,6 +58,7 @@ class Config(object):
         self.grad_clip = -1
         self.lr_decay = 0.5
         self.batch_size = 32
+        self.tfrecord_size = 32
         self.trigger_threshold = 0.7  # between (0,1), but this param is somehow arbitrary
 
         # these three sizes are frames, which depend on STFT frame size

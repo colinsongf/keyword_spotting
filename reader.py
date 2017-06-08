@@ -12,10 +12,12 @@
 @desc:
 """
 import numpy as np
+import tensorflow as tf
 from tensorflow.python.framework import dtypes
 from utils.common import path_join
 import pickle
 import os
+from glob import glob
 
 
 def dense_to_ont_hot(labels_dense, num_classes):
@@ -26,97 +28,91 @@ def dense_to_ont_hot(labels_dense, num_classes):
 
 
 class DataSet(object):
-    def __init__(self, config, valid_wave, valid_labels, valid_seqLength, valid_name, valid_correctness,
-                 mode='train', train_wave=None, train_label=None, train_seqLength=None):
+    def __init__(self, config, train_dir, valid_wave, valid_seqLength, valid_name, valid_correctness,
+                 mode='train'):
         self.config = config
         if mode == 'train':
-            assert train_wave is not None
-            self.wave = train_wave
-            self.labels = train_label
-            self.seqLength = train_seqLength
+            filename = glob(path_join(train_dir, '*.tfrecord'))
+            print(filename)
+            self.filename_queue = tf.train.string_input_producer(filename, config.max_epoch, capacity=16384)
+            self.reader = tf.TFRecordReader()
 
-            self.train_size = len(self.wave)
-            self.perm = np.arange(self.train_size)
+            self.train_size = len(filename) * config.tfrecord_size
+            self.file_size = len(filename)
+            print('file size', self.file_size)
 
         self.validation_size = len(valid_wave)
         print(self.validation_size)
         # assert (self.validation_size % config.batch_size == 0)
 
         self.vi_wave = valid_wave
-        self.vi_labels = valid_labels
         self.vi_seqLength = valid_seqLength
         self.valid_name = valid_name
         self.valid_correctness = valid_correctness
-        self._epochs_completed = 0
-        self._index_in_epoch = 0
 
         self.valid_name_dict = {}
         for i, name in enumerate(valid_name):
             self.valid_name_dict[name] = i
 
-    def padding(self, array, target_size):
-        pad_num = target_size - len(array)
-        dim = len(array.shape) - 1
-        return np.pad(array, pad_width=((0, pad_num),) + ((0, 0),) * dim, mode='constant', constant_values=0)
-
     @property
     def epochs_completed(self):
-        return self._epochs_completed
 
-    def test_data(self, name=None):
-
-        if name is not None:
-            index = self.valid_name_dict[name]
-            vi_wave = np.zeros(self.vi_wave.shape, dtype=np.float32)
-            vi_label = np.zeros(self.vi_labels.shape, dtype=np.float32)
-            vi_seq = np.zeros(self.vi_seqLength.shape, dtype=np.float32)
-            vi_wave[0] = self.vi_wave[index]
-            vi_label[0] = self.vi_labels[index]
-            vi_seq[0] = self.vi_seqLength[index]
-            return vi_wave, vi_label, vi_seq, self.valid_name
-        else:
-            perm = np.arange(self.config.batch_size)
-            return self.vi_wave[perm], self.vi_labels[perm], \
-                   self.vi_seqLength[perm], self.valid_name[:self.config.batch_size], \
-                   self.valid_correctness[:self.config.batch_size]
+        return self.reader.num_work_units_completed() // self.file_size
 
     def validate(self):
         for i in range(self.validation_size // self.config.batch_size):
             yield self.vi_wave[i * self.config.batch_size: (i + 1) * self.config.batch_size], \
-                  self.vi_labels[i * self.config.batch_size: (i + 1) * self.config.batch_size], \
                   self.vi_seqLength[i * self.config.batch_size: (i + 1) * self.config.batch_size], \
                   self.valid_correctness[i * self.config.batch_size: (i + 1) * self.config.batch_size], \
                   self.valid_name[i * self.config.batch_size: (i + 1) * self.config.batch_size]
 
     def next_batch(self, shuffle=True):
 
-        start = self._index_in_epoch
-        # Shuffle for the first epoch
-        if self._epochs_completed == 0 and start == 0 and shuffle:
-            np.random.shuffle(self.perm)
-        # Go to the next epoch
-        if start + self.config.batch_size > self.train_size:
-            # Finished epoch
-            self._epochs_completed += 1
-            # Get the rest examples in this epoch
-            rest_num = self.train_size - start
-            rest_part = self.perm[start:self.train_size]
-            # Shuffle the data
-            if shuffle:
-                self.perm = np.arange(self.train_size)
-                np.random.shuffle(self.perm)
-            # Start next epoch
-            start = 0
-            self._index_in_epoch = self.config.batch_size - rest_num
-            end = self._index_in_epoch
-            new_part = self.perm[start:end]
-            temp_index = np.concatenate((rest_part, new_part), axis=0)
-            return self.wave[temp_index], self.labels[temp_index], self.seqLength[temp_index]
-        else:
-            self._index_in_epoch += self.config.batch_size
-            end = self._index_in_epoch
-            return self.wave[self.perm[start:end]], self.labels[self.perm[start:end]], self.seqLength[
-                self.perm[start:end]]
+        (keys, values) = self.reader.read_up_to(self.filename_queue, self.config.batch_size)
+
+        context_features = {
+            "seq_len": tf.FixedLenFeature([1], dtype=tf.int64),
+        }
+        audio_features = {
+            "audio": tf.FixedLenSequenceFeature([self.config.num_features], dtype=tf.float32),
+            "label": tf.FixedLenSequenceFeature([self.config.num_classes], dtype=tf.float32)
+        }
+        audio_list = []
+        label_list = []
+        len_list = []
+
+        for i in range(self.config.batch_size):
+            context, sequence = tf.parse_single_sequence_example(
+                serialized=values[i],
+                context_features=context_features,
+                sequence_features=audio_features
+            )
+            audio = sequence['audio']
+            label = sequence['label']
+            # seq_len = context['seq_len'][0]
+            seq_len = tf.shape(audio)[0]
+            audio_list.append(audio)
+            label_list.append(label)
+            len_list.append(seq_len)
+        seq_lengths = tf.stack(len_list, name='seq_lengths')
+        max_length = tf.reduce_max(seq_lengths)
+
+        # return max_length, len_list
+        new_audio_list = []
+        new_label_list = []
+        for i in range(self.config.batch_size):
+            audio_padding = tf.zeros([1, self.config.num_features])
+            audio_padding = tf.tile(audio_padding, [max_length - len_list[i], 1])
+            label_padding = tf.zeros([1, self.config.num_classes])
+            label_padding = tf.tile(label_padding, [max_length - len_list[i], 1])
+
+            new_audio = tf.concat([audio_list[i], audio_padding], 0)
+            new_audio_list.append(new_audio)
+            new_label = tf.concat([label_list[i], label_padding], 0)
+            new_label_list.append(new_label)
+
+        return tf.stack(new_audio_list, name='input_audio'), tf.stack(new_label_list,
+                                                                      name='input_label'), seq_lengths, max_length, keys
 
 
 def read_dataset(config, dtype=dtypes.float32):
@@ -124,16 +120,7 @@ def read_dataset(config, dtype=dtypes.float32):
     save_train_dir = path_join(data_dir, 'train/')
     save_valid_dir = path_join(data_dir, 'valid/')
 
-    train_wave = None
-    train_label = None
-    train_seqLen = None
-    if config.mode == 'train':
-        train_wave = np.load(save_train_dir + 'wave.npy')
-        train_label = np.load(save_train_dir + 'labels.npy')
-        train_seqLen = np.load(save_train_dir + 'seqLen.npy')
-
     valid_wave = np.load(save_valid_dir + 'wave.npy')
-    valid_label = np.load(save_valid_dir + 'labels.npy')
     valid_seqLen = np.load(save_valid_dir + 'seqLen.npy')
     with open(save_valid_dir + 'filename.pkl', 'rb') as fs:
         valid_name = pickle.load(fs)
@@ -142,9 +129,8 @@ def read_dataset(config, dtype=dtypes.float32):
     # print(wave.shape)
     # print(label.shape)
     # labels = np.asarray([dense_to_ont_hot(l, config.num_classes) for l in label])
-    return DataSet(config=config, train_wave=train_wave, train_label=train_label, train_seqLength=train_seqLen,
-                   mode=config.mode, valid_correctness=valid_correctness,
-                   valid_wave=valid_wave, valid_labels=valid_label, valid_seqLength=valid_seqLen, valid_name=valid_name)
+    return DataSet(config=config, train_dir=save_train_dir, mode=config.mode, valid_correctness=valid_correctness,
+                   valid_wave=valid_wave, valid_seqLength=valid_seqLen, valid_name=valid_name)
 
 # x = np.asarray([1, 2, 3, 4, 5])
 # y = dense_to_ont_hot(x, 8)
