@@ -36,7 +36,7 @@ DEBUG = False
 class Runner(object):
     def __init__(self, config):
         self.config = config
-        self.epoch = -1
+        self.epoch = 0
         self.step = 0
 
     def run(self):
@@ -76,12 +76,15 @@ class Runner(object):
                         # if self.step > 1:
                         #     break
                         if not self.config.max_pooling_loss:
-                            # self.ma, self.lenl = self.data.next_batch()
-                            # ma, lenl,epoch = sess.run([self.ma,self.lenl,self.data.epochs_completed])
-                            # print(ma,sorted(lenl,reverse=True))
-                            _, l, m, epoch, keys = sess.run(
+                            # self.ma, self.lenl, self.keys = self.data.next_batch()
+
+                            # ma, lenl, epoch, unit,keys = sess.run(
+                            #     [self.ma, self.lenl, self.data.epochs_completed, self.data.test, self.keys])
+                            # print(ma, keys[0],unit, sorted(lenl, reverse=True))
+                            _, l, m, epoch, keys, len_list = sess.run(
                                 [self.model.optimizer, self.model.loss, self.model.max_len, self.data.epochs_completed,
-                                 self.model.keys])
+                                 self.model.keys], self.model.len_list)
+                            print(keys[0], m, )
                         else:
                             _, l, epoch, xent_bg, xent_max, max_log = sess.run(
                                 [self.model.optimizer, self.model.loss, self.data.epochs_completed,
@@ -89,8 +92,12 @@ class Runner(object):
                                  self.model.xent_max_frame,
                                  self.model.masked_log_softmax])
 
+                        # if epoch > self.epoch:
+                        #     print('epoch', self.epoch)
+                        #     self.epoch += 1
+                        #     continue
                         if epoch > self.epoch:
-                            print('epoch time ', time.time() - last_time)
+                            print('epoch time ', (time.time() - last_time) / 3600)
                             last_time = time.time()
                             self.epoch += 1
 
@@ -152,6 +159,10 @@ class Runner(object):
                         print('training shut down, the model will be save in %s' % self.config.working_path)
                         self.model.saver.save(sess, save_path=(path_join(self.config.working_path, 'latest.ckpt')))
                         print('best miss rate:%f\tbest false rate"%f' % (best_miss, best_false))
+                except Exception:
+                    print(len_list)
+                    print(m)
+                    print(keys[0])
 
                 finally:
                     print('total time:%f hours' % ((time.time() - st_time) / 3600))

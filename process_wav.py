@@ -18,7 +18,7 @@ from glob2 import glob
 import os
 import pickle
 import tensorflow as tf
-from utils.common import check_dir, path_join, dense2sparse
+from utils.common import check_dir, path_join, increment_id
 
 config = get_config()
 import matplotlib.pyplot as plt
@@ -31,6 +31,7 @@ save_valid_dir = path_join(config.data_path, 'valid/')
 
 check_dir(save_train_dir)
 check_dir(save_valid_dir)
+global_len = []
 
 
 def time2frame(second, sr=config.samplerate, n_fft=config.fft_size, step_size=config.step_size):
@@ -81,6 +82,7 @@ def dense_to_ont_hot(labels_dense, num_classes):
 def process_wave(f):
     y, sr = librosa.load(f, sr=config.samplerate)
     length = len(y)
+
     if config.spectrogram == 'mel':
         mel_spectrogram = np.transpose(
             librosa.feature.melspectrogram(y, sr=sr, n_fft=config.fft_size, hop_length=config.step_size, power=2.,
@@ -94,7 +96,6 @@ def process_wave(f):
                                  fmin=300, fmax=8000, n_mels=config.num_features))
     else:
         raise (Exception('spectrogram %s not defined') % config.spectrogram)
-
     return mel_spectrogram, y
 
 
@@ -114,7 +115,7 @@ def make_example(f, time_label):
 
             # print(t[1], t[2])
             label[start_frame:end_frame] = word
-
+    global_len.append(len(spectrogram))
     one_hot = dense_to_ont_hot(label, config.num_classes)
 
     spectrogram = spectrogram.tolist()
@@ -227,7 +228,7 @@ def generate_trainning_data(path):
             counter += 1
             ex_list.append(ex)
         if counter == config.tfrecord_size:
-            fname = 'data' + str(record_count) + '.tfrecord'
+            fname = 'data' + increment_id(record_count, 3) + '.tfrecords'
             writer = tf.python_io.TFRecordWriter(
                 path_join(path_join(config.data_path, 'train/'), fname))
             for ex in ex_list:
@@ -243,30 +244,7 @@ if __name__ == '__main__':
     # sort_wave(wave_train_dir + "segment_nihaolele_extra.pkl")
     # filter_wave(wave_train_dir + "segment_nihaolele_extra.pkl.sorted")
     generate_trainning_data(wave_train_dir + 'segment_nihaolele_extra.pkl.sorted.filtered')
-# generate_valid_data(wave_valid_dir + "valid.pkl")
-# make_example(wave_train_dir+'azure_228965.wav',[[1, 4.12, 8.88]])
-
-# train_tuples = []
-# with open(wave_train_dir + "segment_lele_extra.pkl", "rb") as f:
-#     labels = pickle.load(f)
-#     print(labels[0])
-# train_tuples = [process_record(wave_train_dir + f, f, time_label) for f, time_label in labels]
-#
-# with open(wave_train_dir + "neg_lele_extra.pkl", 'rb') as f:
-#     labels = pickle.load(f)
-# train_tuples += [process_record(wave_train_dir + f, f, []) for f, _ in labels]
-# dump2npy(train_tuples, save_train_dir, True, False)
-
-# test_data()
-
-
-
-
-
-# test(wave_train_dir + '160.wav')
-#
-# a = linear2mel(audio2linear(librosa.load(wave_train_dir + '1.wav', sr=samplerate)[0]))
-# b = np.load('mel.npy')
-# print(a.max())
-# print(a.mean())
-# print(b.shape)
+    for i in global_len:
+        print(i)
+        # generate_valid_data(wave_valid_dir + "valid.pkl")
+        # make_example(wave_train_dir+'azure_228965.wav',[[1, 4.12, 8.88]])

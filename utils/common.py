@@ -79,3 +79,6 @@ def sparse2dense(indices, values, len):
     dense = np.zeros(len, dtype=np.int32)
     for i, v in zip(indices, values):
         dense[i] = v
+
+def increment_id(i,n):
+    return str(i).zfill(n)

@@ -32,13 +32,17 @@ class DataSet(object):
                  mode='train'):
         self.config = config
         if mode == 'train':
-            filename = glob(path_join(train_dir, '*.tfrecord'))
+            filename = glob(path_join(train_dir, '*.tfrecords'))
+            self.file_size = len(filename)
+            if self.file_size == 0:
+                raise Exception('tfrecords not found')
             print(filename)
-            self.filename_queue = tf.train.string_input_producer(filename, config.max_epoch, capacity=16384)
+            self.filename_queue = tf.train.string_input_producer(filename, config.max_epoch, shuffle=False,
+                                                                 capacity=16384)
             self.reader = tf.TFRecordReader()
 
             self.train_size = len(filename) * config.tfrecord_size
-            self.file_size = len(filename)
+
             print('file size', self.file_size)
 
         self.validation_size = len(valid_wave)
@@ -56,8 +60,11 @@ class DataSet(object):
 
     @property
     def epochs_completed(self):
-
         return self.reader.num_work_units_completed() // self.file_size
+
+    @property
+    def test(self):
+        return self.reader.num_work_units_completed()
 
     def validate(self):
         for i in range(self.validation_size // self.config.batch_size):
@@ -97,7 +104,6 @@ class DataSet(object):
         seq_lengths = tf.stack(len_list, name='seq_lengths')
         max_length = tf.reduce_max(seq_lengths)
 
-        # return max_length, len_list
         new_audio_list = []
         new_label_list = []
         for i in range(self.config.batch_size):
@@ -110,9 +116,9 @@ class DataSet(object):
             new_audio_list.append(new_audio)
             new_label = tf.concat([label_list[i], label_padding], 0)
             new_label_list.append(new_label)
-
-        return tf.stack(new_audio_list, name='input_audio'), tf.stack(new_label_list,
-                                                                      name='input_label'), seq_lengths, max_length, keys
+        # return max_length, len_list, keys
+        return tf.stack(new_audio_list, name='input_audio'), \
+               tf.stack(new_label_list, name='input_label'), seq_lengths, max_length, keys,len_list
 
 
 def read_dataset(config, dtype=dtypes.float32):
