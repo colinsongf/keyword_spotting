@@ -79,11 +79,10 @@ class Runner(object):
                             # ma, lenl, epoch, unit,keys = sess.run(
                             #     [self.ma, self.lenl, self.data.epochs_completed, self.data.test, self.keys])
                             # print(ma, keys[0],unit, sorted(lenl, reverse=True))
-                            unit = sess.run([self.data.test])
-                            _, l, m, epoch, keys = sess.run(
-                                [self.model.optimizer, self.model.loss, self.model.max_len, self.data.epochs_completed,
-                                 self.model.keys])
-                            print(keys[0], m, unit)
+                            _, l, m, keys = sess.run(
+                                [self.model.optimizer, self.model.loss, self.model.max_len, self.model.keys])
+                            epoch = sess.run([self.data.test])[0]
+                            print(keys[0],m)
                         else:
                             _, l, epoch, xent_bg, xent_max, max_log = sess.run(
                                 [self.model.optimizer, self.model.loss, self.data.epochs_completed,
@@ -166,7 +165,9 @@ class Runner(object):
                     print(lenl)
                     print(ma)
                     print(keys[0])
-                    print(label_list)
+                    print(len(label_list))
+                    for i in label_list:
+                        print(i)
 
                 finally:
                     print('total time:%f hours' % ((time.time() - st_time) / 3600))

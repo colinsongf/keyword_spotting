@@ -87,6 +87,7 @@ class DataSet(object):
         audio_list = []
         label_list = []
         self.len_list = []
+        self.lab_len_list = []
 
         for i in range(self.config.batch_size):
             context, sequence = tf.parse_single_sequence_example(
@@ -101,8 +102,10 @@ class DataSet(object):
             audio_list.append(audio)
             label_list.append(label)
             self.len_list.append(seq_len)
+            self.lab_len_list.append(tf.shape(label)[0])
         seq_lengths = tf.stack(self.len_list, name='seq_lengths')
         self.max_length = tf.reduce_max(seq_lengths)
+        self.max_la_len = tf.reduce_max(tf.stack(self.lab_len_list))
 
         new_audio_list = []
         self.new_label_list = []
@@ -110,7 +113,7 @@ class DataSet(object):
             audio_padding = tf.zeros([1, self.config.num_features])
             audio_padding = tf.tile(audio_padding, [self.max_length - self.len_list[i], 1])
             label_padding = tf.zeros([1, self.config.num_classes])
-            label_padding = tf.tile(label_padding, [self.max_length - self.len_list[i], 1], name='fuck' + str(i))
+            label_padding = tf.tile(label_padding, [self.max_la_len - self.lab_len_list[i], 1], name='fuck' + str(i))
 
             new_audio = tf.concat([audio_list[i], audio_padding], 0)
             new_audio_list.append(new_audio)
