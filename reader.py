@@ -61,11 +61,11 @@ class DataSet(object):
 
     @property
     def epochs_completed(self):
-        return self.reader.num_work_units_completed() // self.file_size
+        return self.reader.num_records_produced() // self.train_size
 
     @property
     def test(self):
-        return self.reader.num_work_units_completed()
+        return self.reader.num_work_units_completed(), self.reader.num_records_produced()
 
     def validate(self):
         for i in range(self.validation_size // self.config.batch_size):
@@ -75,7 +75,6 @@ class DataSet(object):
                   self.valid_name[i * self.config.batch_size: (i + 1) * self.config.batch_size]
 
     def next_batch(self, shuffle=True):
-
         (keys, values) = self.reader.read_up_to(self.filename_queue, self.config.batch_size)
         self.keys = keys
         context_features = {

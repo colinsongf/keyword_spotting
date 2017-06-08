@@ -41,8 +41,6 @@ class Runner(object):
 
     def run(self):
 
-        print('fuck')
-
         with tf.Graph().as_default(), tf.Session() as sess:
 
             self.data = read_dataset(self.config)
@@ -162,7 +160,7 @@ class Runner(object):
                         print('best miss rate:%f\tbest false rate"%f' % (best_miss, best_false))
                 except Exception as e:
                     ma, lenl, keys, label_list = sess.run(
-                        [self.data.max_length, self.data.len_list, self.data.keys.self.data.new_label_list])
+                        [self.data.max_length, self.data.len_list, self.data.keys, self.data.new_label_list])
 
                     print(e)
                     print(lenl)
