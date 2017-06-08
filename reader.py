@@ -33,6 +33,8 @@ class DataSet(object):
         self.config = config
         if mode == 'train':
             filename = glob(path_join(train_dir, '*.tfrecords'))
+            for f in filename:
+                print(f)
             filename = sorted(filename)
             self.file_size = len(filename)
             if self.file_size == 0:

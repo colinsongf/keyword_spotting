@@ -119,7 +119,6 @@ def make_example(f, time_label):
     one_hot = dense_to_ont_hot(label, config.num_classes)
     assert(len(one_hot)==len(spectrogram))
 
-
     spectrogram = spectrogram.tolist()
     one_hot = one_hot.tolist()
     ex = tf.train.SequenceExample()
@@ -245,7 +244,7 @@ def generate_trainning_data(path):
 if __name__ == '__main__':
     # sort_wave(wave_train_dir + "segment_nihaolele_extra.pkl")
     # filter_wave(wave_train_dir + "segment_nihaolele_extra.pkl.sorted")
-    generate_trainning_data(wave_train_dir + 'segment_nihaolele_extra.pkl.sorted.filtered')
+    # generate_trainning_data(wave_train_dir + 'segment_nihaolele_extra.pkl.sorted.filtered')
 
-    # generate_valid_data(wave_valid_dir + "valid.pkl")
+    generate_valid_data(wave_valid_dir + "valid.pkl")
     # make_example(wave_train_dir+'azure_228965.wav',[[1, 4.12, 8.88]])

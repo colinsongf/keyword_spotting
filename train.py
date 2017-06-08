@@ -79,10 +79,14 @@ class Runner(object):
                             # ma, lenl, epoch, unit,keys = sess.run(
                             #     [self.ma, self.lenl, self.data.epochs_completed, self.data.test, self.keys])
                             # print(ma, keys[0],unit, sorted(lenl, reverse=True))
-                            _, l, m, keys = sess.run(
-                                [self.model.optimizer, self.model.loss, self.model.max_len, self.model.keys])
-                            epoch = sess.run([self.data.test])[0]
-                            print(keys[0],m)
+                            _, l, m, keys, t1, t2, t3, t4 = sess.run(
+                                [self.model.optimizer, self.model.loss, self.model.max_len, self.model.keys,
+                                 self.data.lab_len_list, self.data.len_list, self.data.max_length,
+                                 self.data.max_la_len])
+                            epoch = sess.run([self.data.epochs_completed])[0]
+                            print(keys[0], m)
+                            assert(t1 == t2)
+                            print(t3, t4)
                         else:
                             _, l, epoch, xent_bg, xent_max, max_log = sess.run(
                                 [self.model.optimizer, self.model.loss, self.data.epochs_completed,
@@ -157,17 +161,17 @@ class Runner(object):
                         print('training shut down, the model will be save in %s' % self.config.working_path)
                         self.model.saver.save(sess, save_path=(path_join(self.config.working_path, 'latest.ckpt')))
                         print('best miss rate:%f\tbest false rate"%f' % (best_miss, best_false))
-                except Exception as e:
-                    ma, lenl, keys, label_list = sess.run(
-                        [self.data.max_length, self.data.len_list, self.data.keys, self.data.new_label_list])
-
-                    print(e)
-                    print(lenl)
-                    print(ma)
-                    print(keys[0])
-                    print(len(label_list))
-                    for i in label_list:
-                        print(i)
+                # except Exception as e:
+                #     ma, lenl, keys, label_list = sess.run(
+                #         [self.data.max_length, self.data.len_list, self.data.keys, self.data.new_label_list])
+                #
+                #     print(e)
+                #     print(lenl)
+                #     print(ma)
+                #     print(keys[0])
+                #     print(len(label_list))
+                #     for i in label_list:
+                #         print(i)
 
                 finally:
                     print('total time:%f hours' % ((time.time() - st_time) / 3600))
