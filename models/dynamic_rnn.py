@@ -33,7 +33,7 @@ cell_fn = core_rnn_cell_impl.LSTMCell
 class DRNN(object):
     def __init__(self, config, input):
         self.config = config
-        self.inputX, self.labels, self.seqLengths, self.max_len, self.keys, self.len_list = input
+        self.inputX, self.labels, self.seqLengths, self.keys = input
         self.build_graph(config)
 
     @describe

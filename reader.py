@@ -106,24 +106,10 @@ class DataSet(object):
             self.len_list.append(seq_len)
             self.lab_len_list.append(tf.shape(label)[0])
         seq_lengths = tf.stack(self.len_list, name='seq_lengths')
-        self.max_length = tf.reduce_max(seq_lengths)
-        self.max_la_len = tf.reduce_max(tf.stack(self.lab_len_list))
 
-        new_audio_list = []
-        self.new_label_list = []
-        for i in range(self.config.batch_size):
-            audio_padding = tf.zeros([1, self.config.num_features])
-            audio_padding = tf.tile(audio_padding, [self.max_length - self.len_list[i], 1])
-            label_padding = tf.zeros([1, self.config.num_classes])
-            label_padding = tf.tile(label_padding, [self.max_la_len - self.lab_len_list[i], 1], name='fuck' + str(i))
-
-            new_audio = tf.concat([audio_list[i], audio_padding], 0)
-            new_audio_list.append(new_audio)
-            new_label = tf.concat([label_list[i], label_padding], 0)
-            self.new_label_list.append(new_label)
         # return max_length, len_list, keys
-        return tf.stack(new_audio_list, name='input_audio'), tf.stack(self.new_label_list, name='input_label'), \
-               seq_lengths, self.max_length, keys, self.len_list
+        return tf.stack(audio_list, name='input_audio'), tf.stack(label_list, name='input_label'), \
+               seq_lengths, keys
 
 
 def read_dataset(config, dtype=dtypes.float32):

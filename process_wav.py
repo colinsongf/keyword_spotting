@@ -220,7 +220,15 @@ def batch_padding(tup_list):
     new_list = []
     max_len = max([t[2] for t in tup_list])
     for t in tup_list:
-        
+        # print(t[0].shape)
+        # print(t[1].shape)
+        assert (len(t[0]) == len(t[1]))
+        assert (len(t[0]) == t[2])
+        paded_wave = np.pad(t[0], pad_width=((0, max_len - t[0].shape[0]), (0, 0)), mode='constant', constant_values=0)
+        paded_label = np.pad(t[1], pad_width=((0, max_len - t[1].shape[0]), (0, 0)), mode='constant', constant_values=0)
+        new_list.append((paded_wave, paded_label, t[2]))
+    return new_list
+
 
 def generate_trainning_data(path):
     with open(path, 'rb') as f:
@@ -233,11 +241,11 @@ def generate_trainning_data(path):
     record_count = 0
     for i, audio in enumerate(audio_list):
         spec, label, seq_len = make_record(path_join(wave_train_dir, audio), time_list[i])
-        if spec:
+        if spec is not None:
             counter += 1
             tuple_list.append((spec, label, seq_len))
         if counter == config.tfrecord_size:
-
+            tuple_list = batch_padding(tuple_list)
             fname = 'data' + increment_id(record_count, 3) + '.tfrecords'
             ex_list = [make_example(spec, label, seq_len) for spec, label, seq_len in tuple_list]
             writer = tf.python_io.TFRecordWriter(
@@ -254,7 +262,7 @@ def generate_trainning_data(path):
 if __name__ == '__main__':
     # sort_wave(wave_train_dir + "segment_nihaolele_extra.pkl")
     # filter_wave(wave_train_dir + "segment_nihaolele_extra.pkl.sorted")
-    # generate_trainning_data(wave_train_dir + 'segment_nihaolele_extra.pkl.sorted.filtered')
+    generate_trainning_data(wave_train_dir + 'segment_nihaolele_extra.pkl.sorted.filtered')
 
-    generate_valid_data(wave_valid_dir + "valid.pkl")
+    # generate_valid_data(wave_valid_dir + "valid.pkl")
     # make_example(wave_train_dir+'azure_228965.wav',[[1, 4.12, 8.88]])
