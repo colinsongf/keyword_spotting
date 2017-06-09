@@ -132,25 +132,18 @@ class DataSet(object):
                           lambda: tf.no_op())
             return q, enq
 
-    def batch_input_queue(self, shuffle):
-        self.filename_queue, self.data_filequeue_enqueue_op = self.string_input_queue(self.filename, shuffle=True,
+    def batch_input_queue(self, shuffle=True):
+        self.filename_queue, self.data_filequeue_enqueue_op = self.string_input_queue(self.filename, shuffle=shuffle,
                                                                                       capacity=16384)
         with tf.device('/cpu:0'):
             audio, label, seq_len, keys = self.filequeue_reader(self.filename_queue)
 
-        stagers = []
-        stage_ops = []
-
         stager = data_flow_ops.StagingArea(
-            [tf.int64, tf.int64, tf.int64, tf.float32, tf.int32])
-        stage = stager.put(
-            [audio, label, seq_len, keys])
-        stagers.append(stager)
-        stage_ops.append(stage)
+            [tf.float32, tf.float32, tf.int32, tf.string])
 
-        stage_op = tf.group(*stage_ops)
+        stage_op = stager.put((audio, label, seq_len, keys))
 
-        return stagers, stage_op, self.data_filequeue_enqueue_op
+        return stager, stage_op, self.data_filequeue_enqueue_op
 
 
 def read_dataset(config, dtype=dtypes.float32):
@@ -169,4 +162,3 @@ def read_dataset(config, dtype=dtypes.float32):
     # labels = np.asarray([dense_to_ont_hot(l, config.num_classes) for l in label])
     return DataSet(config=config, train_dir=save_train_dir, mode=config.mode, valid_correctness=valid_correctness,
                    valid_wave=valid_wave, valid_seqLength=valid_seqLen, valid_name=valid_name)
-

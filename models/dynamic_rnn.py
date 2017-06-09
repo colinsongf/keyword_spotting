@@ -33,7 +33,11 @@ cell_fn = core_rnn_cell_impl.LSTMCell
 class DRNN(object):
     def __init__(self, config, input):
         self.config = config
-        self.inputX, self.labels, self.seqLengths, self.keys = input
+        stager, self.stage_op, self.input_filequeue_enqueue_op = input
+        # we only use 1 gpu
+        self.inputX, self.labels, self.seqLengths, self.keys = stager.get()
+        print(self.inputX)
+        print(tf.shape(self.inputX))
         self.build_graph(config)
 
     @describe

@@ -43,11 +43,14 @@ class Runner(object):
 
         graph = tf.Graph()
         with graph.as_default(), tf.Session() as sess:
+            with tf.name_scope('train_queue'):
+                self.data = read_dataset(self.config)
+                self.epoch_op = self.data.epochs_completed
+                train_data = self.data.batch_input_queue(True)
 
-            self.data = read_dataset(self.config)
-
-            self.model = DRNN(self.config, self.data.next_batch())
-            self.model.config.show()
+            with tf.variable_scope("model"):
+                self.model = DRNN(self.config, train_data)
+                self.model.config.show()
 
             # restore from stored models
             files = glob(path_join(self.config.model_path, '*.ckpt.*'))
@@ -66,12 +69,16 @@ class Runner(object):
 
             st_time = time.time()
             check_dir(self.config.working_path)
+
             if self.config.mode == 'train':
                 best_miss = 1
                 best_false = 1
+                current_epoch = 0
                 last_time = time.time()
                 try:
-                    while not coord.should_stop():
+                    _, self.epoch = sess.run([self.model.stage_op, self.epoch_op])
+
+                    while self.epoch < self.config.max_epoch:
                         self.step += 1
                         # if self.step > 1:
                         #     break
@@ -83,7 +90,7 @@ class Runner(object):
                             # print(ma, keys[0],unit, sorted(lenl, reverse=True))
                             _, l, keys = sess.run(
                                 [self.model.optimizer, self.model.loss, self.model.keys])
-                            epoch = sess.run([self.data.epochs_completed])[0]
+                            self.epoch = sess.run([self.epoch_op])[0]
                             # print(keys[0])
                         else:
                             _, l, epoch, xent_bg, xent_max, max_log = sess.run(
@@ -96,10 +103,10 @@ class Runner(object):
                         #     print('epoch', self.epoch)
                         #     self.epoch += 1
                         #     continue
-                        if epoch > self.epoch:
+                        if self.epoch > current_epoch:
                             print('epoch time ', (time.time() - last_time) / 60)
                             last_time = time.time()
-                            self.epoch += 1
+                            current_epoch += 1
 
                             miss_count = 0
                             false_count = 0
