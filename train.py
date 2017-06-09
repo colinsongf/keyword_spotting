@@ -41,7 +41,8 @@ class Runner(object):
 
     def run(self):
 
-        with tf.Graph().as_default(), tf.Session() as sess:
+        graph = tf.Graph()
+        with graph.as_default(), tf.Session() as sess:
 
             self.data = read_dataset(self.config)
 
@@ -61,6 +62,7 @@ class Runner(object):
             sess.run(tf.local_variables_initializer())
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+            tf.Graph.finalize(graph)
 
             st_time = time.time()
             check_dir(self.config.working_path)

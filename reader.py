@@ -18,6 +18,13 @@ from utils.common import path_join
 import pickle
 import os
 from glob import glob
+from tensorflow.python.framework import dtypes
+from tensorflow.python.framework import ops
+from tensorflow.python.ops import array_ops
+from tensorflow.python.ops import control_flow_ops
+from tensorflow.python.ops import data_flow_ops
+from tensorflow.python.ops import math_ops
+from tensorflow.python.ops import random_ops
 
 
 def dense_to_ont_hot(labels_dense, num_classes):
@@ -35,13 +42,12 @@ class DataSet(object):
             filename = glob(path_join(train_dir, '*.tfrecords'))
             for f in filename:
                 print(f)
-            filename = sorted(filename)
+            self.filename = sorted(filename)
             self.file_size = len(filename)
             if self.file_size == 0:
                 raise Exception('tfrecords not found')
             print(filename)
-            self.filename_queue = tf.train.string_input_producer(filename, config.max_epoch, shuffle=True,
-                                                                 capacity=16384)
+
             self.reader = tf.TFRecordReader()
 
             self.train_size = len(filename) * config.tfrecord_size
@@ -76,8 +82,8 @@ class DataSet(object):
                   self.valid_correctness[i * self.config.batch_size: (i + 1) * self.config.batch_size], \
                   self.valid_name[i * self.config.batch_size: (i + 1) * self.config.batch_size]
 
-    def next_batch(self, shuffle=True):
-        (keys, values) = self.reader.read_up_to(self.filename_queue, self.config.batch_size)
+    def filequeue_reader(self, filename_queue):
+        (keys, values) = self.reader.read_up_to(filename_queue, self.config.batch_size)
         self.keys = keys
         context_features = {
             "seq_len": tf.FixedLenFeature([1], dtype=tf.int64),
@@ -111,6 +117,41 @@ class DataSet(object):
         return tf.stack(audio_list, name='input_audio'), tf.stack(label_list, name='input_label'), \
                seq_lengths, keys
 
+    def string_input_queue(self, string_tensor, shuffle=True,
+                           name=None, seed=None, capacity=16384):
+        with ops.name_scope(name, "input_producer", [string_tensor]) as name:
+            input_tensor = ops.convert_to_tensor(
+                string_tensor, dtype=dtypes.string)
+            if shuffle:
+                input_tensor = random_ops.random_shuffle(input_tensor, seed=seed)
+            q = data_flow_ops.FIFOQueue(
+                capacity=capacity,
+                dtypes=[input_tensor.dtype.base_dtype])
+            enq = tf.cond(tf.less(q.size(), 2),
+                          lambda: q.enqueue_many([input_tensor]),
+                          lambda: tf.no_op())
+            return q, enq
+
+    def batch_input_queue(self, shuffle):
+        self.filename_queue, self.data_filequeue_enqueue_op = self.string_input_queue(self.filename, shuffle=True,
+                                                                                      capacity=16384)
+        with tf.device('/cpu:0'):
+            audio, label, seq_len, keys = self.filequeue_reader(self.filename_queue)
+
+        stagers = []
+        stage_ops = []
+
+        stager = data_flow_ops.StagingArea(
+            [tf.int64, tf.int64, tf.int64, tf.float32, tf.int32])
+        stage = stager.put(
+            [audio, label, seq_len, keys])
+        stagers.append(stager)
+        stage_ops.append(stage)
+
+        stage_op = tf.group(*stage_ops)
+
+        return stagers, stage_op, self.data_filequeue_enqueue_op
+
 
 def read_dataset(config, dtype=dtypes.float32):
     data_dir = config.data_path
@@ -129,6 +170,3 @@ def read_dataset(config, dtype=dtypes.float32):
     return DataSet(config=config, train_dir=save_train_dir, mode=config.mode, valid_correctness=valid_correctness,
                    valid_wave=valid_wave, valid_seqLength=valid_seqLen, valid_name=valid_name)
 
-# x = np.asarray([1, 2, 3, 4, 5])
-# y = dense_to_ont_hot(x, 8)
-# print(y)
