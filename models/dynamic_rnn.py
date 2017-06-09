@@ -36,8 +36,6 @@ class DRNN(object):
         stager, self.stage_op, self.input_filequeue_enqueue_op = input
         # we only use 1 gpu
         self.inputX, self.labels, self.seqLengths, self.keys = stager.get()
-        print(self.inputX)
-        print(tf.shape(self.inputX))
         self.build_graph(config)
 
     @describe

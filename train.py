@@ -63,8 +63,6 @@ class Runner(object):
                 sess.run(self.model.initial_op)
 
             sess.run(tf.local_variables_initializer())
-            coord = tf.train.Coordinator()
-            threads = tf.train.start_queue_runners(sess=sess, coord=coord)
             tf.Graph.finalize(graph)
 
             st_time = time.time()
@@ -75,6 +73,8 @@ class Runner(object):
                 best_false = 1
                 current_epoch = 0
                 last_time = time.time()
+
+                sess.run(self.model.input_filequeue_enqueue_op)
                 try:
                     _, self.epoch = sess.run([self.model.stage_op, self.epoch_op])
 
@@ -88,16 +88,17 @@ class Runner(object):
                             # ma, lenl, epoch, unit,keys = sess.run(
                             #     [self.ma, self.lenl, self.data.epochs_completed, self.data.test, self.keys])
                             # print(ma, keys[0],unit, sorted(lenl, reverse=True))
-                            _, l, keys = sess.run(
-                                [self.model.optimizer, self.model.loss, self.model.keys])
+                            _, _, l, keys = sess.run(
+                                [self.model.optimizer, self.model.stage_op, self.model.loss, self.model.keys])
                             self.epoch = sess.run([self.epoch_op])[0]
                             # print(keys[0])
                         else:
-                            _, l, epoch, xent_bg, xent_max, max_log = sess.run(
-                                [self.model.optimizer, self.model.loss, self.data.epochs_completed,
+                            _, _, l, xent_bg, xent_max, max_log = sess.run(
+                                [self.model.optimizer, self.model.stage_op, self.model.loss,
                                  self.model.xent_background,
                                  self.model.xent_max_frame,
                                  self.model.masked_log_softmax])
+                            self.epoch = sess.run([self.epoch_op])[0]
 
                         # if epoch > self.epoch:
                         #     print('epoch', self.epoch)
@@ -170,9 +171,6 @@ class Runner(object):
                 finally:
                     print('total time:%f hours' % ((time.time() - st_time) / 3600))
                     # When done, ask the threads to stop.
-                    coord.request_stop()
-                    coord.join(threads)
-
 
             else:
                 miss_count = 0

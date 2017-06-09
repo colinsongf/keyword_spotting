@@ -139,7 +139,9 @@ class DataSet(object):
             audio, label, seq_len, keys = self.filequeue_reader(self.filename_queue)
 
         stager = data_flow_ops.StagingArea(
-            [tf.float32, tf.float32, tf.int32, tf.string])
+            [tf.float32, tf.float32, tf.int32, tf.string],
+            shapes=[(self.config.batch_size, None, self.config.num_features),
+                    (self.config.batch_size, None, self.config.num_classes), (self.config.batch_size), (None,)])
 
         stage_op = stager.put((audio, label, seq_len, keys))
 
