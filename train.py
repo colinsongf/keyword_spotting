@@ -19,7 +19,6 @@ import sys
 
 from config.config import get_config
 
-sys.dont_write_bytecode = True
 import os
 import numpy as np
 import tensorflow as tf
@@ -30,6 +29,7 @@ import argparse
 import time
 from utils.common import check_dir, path_join
 
+sys.dont_write_bytecode = True
 DEBUG = False
 
 
@@ -43,24 +43,36 @@ class Runner(object):
 
         graph = tf.Graph()
         with graph.as_default(), tf.Session() as sess:
-            with tf.name_scope('train_queue'):
-                self.data = read_dataset(self.config)
-                self.epoch_op = self.data.epochs_completed
-                train_data = self.data.batch_input_queue(True)
+            self.data = read_dataset(self.config)
 
-            with tf.variable_scope("model"):
-                self.model = DRNN(self.config, train_data)
-                self.model.config.show()
+            # self.model = DRNN(self.config, self.data.next_batch())
+            if config.mode == 'train':
+                with tf.variable_scope("model"):
+                    self.train_model = DRNN(self.config,
+                                            self.data.batch_input_queue(),
+                                            is_train=True, reuse=False)
+                    self.train_model.config.show()
+                with tf.variable_scope("model", reuse=True):
+                    self.valid_model = DRNN(self.config,
+                                            self.data.valid_queue(),
+                                            is_train=False, reuse=True)
+            else:
+                with tf.variable_scope("model", reuse=False):
+                    self.valid_model = DRNN(self.config,
+                                            self.data.valid_queue(),
+                                            is_train=False, reuse=False)
+            saver = tf.train.Saver()
 
             # restore from stored models
             files = glob(path_join(self.config.model_path, '*.ckpt.*'))
 
             if len(files) > 0:
-                self.model.saver.restore(sess, path_join(self.config.model_path, self.config.model_name))
+                saver.restore(sess, path_join(self.config.model_path,
+                                              self.config.model_name))
                 print(('Model restored from:' + self.config.model_path))
             else:
                 print("Model doesn't exist.\nInitializing........")
-                sess.run(self.model.initial_op)
+                sess.run(tf.global_variables_initializer())
 
             sess.run(tf.local_variables_initializer())
             tf.Graph.finalize(graph)
@@ -71,71 +83,81 @@ class Runner(object):
             if self.config.mode == 'train':
                 best_miss = 1
                 best_false = 1
-                current_epoch = 0
                 last_time = time.time()
-
-                sess.run(self.model.input_filequeue_enqueue_op)
+                sess.run([self.valid_model.stage_op,
+                          self.valid_model.input_filequeue_enqueue_op])
                 try:
-                    _, self.epoch = sess.run([self.model.stage_op, self.epoch_op])
+                    sess.run([self.train_model.stage_op,
+                              self.train_model.input_filequeue_enqueue_op])
 
                     while self.epoch < self.config.max_epoch:
                         self.step += 1
                         # if self.step > 1:
                         #     break
                         if not self.config.max_pooling_loss:
-                            # self.ma, self.lenl, self.keys = self.data.next_batch()
-
-                            # ma, lenl, epoch, unit,keys = sess.run(
-                            #     [self.ma, self.lenl, self.data.epochs_completed, self.data.test, self.keys])
-                            # print(ma, keys[0],unit, sorted(lenl, reverse=True))
-                            _, _, l, keys = sess.run(
-                                [self.model.optimizer, self.model.stage_op, self.model.loss, self.model.keys])
-                            self.epoch = sess.run([self.epoch_op])[0]
-                            # print(keys[0])
+                            epoch = sess.run([self.data.epoch])[0]
+                            _, _, _, l, keys = sess.run(
+                                [self.train_model.optimizer,
+                                 self.train_model.stage_op,
+                                 self.train_model.input_filequeue_enqueue_op,
+                                 self.train_model.loss, self.train_model.keys])
+                            print(epoch)
+                            print(keys[0])
                         else:
-                            _, _, l, xent_bg, xent_max, max_log = sess.run(
-                                [self.model.optimizer, self.model.stage_op, self.model.loss,
-                                 self.model.xent_background,
-                                 self.model.xent_max_frame,
-                                 self.model.masked_log_softmax])
-                            self.epoch = sess.run([self.epoch_op])[0]
+                            epoch = sess.sun([self.data.epoch])[0]
+                            _, _, _, l, xent_bg, xent_max = sess.run(
+                                [self.train_model.optimizer,
+                                 self.train_model.stage_op,
+                                 self.train_model.input_filequeue_enqueue_op,
+                                 self.train_model.loss,
+                                 self.train_model.xent_background,
+                                 self.train_model.xent_max_frame])
 
                         # if epoch > self.epoch:
                         #     print('epoch', self.epoch)
                         #     self.epoch += 1
                         #     continue
-                        if self.epoch > current_epoch:
+                        if epoch > self.epoch:
                             print('epoch time ', (time.time() - last_time) / 60)
                             last_time = time.time()
-                            current_epoch += 1
+                            self.epoch += 1
 
                             miss_count = 0
                             false_count = 0
                             target_count = 0
 
-                            for x, seqLengths, valid_correctness, names in self.data.validate():
-                                logits, labels, seqLen = sess.run(
-                                    [self.model.softmax, self.model.labels,
-                                     self.model.seqLengths],
-                                    feed_dict={self.model.inputX: x, self.model.seqLengths: seqLengths})
-
+                            for i in range(self.data.valid_file_size):
+                                logits, seqLen, correctness, names, _, _ = sess.run(
+                                    [self.valid_model.softmax,
+                                     self.valid_model.seqLengths,
+                                     self.valid_model.correctness,
+                                     self.valid_model.names,
+                                     self.valid_model.stage_op,
+                                     self.valid_model.input_filequeue_enqueue_op])
                                 for i, logit in enumerate(logits):
                                     logit[seqLen[i]:] = 0
 
                                 # print(len(logits), len(labels), len(seqLen))
 
                                 moving_average = [
-                                    self.moving_average(record, self.config.smoothing_window, padding=True)
+                                    self.moving_average(record,
+                                                        self.config.smoothing_window,
+                                                        padding=True)
                                     for record in logits]
 
                                 # print(moving_average[0].shape)
                                 prediction = [
-                                    self.prediction(moving_avg, self.config.trigger_threshold, self.config.lockout)
+                                    self.prediction(moving_avg,
+                                                    self.config.trigger_threshold,
+                                                    self.config.lockout)
                                     for moving_avg in moving_average]
                                 # print(prediction[0].shape)
 
-                                result = [self.decode(p, self.config.word_interval) for p in prediction]
-                                miss, target, false_accept = self.correctness(result, valid_correctness)
+                                result = [
+                                    self.decode(p, self.config.word_interval)
+                                    for p in prediction]
+                                miss, target, false_accept = self.correctness(
+                                    result, correctness)
 
                                 miss_count += miss
                                 target_count += target
@@ -143,7 +165,8 @@ class Runner(object):
                                 # print(miss_count, false_count)
 
                             miss_rate = miss_count / target_count
-                            false_accept_rate = false_count / (self.data.validation_size - target_count)
+                            false_accept_rate = false_count / (
+                                self.data.validation_size - target_count)
                             print('--------------------------------')
                             print('epoch %d' % self.epoch)
                             print('loss:' + str(l))
@@ -153,23 +176,32 @@ class Runner(object):
                             if miss_rate + false_accept_rate < best_miss + best_false:
                                 best_miss = miss_rate
                                 best_false = false_accept_rate
-                                self.model.saver.save(sess,
-                                                      save_path=(path_join(self.config.working_path, 'best.ckpt')))
+                                saver.save(sess,
+                                           save_path=(path_join(
+                                               self.config.working_path,
+                                               'best.ckpt')))
                     if not DEBUG:
-                        print('training finished, total epoch %d, the model will be save in %s' % (
-                            self.epoch, self.config.working_path))
-                        self.model.saver.save(sess, save_path=(path_join(self.config.working_path, 'latest.ckpt')))
-                        print('best miss rate:%f\tbest false rate"%f' % (best_miss, best_false))
+                        print(
+                            'training finished, total epoch %d, the model will be save in %s' % (
+                                self.epoch, self.config.working_path))
+                        saver.save(sess, save_path=(
+                            path_join(self.config.working_path, 'latest.ckpt')))
+                        print('best miss rate:%f\tbest false rate"%f' % (
+                            best_miss, best_false))
                 except tf.errors.OutOfRangeError:
                     print('Done training -- epoch limit reached')
                 except KeyboardInterrupt:
                     if not DEBUG:
-                        print('training shut down, total setp %s, the model will be save in %s' % (
-                            self.step, self.config.working_path))
-                        self.model.saver.save(sess, save_path=(path_join(self.config.working_path, 'latest.ckpt')))
-                        print('best miss rate:%f\tbest false rate"%f' % (best_miss, best_false))
+                        print(
+                            'training shut down, total setp %s, the model will be save in %s' % (
+                                self.step, self.config.working_path))
+                        saver.save(sess, save_path=(
+                            path_join(self.config.working_path, 'latest.ckpt')))
+                        print('best miss rate:%f\tbest false rate %f' % (
+                            best_miss, best_false))
                 finally:
-                    print('total time:%f hours' % ((time.time() - st_time) / 3600))
+                    print('total time:%f hours' % (
+                        (time.time() - st_time) / 3600))
                     # When done, ask the threads to stop.
 
             else:
@@ -179,19 +211,24 @@ class Runner(object):
                 total_count = 0
 
                 iter = 0
-                for x, y, seqLengths, valid_correctness, names in self.data.validate():
-                    # print(names)
+                for i in range(self.data.valid_file_size):
                     iter += 1
                     # if iter != 7:
                     #     continue
                     ind = 2
-                    np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
+                    logits, seqLen, correctness, names, _, _ = sess.run(
+                        [self.valid_model.softmax,
+                         self.valid_model.seqLengths,
+                         self.valid_model.correctness,
+                         self.valid_model.names,
+                         self.valid_model.stage_op,
+                         self.valid_model.input_filequeue_enqueue_op])
+
+                    np.set_printoptions(precision=4, threshold=np.inf,
+                                        suppress=True)
                     print(str(names[ind]))
-                    logits, labels, seqLen = sess.run(
-                        [self.model.softmax, self.model.labels,
-                         self.model.seqLengths],
-                        feed_dict={self.model.inputX: x, self.model.inputY: y,
-                                   self.model.seqLengths: seqLengths})
+                    logits, seqLen = sess.run(
+                        [self.valid_model.softmax, self.valid_model.seqLengths])
                     total_count += len(logits)
                     for i, logit in enumerate(logits):
                         logit[seqLen[i]:] = 0
@@ -199,29 +236,31 @@ class Runner(object):
                     # print(len(logits), len(labels), len(seqLen))
                     with open('logits.txt', 'w') as f:
                         f.write(str(logits[ind]))
-                    with open('label.txt', 'w') as f:
-                        f.write(str([labels[ind]]))
                     moving_average = [
-                        self.moving_average(record, self.config.smoothing_window, padding=True)
+                        self.moving_average(record,
+                                            self.config.smoothing_window,
+                                            padding=True)
                         for record in logits]
 
                     # print(moving_average[0].shape)
                     prediction = [
-                        self.prediction(moving_avg, self.config.trigger_threshold, self.config.lockout)
+                        self.prediction(moving_avg,
+                                        self.config.trigger_threshold,
+                                        self.config.lockout)
                         for moving_avg in moving_average]
-                    # print(prediction[0].shape)
-
 
                     with open('trigger.txt', 'w') as f:
                         f.write(str(prediction[ind]))
-                    result = [self.decode(p, self.config.word_interval) for p in prediction]
-                    miss, target, false_accept = self.correctness(result, valid_correctness)
+                    result = [self.decode(p, self.config.word_interval) for p in
+                              prediction]
+                    miss, target, false_accept = self.correctness(result,
+                                                                  correctness)
 
                     miss_count += miss
                     target_count += target
                     false_count += false_accept
 
-                    print(result[ind], valid_correctness[ind])
+                    print(result[ind], correctness[ind])
                     with open('moving_avg.txt', 'w') as f:
                         f.write(str(moving_average[ind]))
 
@@ -229,7 +268,8 @@ class Runner(object):
                 # false_accept_rate = false_count / total_count
                 print('--------------------------------')
                 print('miss rate: %d/%d' % (miss_count, target_count))
-                print('flase_accept_rate: %d/%d' % (false_count, total_count - target_count))
+                print('flase_accept_rate: %d/%d' % (
+                    false_count, total_count - target_count))
 
     def prediction(self, moving_avg, threshold, lockout, f=None):
         if f is not None:
@@ -307,18 +347,11 @@ class Runner(object):
                     pre = 0
 
         return 0
-        # except Exception as e:
-        #
-        #     print('exception!!')
-        #     np.set_printoptions(precision=4, threshold=np.inf, suppress=True)
-        #     with open('test.txt', 'w') as f:
-        #         f.write(str(prediction))
-        #         return 1
 
     def correctness(self, result, target):
         assert len(result) == len(target)
-        print(target)
-        print(result)
+        # print(target)
+        # print(result)
         xor = [a ^ b for a, b in zip(target, result)]
         miss = sum([a & b for a, b in zip(xor, target)])
         false_accept = sum([a & b for a, b in zip(xor, result)])
@@ -332,11 +365,14 @@ class Runner(object):
         if len(array.shape) != 2:
             raise Exception('must be 2-D array.')
         if n > array.shape[0]:
-            raise Exception('n larger than array length. the shape:' + str(array.shape))
+            raise Exception(
+                'n larger than array length. the shape:' + str(array.shape))
         if padding:
             pad_num = n // 2
-            array = np.pad(array=array, pad_width=((pad_num, pad_num), (0, 0)), mode='constant', constant_values=0)
-        array = np.asarray([np.sum(array[i:i + n, :], axis=0) for i in range(len(array) - 2 * pad_num)]) / n
+            array = np.pad(array=array, pad_width=((pad_num, pad_num), (0, 0)),
+                           mode='constant', constant_values=0)
+        array = np.asarray([np.sum(array[i:i + n, :], axis=0) for i in
+                            range(len(array) - 2 * pad_num)]) / n
         return array
 
 
@@ -348,7 +384,8 @@ if __name__ == '__main__':
                                        'valid: model validation, ',
                         default=None)
     parser.add_argument('-max', '--max_pooling_loss', help='1: maxpooling, ' +
-                                                           '0: cross entropy,', type=int,
+                                                           '0: cross entropy,',
+                        type=int,
                         default=None)
     parser.add_argument('-m', '--model_path',
                         help='The  model path for restoring',
@@ -357,11 +394,13 @@ if __name__ == '__main__':
                         help='The  model path for  saving',
                         default=None)
     parser.add_argument('-g', '--gpu',
-                        help='visable GPU',
+                        help='visible GPU',
                         default=None)
-    parser.add_argument('-thres', '--threshold', help='threshold for trigger', type=float, default=None)
+    parser.add_argument('-thres', '--threshold', help='threshold for trigger',
+                        type=float, default=None)
     parser.add_argument('--data_path', help='data path', default=None)
-    parser.add_argument('--feature_num', help='data path', type=int, default=None)
+    parser.add_argument('--feature_num', help='data path', type=int,
+                        default=None)
 
     flags = parser.parse_args().__dict__
 
