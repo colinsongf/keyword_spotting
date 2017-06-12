@@ -152,38 +152,40 @@ class DataSet(object):
             return q, enq
 
     def batch_input_queue(self, shuffle=True):
-        self.train_filename_queue, self.train_filequeue_enqueue_op = self.string_input_queue(
-            self.train_filename, shuffle=shuffle, capacity=16384)
         with tf.device('/cpu:0'):
+            self.train_filename_queue, self.train_filequeue_enqueue_op = self.string_input_queue(
+                self.train_filename, shuffle=shuffle, capacity=16384)
+
             audio, label, seq_len, keys = self.train_filequeue_reader(
-                self.train_filename_queue)
+                    self.train_filename_queue)
 
-        stager = data_flow_ops.StagingArea(
-            [tf.float32, tf.float32, tf.int64, tf.string],
-            shapes=[(self.config.batch_size, None, self.config.num_features),
-                    (self.config.batch_size, None, self.config.num_classes),
-                    (self.config.batch_size), (None,)])
+            stager = data_flow_ops.StagingArea(
+                [tf.float32, tf.float32, tf.int64, tf.string],
+                shapes=[(self.config.batch_size, None, self.config.num_features),
+                        (self.config.batch_size, None, self.config.num_classes),
+                        (self.config.batch_size), (None,)])
 
-        stage_op = stager.put((audio, label, seq_len, keys))
+            stage_op = stager.put((audio, label, seq_len, keys))
 
-        return stager, stage_op, self.train_filequeue_enqueue_op
+            return stager, stage_op, self.train_filequeue_enqueue_op
 
     def valid_queue(self):
-        self.valid_filename_queue, self.valid_filequeue_enqueue_op = self.string_input_queue(
-            self.valid_filename, shuffle=False, capacity=16384)
         with tf.device('/cpu:0'):
+            self.valid_filename_queue, self.valid_filequeue_enqueue_op = self.string_input_queue(
+                self.valid_filename, shuffle=False, capacity=16384)
+
             audio, seq_len, correctness, names = self.valid_filequeue_reader(
                 self.valid_filename_queue)
 
-        stager = data_flow_ops.StagingArea(
-            [tf.float32, tf.int64, tf.int64, tf.string],
-            shapes=[(self.config.batch_size, None, self.config.num_features),
-                    (self.config.batch_size), (self.config.batch_size),
-                    (None,)])
+            stager = data_flow_ops.StagingArea(
+                [tf.float32, tf.int64, tf.int64, tf.string],
+                shapes=[(self.config.batch_size, None, self.config.num_features),
+                        (self.config.batch_size), (self.config.batch_size),
+                        (None,)])
 
-        stage_op = stager.put((audio, seq_len, correctness,names))
+            stage_op = stager.put((audio, seq_len, correctness,names))
 
-        return stager, stage_op, self.valid_filequeue_enqueue_op
+            return stager, stage_op, self.valid_filequeue_enqueue_op
 
 
 def read_dataset(config, dtype=dtypes.float32):
