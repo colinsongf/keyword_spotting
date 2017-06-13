@@ -94,13 +94,20 @@ class Runner(object):
                         # if self.step > 1:
                         #     break
                         if not self.config.max_pooling_loss:
-                            _, _, _, l, keys = sess.run(
+                            _, _, _, l, keys, labels = sess.run(
                                 [self.train_model.optimizer,
                                  self.train_model.stage_op,
                                  self.train_model.input_filequeue_enqueue_op,
-                                 self.train_model.loss, self.train_model.keys])
+                                 self.train_model.loss, self.train_model.keys,
+                                 self.train_model.labels])
                             epoch = sess.run([self.data.epoch])[0]
-                            print(keys[0])
+                            # np.set_printoptions(precision=4, threshold=np.inf,
+                            #                     suppress=True)
+                            # for la in labels:
+                            #     if la[:, 2].sum()>0:
+                            #         print('fuck')
+                                # print(la[:, 2])
+                            # print(keys[0])
                         else:
                             _, _, _, l, xent_bg, xent_max = sess.run(
                                 [self.train_model.optimizer,
@@ -155,7 +162,7 @@ class Runner(object):
                                     self.decode(p, self.config.word_interval)
                                     for p in prediction]
                                 miss, target, false_accept = self.correctness(
-                                    result, correctness)
+                                    result, correctness.tolist())
 
                                 miss_count += miss
                                 target_count += target
@@ -210,10 +217,9 @@ class Runner(object):
 
                 iter = 0
                 for i in range(self.data.valid_file_size):
-                    iter += 1
-                    # if iter != 7:
-                    #     continue
-                    ind = 2
+                    if i > 3:
+                        break
+                    ind = 3
                     logits, seqLen, correctness, names, _, _ = sess.run(
                         [self.valid_model.softmax,
                          self.valid_model.seqLengths,
@@ -224,12 +230,10 @@ class Runner(object):
 
                     np.set_printoptions(precision=4, threshold=np.inf,
                                         suppress=True)
-                    print(str(names[ind]))
-                    logits, seqLen = sess.run(
-                        [self.valid_model.softmax, self.valid_model.seqLengths])
+                    print(names[ind].decode('utf-8'))
                     total_count += len(logits)
-                    for i, logit in enumerate(logits):
-                        logit[seqLen[i]:] = 0
+                    for j, logit in enumerate(logits):
+                        logit[seqLen[j]:] = 0
 
                     # print(len(logits), len(labels), len(seqLen))
                     with open('logits.txt', 'w') as f:
@@ -252,7 +256,7 @@ class Runner(object):
                     result = [self.decode(p, self.config.word_interval) for p in
                               prediction]
                     miss, target, false_accept = self.correctness(result,
-                                                                  correctness)
+                                                                  correctness.tolist())
 
                     miss_count += miss
                     target_count += target
@@ -348,8 +352,8 @@ class Runner(object):
 
     def correctness(self, result, target):
         assert len(result) == len(target)
-        # print(target)
-        # print(result)
+        print(target)
+        print(result)
         xor = [a ^ b for a, b in zip(target, result)]
         miss = sum([a & b for a, b in zip(xor, target)])
         false_accept = sum([a & b for a, b in zip(xor, result)])

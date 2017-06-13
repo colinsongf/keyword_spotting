@@ -34,9 +34,9 @@ class DataSet(object):
         self.config = config
         if mode == 'train':
             self.train_filename = glob(path_join(train_dir, '*.tfrecords'))
-            self.train_filename = ['./data/mel_all/train/data00029.tfrecords',
-                                   './data/mel_all/train/data00030.tfrecords',
-                                   './data/mel_all/train/data00031.tfrecords']
+            # self.train_filename = ['./data/mel_all/train/data00029.tfrecords',
+            #                        './data/mel_all/train/data00030.tfrecords',
+            #                        './data/mel_all/train/data00031.tfrecords']
             self.train_file_size = len(self.train_filename)
             if self.train_file_size == 0:
                 raise Exception('train tfrecords not found')
@@ -54,7 +54,7 @@ class DataSet(object):
 
     @property
     def epochs_completed(self):
-        return self.train_reader.num_work_units_completed() / self.train_file_size
+        return self.train_reader.num_work_units_completed() // self.train_file_size
 
     @property
     def test(self):

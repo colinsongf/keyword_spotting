@@ -116,11 +116,11 @@ def process_wave(f):
 
 
 def make_record(f, time_label):
-    print(f)
-    print(time_label)
+    # print(f)
+    # print(time_label)
     spectrogram, wave = process_wave(f)
     seq_len = spectrogram.shape[0]
-    labels = [np.zeros(seq_len, dtype=np.int32)] * 3  # nihaolele   lele  whole
+    labels = []  # nihaolele   lele  whole
     if len(time_label) > 0:
         new_label = []
         for t in time_label:
@@ -131,14 +131,14 @@ def make_record(f, time_label):
                 return None, None, None
             new_label.append([t[0], start_frame, end_frame])
         frame_labels = convert_label(new_label)
-        assert len(labels) == len(frame_labels)
-        for i in range(len(labels)):
+        assert len(frame_labels) == 3
+        for i in range(3):
+            temp = np.zeros(seq_len, dtype=np.int32)
             for t in frame_labels[i]:
-                labels[i][t[1]:t[2]] = t[0]
-    np.set_printoptions(precision=4, threshold=np.inf,
-                        suppress=True)
-    for l in labels:
-        print(l)
+                temp[t[1]:t[2]] = t[0]
+            labels.append(temp)
+
+
     one_hots = [dense_to_ont_hot(label, num) for label, num in
                 zip(labels, [3, 2, 2])]
     return spectrogram, one_hots, seq_len
