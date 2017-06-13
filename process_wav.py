@@ -64,20 +64,18 @@ def adjust(y, start, end):
     end = min(len(y), time2point(end))
     y = np.abs(y)
     window_size = config.step_size
-    total_max = np.percentile(y, 99.95)
+    total_max = np.percentile(y, 99)
     total_mean = y.mean()
     threshold_max = total_max / 3.5
     threshold_mean = (np.percentile(y, 50) + total_mean) / 2
     while start < end:
-        if y[start:start + window_size].max() > threshold_max \
-                and y[start:start + window_size].mean() > threshold_mean:
+        if y[start:start + window_size].max() > threshold_max:
             break
         start += window_size
     if start >= end:
         return (None, None)
     while end > start:
-        if np.percentile(y[end - window_size: end], 99) > threshold_max \
-                and y[start:start + window_size].mean() > threshold_mean:
+        if y[end - window_size: end].max() > threshold_max:
             break
         end -= window_size
     if start >= end:
@@ -118,6 +116,8 @@ def process_wave(f):
 
 
 def make_record(f, time_label):
+    print(f)
+    print(time_label)
     spectrogram, wave = process_wave(f)
     seq_len = spectrogram.shape[0]
     labels = [np.zeros(seq_len, dtype=np.int32)] * 3  # nihaolele   lele  whole
@@ -135,7 +135,10 @@ def make_record(f, time_label):
         for i in range(len(labels)):
             for t in frame_labels[i]:
                 labels[i][t[1]:t[2]] = t[0]
-
+    np.set_printoptions(precision=4, threshold=np.inf,
+                        suppress=True)
+    for l in labels:
+        print(l)
     one_hots = [dense_to_ont_hot(label, num) for label, num in
                 zip(labels, [3, 2, 2])]
     return spectrogram, one_hots, seq_len
@@ -295,9 +298,10 @@ def generate_trainning_data(path):
     tuple_list = []
     counter = 0
     record_count = 0
-    for i, audio in enumerate(audio_list):
-        spec, labels, seq_len = make_record(path_join(wave_train_dir, audio),
-                                            time_list[i])
+    for i, audio_name in enumerate(audio_list):
+        spec, labels, seq_len = make_record(
+            path_join(wave_train_dir, audio_name),
+            time_list[i])
         if spec is not None:
             counter += 1
             tuple_list.append((spec, labels, seq_len))
@@ -318,9 +322,10 @@ def generate_trainning_data(path):
 
 
 if __name__ == '__main__':
+    base_pkl = 'segment_nihaolele_extra5135.pkl'
     # sort_wave(wave_train_dir + "segment_nihaolele_extra.pkl")
-    # filter_wave(wave_train_dir + "segment_nihaolele_extra.pkl.sorted")
-    # generate_trainning_data(wave_train_dir + 'segment_nihaolele_extra5135.pkl.sorted.filtered')
+    # filter_wave(wave_train_dir + base_pkl+'.sorted")
+    generate_trainning_data(wave_train_dir + base_pkl + '.sorted.filtered')
 
-    generate_valid_data(wave_valid_dir + "valid.pkl")
+    # generate_valid_data(wave_valid_dir + "valid.pkl")
     # make_example(wave_train_dir+'azure_228965.wav',[[1, 4.12, 8.88]])

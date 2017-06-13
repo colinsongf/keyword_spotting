@@ -45,22 +45,21 @@ class Runner(object):
         with graph.as_default(), tf.Session() as sess:
             self.data = read_dataset(self.config)
 
-            # self.model = DRNN(self.config, self.data.next_batch())
             if config.mode == 'train':
                 with tf.variable_scope("model"):
                     self.train_model = DRNN(self.config,
                                             self.data.batch_input_queue(),
-                                            is_train=True, reuse=False)
+                                            is_train=True)
                     self.train_model.config.show()
                 with tf.variable_scope("model", reuse=True):
                     self.valid_model = DRNN(self.config,
                                             self.data.valid_queue(),
-                                            is_train=False, reuse=True)
+                                            is_train=False)
             else:
                 with tf.variable_scope("model", reuse=False):
                     self.valid_model = DRNN(self.config,
                                             self.data.valid_queue(),
-                                            is_train=False, reuse=False)
+                                            is_train=False)
             saver = tf.train.Saver()
 
             # restore from stored models
@@ -95,16 +94,14 @@ class Runner(object):
                         # if self.step > 1:
                         #     break
                         if not self.config.max_pooling_loss:
-                            epoch = sess.run([self.data.epoch])[0]
                             _, _, _, l, keys = sess.run(
                                 [self.train_model.optimizer,
                                  self.train_model.stage_op,
                                  self.train_model.input_filequeue_enqueue_op,
                                  self.train_model.loss, self.train_model.keys])
-                            print(epoch)
+                            epoch = sess.run([self.data.epoch])[0]
                             print(keys[0])
                         else:
-                            epoch = sess.sun([self.data.epoch])[0]
                             _, _, _, l, xent_bg, xent_max = sess.run(
                                 [self.train_model.optimizer,
                                  self.train_model.stage_op,
@@ -112,6 +109,7 @@ class Runner(object):
                                  self.train_model.loss,
                                  self.train_model.xent_background,
                                  self.train_model.xent_max_frame])
+                            epoch = sess.run([self.data.epoch])[0]
 
                         # if epoch > self.epoch:
                         #     print('epoch', self.epoch)

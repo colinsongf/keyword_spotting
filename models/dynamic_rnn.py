@@ -32,23 +32,23 @@ cell_fn = core_rnn_cell_impl.LSTMCell
 
 # noinspection PyAttributeOutsideInit,SpellCheckingInspection
 class DRNN(object):
-    def __init__(self, config, input, is_train, reuse=False):
+    def __init__(self, config, input, is_train):
         self.config = config
         if is_train:
             stager, self.stage_op, self.input_filequeue_enqueue_op = input
             # we only use 1 gpu
             self.inputX, self.labels, self.seqLengths, self.keys = stager.get()
-            self.build_graph(config, is_train, reuse)
+            self.build_graph(config, is_train)
         else:
             stager, self.stage_op, self.input_filequeue_enqueue_op = input
             self.inputX, self.seqLengths, self.correctness, self.names = stager.get()
-            self.build_graph(config, is_train, reuse)
+            self.build_graph(config, is_train)
 
     @describe
-    def build_graph(self, config, is_train, reuse):
+    def build_graph(self, config, is_train):
 
         outputs = self.build_multi_dynamic_brnn(config, self.inputX,
-                                                self.seqLengths, reuse)
+                                                self.seqLengths)
         with tf.name_scope('fc-layer'):
             if config.use_project:
                 weightsClasses = tf.Variable(
@@ -135,18 +135,20 @@ class DRNN(object):
     def build_multi_dynamic_brnn(self,
                                  config,
                                  inputX,
-                                 seqLengths, reuse=False):
+                                 seqLengths):
         hid_input = inputX
+
         cell = cell_fn(num_units=config.hidden_size,
                        use_peepholes=True,
                        cell_clip=config.cell_clip,
-                       initializer=None,
+                       initializer=tf.contrib.layers.xavier_initializer(),
                        num_proj=config.num_proj if config.use_project else None,
                        proj_clip=None,
                        forget_bias=1.0,
                        state_is_tuple=True,
                        activation=tf.tanh,
-                       reuse=reuse)
+                       reuse=tf.get_variable_scope().reuse
+                       )
         for i in range(config.num_layers):
             outputs, output_states = dynamic_rnn(cell,
                                                  inputs=hid_input,

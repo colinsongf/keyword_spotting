@@ -54,7 +54,7 @@ class DataSet(object):
 
     @property
     def epochs_completed(self):
-        return self.train_reader.num_work_units_completed() // self.train_file_size
+        return self.train_reader.num_work_units_completed() / self.train_file_size
 
     @property
     def test(self):
