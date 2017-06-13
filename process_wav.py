@@ -121,6 +121,8 @@ def make_record(f, time_label):
     spectrogram, wave = process_wave(f)
     seq_len = spectrogram.shape[0]
     labels = []  # nihaolele   lele  whole
+    for i in range(3):
+        labels.append(np.zeros(seq_len, dtype=np.int32))
     if len(time_label) > 0:
         new_label = []
         for t in time_label:
@@ -133,11 +135,9 @@ def make_record(f, time_label):
         frame_labels = convert_label(new_label)
         assert len(frame_labels) == 3
         for i in range(3):
-            temp = np.zeros(seq_len, dtype=np.int32)
             for t in frame_labels[i]:
-                temp[t[1]:t[2]] = t[0]
-            labels.append(temp)
-
+                labels[i][t[1]:t[2]] = t[0]
+    print(labels)
 
     one_hots = [dense_to_ont_hot(label, num) for label, num in
                 zip(labels, [3, 2, 2])]
@@ -324,7 +324,7 @@ def generate_trainning_data(path):
 if __name__ == '__main__':
     base_pkl = 'segment_nihaolele_extra5135.pkl'
     # sort_wave(wave_train_dir + "segment_nihaolele_extra.pkl")
-    # filter_wave(wave_train_dir + base_pkl+'.sorted")
+    # filter_wave(wave_train_dir + base_pkl+'.sorted')
     generate_trainning_data(wave_train_dir + base_pkl + '.sorted.filtered')
 
     # generate_valid_data(wave_valid_dir + "valid.pkl")
