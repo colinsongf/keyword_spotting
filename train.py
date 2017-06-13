@@ -132,8 +132,8 @@ class Runner(object):
                                      self.valid_model.names,
                                      self.valid_model.stage_op,
                                      self.valid_model.input_filequeue_enqueue_op])
-                                for i, logit in enumerate(logits):
-                                    logit[seqLen[i]:] = 0
+                                for j, logit in enumerate(logits):
+                                    logit[seqLen[j]:] = 0
 
                                 # print(len(logits), len(labels), len(seqLen))
 
