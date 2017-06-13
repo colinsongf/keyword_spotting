@@ -40,7 +40,7 @@ class DataSet(object):
             self.train_file_size = len(self.train_filename)
             if self.train_file_size == 0:
                 raise Exception('train tfrecords not found')
-            self.train_reader = tf.TFRecordReader()
+            self.train_reader = tf.TFRecordReader(name='train_reader')
             self.epoch = self.epochs_completed
             print('file size', self.train_file_size)
 
@@ -48,7 +48,7 @@ class DataSet(object):
         self.valid_file_size = len(self.valid_filename)
         if self.valid_file_size == 0:
             raise Exception('valid tfrecords not found')
-        self.valid_reader = tf.TFRecordReader()
+        self.valid_reader = tf.TFRecordReader(name='valid_reader')
         self.validation_size = len(self.valid_filename) * config.tfrecord_size
         print('validation size', self.validation_size)
 

@@ -43,6 +43,7 @@ class Runner(object):
 
         graph = tf.Graph()
         with graph.as_default(), tf.Session() as sess:
+            print(tf.get_default_graph())
             self.data = read_dataset(self.config)
 
             if config.mode == 'train':
@@ -75,6 +76,10 @@ class Runner(object):
 
             sess.run(tf.local_variables_initializer())
             tf.Graph.finalize(graph)
+            variable_names = [n.name for n in tf.get_default_graph().as_graph_def().node]
+            # glo=sess.run([tf.global_variables()])
+            for n in variable_names:
+                print(n)
 
             st_time = time.time()
             check_dir(self.config.working_path)
