@@ -20,7 +20,7 @@ def get_config():
 
 class Config(object):
     def __init__(self):
-        self.mode = "valid"  # train,valid
+        self.mode = "train"  # train,valid
         self.max_pooling_loss = False
         self.spectrogram = 'mel'  # mfcc,mel
         self.label_id = 0  # nihaolele,lele,whole

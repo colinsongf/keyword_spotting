@@ -62,13 +62,13 @@ class DRNN(object):
             biasesClasses = tf.get_variable(name='biasesClasses',
                                             initializer=tf.truncated_normal(
                                                 [config.num_classes]))
-        if is_train:
-            flatten_logits = tf.matmul(flatten_outputs,
-                                       weightsClasses) + biasesClasses
-            self.softmax = tf.reshape(tf.nn.softmax(flatten_logits),
-                                      (config.batch_size, -1,
-                                       config.num_classes))
 
+        flatten_logits = tf.matmul(flatten_outputs,
+                                   weightsClasses) + biasesClasses
+        self.softmax = tf.reshape(tf.nn.softmax(flatten_logits),
+                                  (config.batch_size, -1,
+                                   config.num_classes))
+        if is_train:
             flatten_labels = tf.reshape(self.labels,
                                         (-1, config.num_classes))
             self.xent_loss = tf.reduce_mean(
