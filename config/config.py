@@ -35,10 +35,10 @@ class Config(object):
         # self.working_path = './params/lele_mfcc/'
         # self.data_path = './data/lele_mfcc/'
 
-        self.data_path = '/ssd/liuziqi/mel/'
+        # self.data_path = '/ssd/liuziqi/mel/'
         self.model_name = 'latest.ckpt'
         self.rawdata_path = './rawdata/'
-        self.rawdata_path = '/ssd/keyword/'
+        # self.rawdata_path = '/ssd/keyword/'
         # self.data_path = './test/data/azure_garbage/'
         self.gpu = "0"
 

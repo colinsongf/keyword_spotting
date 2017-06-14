@@ -85,6 +85,7 @@ class Runner(object):
             #     print(n)
 
             st_time = time.time()
+            check_dir(self.config.model_path)
             check_dir(self.config.working_path)
 
             if self.config.mode == 'train':
@@ -281,7 +282,7 @@ class Runner(object):
         config_path = path_join(self.config.working_path, 'config.pkl')
         graph_path = path_join(self.config.working_path, 'graph.pb')
         import pickle
-        pickle.dump(self.config, open(config_path, 'rb'))
+        pickle.dump(self.config, open(config_path, 'wb'))
 
         with tf.Graph().as_default(), tf.Session(config=tf.ConfigProto(
                 allow_soft_placement=True)) as session:
@@ -291,7 +292,8 @@ class Runner(object):
             print('Graph build finished')
 
             saver = tf.train.Saver()
-            saver.restore(session, save_path=config.model_path)
+            saver.restore(session, save_path=path_join(self.config.model_path,
+                                                       'latest.ckpt'))
             print("model restored from %s" % (config.model_path))
 
             frozen_graph_def = graph_util.convert_variables_to_constants(
@@ -306,9 +308,9 @@ class Runner(object):
             try:
                 tf.import_graph_def(frozen_graph_def, name="")
             except Exception as e:
-                print("!!!!Import octbit graph meet error: ", e)
+                print("!!!!Import graph meet error: ", e)
                 exit()
-            print('graph saved in %s', graph_path)
+            print('graph saved in %s' % graph_path)
 
 
 if __name__ == '__main__':
@@ -349,5 +351,5 @@ if __name__ == '__main__':
     os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
     print(flags)
     runner = Runner(config)
-    runner.run()
-    # runner.build_graph()
+    # runner.run()
+    runner.build_graph()
