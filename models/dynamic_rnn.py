@@ -136,15 +136,15 @@ class DeployModel(object):
 
         # input place holder
         with tf.device('/cpu:0'):
-            inputX = tf.placeholder(dtype=tf.float32,
+            self.inputX = tf.placeholder(dtype=tf.float32,
                                     shape=[None, config.num_features],
                                     name='inputX')
-            inputX = tf.expand_dims(inputX, 0, name='reshape_inputX')
+            inputX = tf.expand_dims(self.inputX, 0, name='reshape_inputX')
 
-            seqLength = tf.placeholder(dtype=tf.int32, shape=[1],
+            self.seqLength = tf.placeholder(dtype=tf.int32, shape=[1],
                                        name='seqLength')
 
-            rnn_outputs = build_multi_dynamic_rnn(config, inputX, seqLength)
+            rnn_outputs = build_multi_dynamic_rnn(config, inputX, self.seqLength)
             with tf.name_scope('fc-layer'):
                 if config.use_project:
                     weightsClasses = tf.get_variable(name='weightsClasses',

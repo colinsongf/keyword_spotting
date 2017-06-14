@@ -280,7 +280,7 @@ class Runner(object):
 
     def build_graph(self):
         config_path = path_join(self.config.working_path, 'config.pkl')
-        graph_path = path_join(self.config.working_path, 'graph.pb')
+        graph_path = path_join(self.config.working_path, self.config.graph_name)
         import pickle
         pickle.dump(self.config, open(config_path, 'wb'))
 
@@ -294,11 +294,11 @@ class Runner(object):
             saver = tf.train.Saver()
             saver.restore(session, save_path=path_join(self.config.model_path,
                                                        'latest.ckpt'))
-            print("model restored from %s" % (config.model_path))
+            print("model restored from %s" % config.model_path)
 
             frozen_graph_def = graph_util.convert_variables_to_constants(
                 session, session.graph.as_graph_def(),
-                ['model/softmax', 'model/seqLength'])
+                ['model/inputX', 'model/softmax', 'model/seqLength'])
             tf.train.write_graph(
                 frozen_graph_def,
                 os.path.dirname(graph_path),

@@ -29,6 +29,7 @@ class Config(object):
 
         self.model_path = './params/mel/'
         self.working_path = './graph/mel/'
+        self.graph_name = 'graph.pb'
         self.data_path = './data/mel/'
 
         # self.model_path = './params/lele_mfcc/'
