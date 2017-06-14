@@ -185,6 +185,7 @@ class Runner(object):
                             print('loss:' + str(l))
                             print('miss rate:' + str(miss_rate))
                             print('flase_accept_rate:' + str(false_accept_rate))
+                            print(miss_count, '/', target_count)
 
                             if miss_rate + false_accept_rate < best_miss + best_false:
                                 best_miss = miss_rate
