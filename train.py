@@ -15,20 +15,20 @@
 # -*- coding:utf-8 -*-
 # !/usr/bin/python
 
-import sys
-
-from config.config import get_config
-
+import argparse
 import os
+import sys
+import time
+
 import numpy as np
 import tensorflow as tf
 from glob2 import glob
+from tensorflow.python.framework import graph_util
+
+from config.config import get_config
 from models.dynamic_rnn import DRNN, DeployModel
 from reader import read_dataset
-import argparse
-import time
 from utils.common import check_dir, path_join
-from tensorflow.python.framework import graph_util
 
 sys.dont_write_bytecode = True
 DEBUG = False
