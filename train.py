@@ -76,10 +76,11 @@ class Runner(object):
 
             sess.run(tf.local_variables_initializer())
             tf.Graph.finalize(graph)
-            variable_names = [n.name for n in tf.get_default_graph().as_graph_def().node]
+            variable_names = [n.name for n in
+                              tf.get_default_graph().as_graph_def().node]
             # glo=sess.run([tf.global_variables()])
-            for n in variable_names:
-                print(n)
+            # for n in variable_names:
+            #     print(n)
 
             st_time = time.time()
             check_dir(self.config.working_path)
@@ -111,7 +112,7 @@ class Runner(object):
                             # for la in labels:
                             #     if la[:, 2].sum()>0:
                             #         print('fuck')
-                                # print(la[:, 2])
+                            # print(la[:, 2])
                             # print(keys[0])
                         else:
                             _, _, _, l, xent_bg, xent_max = sess.run(
@@ -135,7 +136,7 @@ class Runner(object):
                             miss_count = 0
                             false_count = 0
                             target_count = 0
-
+                            ind = 3
                             for i in range(self.data.valid_file_size):
                                 logits, seqLen, correctness, names, _, _ = sess.run(
                                     [self.valid_model.softmax,
@@ -148,7 +149,8 @@ class Runner(object):
                                     logit[seqLen[j]:] = 0
 
                                 # print(len(logits), len(labels), len(seqLen))
-
+                                with open('logits.txt', 'w') as f:
+                                    f.write(str(logits[ind]))
                                 moving_average = [
                                     self.moving_average(record,
                                                         self.config.smoothing_window,
@@ -222,8 +224,8 @@ class Runner(object):
 
                 iter = 0
                 for i in range(self.data.valid_file_size):
-                    if i > 3:
-                        break
+                    # if i > 3:
+                    #     break
                     ind = 3
                     logits, seqLen, correctness, names, _, _ = sess.run(
                         [self.valid_model.softmax,

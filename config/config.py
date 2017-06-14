@@ -20,25 +20,25 @@ def get_config():
 
 class Config(object):
     def __init__(self):
-        self.mode = "train"  # train,valid
+        self.mode = "valid"  # train,valid
         self.max_pooling_loss = False
         self.spectrogram = 'mel'  # mfcc,mel
         self.label_id = 0  # nihaolele,lele,whole
         self.label_list = ['nihaolele', 'lele', 'whole']
         self._num_classes = [2, 1, 1]
 
-        self.model_path = './params/mel_all/'
-        self.working_path = './params/mel_all/'
-        self.data_path = './data/mel_all/'
+        self.model_path = './params/mel/'
+        self.working_path = './params/mel/'
+        self.data_path = './data/mel/'
 
         # self.model_path = './params/lele_mfcc/'
         # self.working_path = './params/lele_mfcc/'
         # self.data_path = './data/lele_mfcc/'
 
-        # self.data_path = '/ssd/liuziqi/mel_all/'
+        self.data_path = '/ssd/liuziqi/mel/'
         self.model_name = 'latest.ckpt'
         self.rawdata_path = './rawdata/'
-        # self.rawdata_path = '/ssd/keyword/'
+        self.rawdata_path = '/ssd/keyword/'
         # self.data_path = './test/data/azure_garbage/'
         self.gpu = "0"
 
