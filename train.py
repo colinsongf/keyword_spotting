@@ -23,11 +23,12 @@ import os
 import numpy as np
 import tensorflow as tf
 from glob2 import glob
-from models.dynamic_rnn import DRNN
+from models.dynamic_rnn import DRNN, DeployModel
 from reader import read_dataset
 import argparse
 import time
 from utils.common import check_dir, path_join
+from tensorflow.python.framework import graph_util
 
 sys.dont_write_bytecode = True
 DEBUG = False
@@ -195,9 +196,9 @@ class Runner(object):
                     if not DEBUG:
                         print(
                             'training finished, total epoch %d, the model will be save in %s' % (
-                                self.epoch, self.config.working_path))
+                                self.epoch, self.config.model_paths))
                         saver.save(sess, save_path=(
-                            path_join(self.config.working_path, 'latest.ckpt')))
+                            path_join(self.config.model_path, 'latest.ckpt')))
                         print('best miss rate:%f\tbest false rate"%f' % (
                             best_miss, best_false))
                 except tf.errors.OutOfRangeError:
@@ -206,9 +207,9 @@ class Runner(object):
                     if not DEBUG:
                         print(
                             'training shut down, total setp %s, the model will be save in %s' % (
-                                self.step, self.config.working_path))
+                                self.step, self.config.model_path))
                         saver.save(sess, save_path=(
-                            path_join(self.config.working_path, 'latest.ckpt')))
+                            path_join(self.config.model_path, 'latest.ckpt')))
                         print('best miss rate:%f\tbest false rate %f' % (
                             best_miss, best_false))
                 finally:
@@ -279,6 +280,39 @@ class Runner(object):
                 print('miss rate: %d/%d' % (miss_count, target_count))
                 print('flase_accept_rate: %d/%d' % (
                     false_count, total_count - target_count))
+
+    def build_graph(self):
+        config_path = path_join(self.config.working_path, 'config.pkl')
+        graph_path = path_join(self.config.working_path, 'graph.pb')
+        import pickle
+        pickle.dump(self.config, open(config_path, 'rb'))
+
+        with tf.Graph().as_default(), tf.Session(config=tf.ConfigProto(
+                allow_soft_placement=True)) as session:
+            with tf.variable_scope("model"):
+                model = DeployModel(config=config)
+
+            print('Graph build finished')
+
+            saver = tf.train.Saver()
+            saver.restore(session, save_path=config.model_path)
+            print("model restored from %s" % (config.model_path))
+
+            frozen_graph_def = graph_util.convert_variables_to_constants(
+                session, session.graph.as_graph_def(),
+                ['model/softmax', 'model/seqLength'])
+            tf.train.write_graph(
+                frozen_graph_def,
+                os.path.dirname(graph_path),
+                os.path.basename(graph_path),
+                as_text=False,
+            )
+            try:
+                tf.import_graph_def(frozen_graph_def, name="")
+            except Exception as e:
+                print("!!!!Import octbit graph meet error: ", e)
+                exit()
+            print('graph saved in %s', graph_path)
 
     def prediction(self, moving_avg, threshold, lockout, f=None):
         if f is not None:
@@ -424,3 +458,4 @@ if __name__ == '__main__':
     print(flags)
     runner = Runner(config)
     runner.run()
+    # runner.build_graph()

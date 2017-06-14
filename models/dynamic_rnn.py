@@ -43,8 +43,8 @@ class DRNN(object):
     @describe
     def build_graph(self, config, is_train):
 
-        outputs = self.build_multi_dynamic_brnn(config, self.inputX,
-                                                self.seqLengths)
+        outputs = build_multi_dynamic_rnn(config, self.inputX,
+                                          self.seqLengths)
         with tf.name_scope('fc-layer'):
             if config.use_project:
                 weightsClasses = tf.get_variable(name='weightsClasses',
@@ -124,46 +124,91 @@ class DRNN(object):
                 self.optimizer = opti.apply_gradients(
                     zip(grads, self.var_trainable_op))
 
-    def dropout(self, x, keep_prob):
-        """ Apply dropout to a tensor
+
+class DeployModel(object):
+    def __init__(self, config):
         """
-        return tf.contrib.layers.dropout(x, keep_prob=keep_prob,
-                                         is_training=True)
+        In deployment, we use placeholder to get input. Only inference part
+        are built. seq_lengths, rnn_states, rnn_outputs, ctc_decode_inputs
+        are exposed for streaming decoding. All operators are placed in CPU.
+        Padding should be done before data is fed.
+        """
 
-    def build_multi_dynamic_brnn(self,
-                                 config,
-                                 inputX,
-                                 seqLengths):
-        hid_input = inputX
-        print(tf.get_variable_scope().reuse)
-        cell = cell_fn(num_units=config.hidden_size,
-                       use_peepholes=True,
-                       cell_clip=config.cell_clip,
-                       initializer=tf.contrib.layers.xavier_initializer(),
-                       num_proj=config.num_proj if config.use_project else None,
-                       proj_clip=None,
-                       forget_bias=1.0,
-                       state_is_tuple=True,
-                       activation=tf.tanh,
-                       reuse=tf.get_variable_scope().reuse
-                       )
-        for i in range(config.num_layers):
-            outputs, output_states = dynamic_rnn(cell,
-                                                 inputs=hid_input,
-                                                 sequence_length=seqLengths,
-                                                 initial_state=None,
-                                                 dtype=tf.float32,
-                                                 scope="drnn")
+        # input place holder
+        with tf.device('/cpu:0'):
+            inputX = tf.placeholder(dtype=tf.float32,
+                                    shape=[None, config.num_features],
+                                    name='inputX')
+            inputX = tf.expand_dims(inputX, 0, name='reshape_inputX')
 
-            # tensor of shape: [batch_size, max_time, input_size]
-            hidden = outputs
-            if config.mode == 'train':
-                hidden = self.dropout(hidden, config.keep_prob)
+            seqLength = tf.placeholder(dtype=tf.int32, shape=[1],
+                                       name='seqLength')
 
-            if i != config.num_layers - 1:
-                hid_input = hidden
+            rnn_outputs = build_multi_dynamic_rnn(config, inputX, seqLength)
+            with tf.name_scope('fc-layer'):
+                if config.use_project:
+                    weightsClasses = tf.get_variable(name='weightsClasses',
+                                                     initializer=tf.truncated_normal(
+                                                         [config.num_proj,
+                                                          config.num_classes]))
+                    flatten_outputs = tf.reshape(rnn_outputs,
+                                                 (-1, config.num_proj))
+                else:
+                    weightsClasses = tf.get_variable(name='weightsClasses',
+                                                     initializer=tf.truncated_normal(
+                                                         [config.hidden_size,
+                                                          config.num_classes]))
+                    flatten_outputs = tf.reshape(rnn_outputs,
+                                                 (-1, config.hidden_size))
+                biasesClasses = tf.get_variable(name='biasesClasses',
+                                                initializer=tf.truncated_normal(
+                                                    [config.num_classes]))
 
-        return hidden
+            flatten_logits = tf.matmul(flatten_outputs,
+                                       weightsClasses) + biasesClasses
+            self.softmax = tf.nn.softmax(flatten_logits, name='softmax')
+
+
+def build_multi_dynamic_rnn(config,
+                            inputX,
+                            seqLengths):
+    hid_input = inputX
+    print(tf.get_variable_scope().reuse)
+    cell = cell_fn(num_units=config.hidden_size,
+                   use_peepholes=True,
+                   cell_clip=config.cell_clip,
+                   initializer=tf.contrib.layers.xavier_initializer(),
+                   num_proj=config.num_proj if config.use_project else None,
+                   proj_clip=None,
+                   forget_bias=1.0,
+                   state_is_tuple=True,
+                   activation=tf.tanh,
+                   reuse=tf.get_variable_scope().reuse
+                   )
+    for i in range(config.num_layers):
+        outputs, output_states = dynamic_rnn(cell,
+                                             inputs=hid_input,
+                                             sequence_length=seqLengths,
+                                             initial_state=None,
+                                             dtype=tf.float32,
+                                             scope="drnn")
+
+        # tensor of shape: [batch_size, max_time, input_size]
+        hidden = outputs
+        if config.mode == 'train':
+            hidden = dropout(hidden, config.keep_prob)
+
+        if i != config.num_layers - 1:
+            hid_input = hidden
+
+    return hidden
+
+
+def dropout(x, keep_prob):
+    """ Apply dropout to a tensor
+    """
+    return tf.contrib.layers.dropout(x, keep_prob=keep_prob,
+                                     is_training=True)
 
 
 if __name__ == "__main__":
