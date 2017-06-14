@@ -126,7 +126,7 @@ class Runner(object):
                                  self.train_model.xent_background,
                                  self.train_model.xent_max_frame])
                             epoch = sess.run([self.data.epoch])[0]
-
+                            print(xent_bg, xent_max)
                         # if epoch > self.epoch:
                         #     print('epoch', self.epoch)
                         #     self.epoch += 1
