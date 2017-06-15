@@ -85,6 +85,7 @@ class DRNN(object):
             self.masked_log_softmax = self.crop_log_softmax * self.crop_labels
             self.segment_len = tf.count_nonzero(self.masked_log_softmax, 1,
                                                 dtype=tf.float32)  # shape (batchsize,class_num)
+            self.segment_len_sum = tf.reduce_sum(self.segment_len, axis=1)
             self.max_frame = tf.reduce_max(self.masked_log_softmax,
                                            1)  # shape (batchsize,class_num)
             self.xent_max_frame = tf.reduce_sum(self.max_frame)
@@ -95,8 +96,10 @@ class DRNN(object):
             self.xent_background = tf.reduce_sum(
                 tf.reduce_sum(
                     self.background_log_softmax * self.background_label,
-                    (1, 2)) / tf.cast(self.seqLengths,
-                                      tf.float32))
+                    (1, 2)) / (tf.cast(self.seqLengths,
+                                       tf.float32) - self.segment_len_sum))
+            # self.xent_background = tf.reduce_sum(
+            #     self.background_log_softmax * self.background_label)
 
             self.flatten_masked_softmax = tf.reshape(self.masked_log_softmax,
                                                      (config.batch_size, -1))
@@ -141,7 +144,7 @@ class DeployModel(object):
                                          shape=[None, config.num_features],
                                          name='inputX')
             inputX = tf.expand_dims(self.inputX, 0, name='reshape_inputX')
-            self.fuck = tf.identity(inputX,name='fuck')
+            self.fuck = tf.identity(inputX, name='fuck')
 
             self.seqLength = tf.placeholder(dtype=tf.int32, shape=[1],
                                             name='seqLength')

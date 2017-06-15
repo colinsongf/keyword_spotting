@@ -21,7 +21,6 @@ import tensorflow as tf
 from utils.common import check_dir, path_join, increment_id
 
 config = get_config()
-import matplotlib.pyplot as plt
 
 wave_train_dir = config.rawdata_path + 'train/'
 wave_valid_dir = config.rawdata_path + 'valid/'
@@ -29,8 +28,9 @@ wave_valid_dir = config.rawdata_path + 'valid/'
 save_train_dir = path_join(config.data_path, 'train/')
 save_valid_dir = path_join(config.data_path, 'valid/')
 
-
 global_len = []
+temp_list = []
+error_list = []
 
 
 def time2frame(second, sr=config.samplerate, n_fft=config.fft_size,
@@ -110,7 +110,7 @@ def process_wave(f):
                                  fmin=300, fmax=8000,
                                  n_mels=config.num_features))
     else:
-        raise (Exception('spectrogram %s not defined') % config.spectrogram)
+        raise (Exception('spectrogram %s not defined' % config.spectrogram))
     return mel_spectrogram, y
 
 
@@ -136,7 +136,6 @@ def make_record(f, time_label):
         for i in range(3):
             for t in frame_labels[i]:
                 labels[i][t[1]:t[2]] = t[0]
-    print(labels)
 
     one_hots = [dense_to_ont_hot(label, num) for label, num in
                 zip(labels, [3, 2, 2])]
@@ -223,40 +222,6 @@ def generate_valid_data(pkl_path):
             print(fname, 'created')
 
 
-def sort_wave(pkl_path):
-    def get_len(f):
-        y, sr = librosa.load(f, sr=config.samplerate)
-        return len(y)
-
-    with open(pkl_path, "rb") as f:
-        training_data = pickle.load(f)
-        sorted_data = sorted(training_data,
-                             key=lambda a: get_len(wave_train_dir + a[0]))
-    with open(pkl_path + '.sorted', "wb") as f:
-        pickle.dump(sorted_data, f)
-
-
-def filter_wave(pkl_path):
-    with open(pkl_path, "rb") as f:
-        training_data = pickle.load(f)
-    print('number before filter:', len(training_data))
-    filter_out = []
-    for i in training_data:
-        if len(i[1]) > 0:
-            drop = False
-            for t in i[1]:
-                if (t[2] - t[1] > 3):
-                    drop = True
-                    break
-            if not drop:
-                filter_out.append(i)
-        else:
-            filter_out.append(i)
-    with open(pkl_path + '.filtered', "wb") as f:
-        pickle.dump(filter_out, f)
-    print('number after filter:', len(filter_out))
-
-
 def batch_padding_trainning(tup_list):
     new_list = []
     max_len = max([t[2] for t in tup_list])
@@ -320,14 +285,130 @@ def generate_trainning_data(path):
             print(fname, 'created')
 
 
+def sort_wave(pkl_path):
+    def get_len(f):
+        y, sr = librosa.load(f, sr=config.samplerate)
+        return len(y)
+
+    with open(pkl_path, "rb") as f:
+        training_data = pickle.load(f)
+        sorted_data = sorted(training_data,
+                             key=lambda a: get_len(wave_train_dir + a[0]))
+    with open(pkl_path + '.sorted', "wb") as f:
+        pickle.dump(sorted_data, f)
+
+
+def filter_wave(pkl_path):
+    with open(pkl_path, "rb") as f:
+        training_data = pickle.load(f)
+    print('number before filter:', len(training_data))
+    filter_out = []
+    for i in training_data:
+        if len(i[1]) > 0:
+            drop = False
+            for t in i[1]:
+                if (t[2] - t[1] > 3):
+                    drop = True
+                    break
+            if not drop:
+                filter_out.append(i)
+        else:
+            filter_out.append(i)
+    with open(pkl_path + '.filtered', "wb") as f:
+        pickle.dump(filter_out, f)
+    print('number after filter:', len(filter_out))
+
+
+def temp(path):
+    with open(path, 'rb') as f:
+        wav_list = pickle.load(f)
+    audio_list = [i[0] for i in wav_list]
+    time_list = [i[1] for i in wav_list]
+    assert len(audio_list) == len(time_list)
+    tuple_list = []
+    counter = 0
+    for i, audio_name in enumerate(audio_list):
+        spec, labels, seq_len = make_record(
+            path_join(wave_train_dir, audio_name),
+            time_list[i])
+        if spec is not None:
+            counter += 1
+            temp_list.append((audio_name, time_list[i]))
+        else:
+            print('error')
+            error_list.append((audio_name, time_list[i]))
+    with open('labelxxx.pkl', 'wb') as f:
+        pickle.dump(temp_list, f)
+    with open('error.pkl', 'wb') as f:
+        pickle.dump(error_list, f)
+
+
+def shuffle(pkl_path):
+    import random
+    new_list = []
+    batch = 4096
+    with open(pkl_path, 'rb') as f:
+        wave_list = pickle.load(f)
+    total = 0
+    for r in wave_list[18 * batch:19 * batch]:
+        if len(r[1]) > 0:
+            total += 1
+    print(total)
+    # for i in range(len(wave_list) // batch):
+    #     print('batch', i)
+    #
+    #     temp = wave_list[i * batch:(i + 1) * batch]
+    #     # flag = False
+    #     # for k in temp:
+    #     #     if len(k[1]) > 0:
+    #     #         flag = True
+    #     #         break
+    #     # if not flag:
+    #     #     print('fuck', i)
+    #
+    #     ok = False
+    #     again = 0
+    #
+    #     while not ok and again < 100:
+    #         count = 0
+    #         random.shuffle(temp)
+    #         # print(temp[32:64])
+    #         c = 0
+    #         for j in range(batch // 32):
+    #             subok = False
+    #             small_batch = temp[j * 32:(j + 1) * 32]
+    #             for record in small_batch:
+    #                 if len(record[1]) > 0:
+    #                     subok = True
+    #                     break
+    #             if subok:
+    #                 c += 1
+    #                 continue
+    #             else:
+    #                 print(i, 'again')
+    #                 again += 1
+    #                 break
+    #
+    #         if c == batch // 32:
+    #             ok = True
+    #     new_list.extend(temp)
+    # print(len(wave_list))
+    # new_list.extend(wave_list[len(wave_list) // batch * batch:])
+    # print(len(new_list))
+    # with open(pkl_path + '.shuffled', "wb") as f:
+    #     pickle.dump(new_list, f)
+
+
 if __name__ == '__main__':
     check_dir(save_train_dir)
     check_dir(save_valid_dir)
 
-    base_pkl = 'label_.pkl'
-    # sort_wave(wave_train_dir + "segment_nihaolele_extra.pkl")
-    # filter_wave(wave_train_dir + base_pkl+'.sorted')
-    generate_trainning_data(wave_train_dir + base_pkl + '.sorted.filtered')
+    base_pkl = 'label_5x.pkl'
+    # sort_wave(wave_train_dir + base_pkl)
+    # filter_wave(wave_train_dir + base_pkl + '.sorted')
+    # shuffle(wave_train_dir + base_pkl + '.sorted.filtered')
+    generate_trainning_data(
+        wave_train_dir + base_pkl + '.sorted.filtered.shuffled')
 
     # generate_valid_data(wave_valid_dir + "valid.pkl")
     # make_example(wave_train_dir+'azure_228965.wav',[[1, 4.12, 8.88]])

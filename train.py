@@ -339,9 +339,13 @@ if __name__ == '__main__':
     parser.add_argument('-graph', '--graph_path',
                         help='The  path for saving graph proto',
                         default=None)
-    parser.add_argument('-g', '--gpu',
-                        help='visible GPU',
+    parser.add_argument('-g', '--gpu', help='visible GPU',
                         default=None)
+    parser.add_argument('-p', '--use_project',
+                        help='whether to use projection in LSTM',
+                        type=int, default=None)
+    parser.add_argument('-l', '--learning_rate', help='learning rate',
+                        type=float, default=None)
     parser.add_argument('-thres', '--threshold', help='threshold for trigger',
                         type=float, default=None)
     parser.add_argument('--data_path', help='data path', default=None)

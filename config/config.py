@@ -20,7 +20,7 @@ def get_config():
 
 class Config(object):
     def __init__(self):
-        self.mode = "valid"  # train,valid
+        self.mode = "train"  # train,valid
         self.max_pooling_loss = False
         self.spectrogram = 'mel'  # mfcc,mel
         self.label_id = 0  # nihaolele,lele,whole
@@ -37,7 +37,7 @@ class Config(object):
         # self.working_path = './params/lele_mfcc/'
         # self.data_path = './data/lele_mfcc/'
 
-        # self.data_path = '/ssd/liuziqi/mel_all/'
+        # self.data_path = '/ssd/liuziqi/mel_all5x/'
         self.model_name = 'best.ckpt'
         self.rawdata_path = './rawdata/'
         self.rawdata_path = '/ssd/keyword/'
@@ -63,7 +63,7 @@ class Config(object):
         self.grad_clip = -1
         self.lr_decay = 0.5
         self.batch_size = 32
-        self.tfrecord_size = 128
+        self.tfrecord_size = 32
         self.trigger_threshold = 0.7  # between (0,1), but this param is somehow arbitrary
 
         # these three sizes are frames, which depend on STFT frame size
