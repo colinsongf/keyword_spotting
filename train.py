@@ -19,6 +19,7 @@ import argparse
 import os
 import sys
 import time
+import pickle
 
 import numpy as np
 import tensorflow as tf
@@ -83,14 +84,19 @@ class Runner(object):
             # glo=sess.run([tf.global_variables()])
             # for n in variable_names:
             #     print(n)
-
+            best_miss = 1
+            best_false = 1
             st_time = time.time()
+            if os.path.exists(path_join(self.config.save_path, 'best.pkl')):
+                with open(path_join(self.config.save_path, 'best.pkl'),
+                          'rb') as f:
+                    best_miss, best_false = pickle.load(f)
+                    print('best miss', best_miss, 'best false', best_false)
 
             check_dir(self.config.save_path)
 
             if self.config.mode == 'train':
-                best_miss = 1
-                best_false = 1
+
                 last_time = time.time()
                 sess.run([self.valid_model.stage_op,
                           self.valid_model.input_filequeue_enqueue_op])
@@ -194,6 +200,11 @@ class Runner(object):
                                            save_path=(path_join(
                                                self.config.save_path,
                                                'best.ckpt')))
+                                with open(path_join(
+                                        self.config.save_path, 'best.pkl'),
+                                        'wb') as f:
+                                    best_tuple = (best_miss, best_false)
+                                    pickle.dump(best_tuple, f)
                     if not DEBUG:
                         print(
                             'training finished, total epoch %d, the model will be save in %s' % (
