@@ -17,7 +17,7 @@ import argparse
 from utils.common import path_join
 from utils.prediction import moving_average, decode, predict
 from process_wav import process_wave
-
+import numpy as np
 
 # load graph
 class Runner():
@@ -32,22 +32,26 @@ class Runner():
 
         self.sess = tf.Session()
         self.graph = tf.Graph()
-        # with self.sess as sess, self.graph.as_default():
-        #     tf.import_graph_def(self.graph_def, name="")
+        with self.graph.as_default():
+            tf.import_graph_def(self.graph_def, name="")
+        self.sess = tf.Session(graph=self.graph)
 
     def predict(self, inputX):
-        seqLen = len(inputX)
+        seqLen = np.asarray([len(inputX)])
         with self.sess as sess, self.graph.as_default():
-            tf.import_graph_def(self.graph_def, name="")
-            prob = sess.run(['model/softmax'],
-                            feed_dict={'model/inputX': inputX,
-                                       'model/seqLength': seqLen})
-            moving_avg = moving_average(prob, self.config.smoothing_window,
+
+            # variable_names = [n.name for n in
+            #                   sess.graph.as_graph_def().node]
+            # for n in variable_names:
+            #     print(n)
+            prob = sess.run(['model/softmax:0'],
+                            feed_dict={'model/inputX:0': inputX,
+                                       'model/seqLength:0': seqLen})
+            moving_avg = moving_average(prob[0], self.config.smoothing_window,
                                         padding=True)
 
             prediction = predict(moving_avg, self.config.trigger_threshold,
                                  self.config.lockout)
-
             result = decode(prediction, self.config.word_interval)
             print(result)
 
@@ -92,4 +96,4 @@ if __name__ == '__main__':
 
     spec, _ = process_wave('./s_B38A27C4F3E0532_你好的的.wav')
     result = runner.predict(spec)
-    print(result)
+

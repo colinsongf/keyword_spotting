@@ -85,8 +85,8 @@ class Runner(object):
             #     print(n)
 
             st_time = time.time()
-            check_dir(self.config.model_path)
-            check_dir(self.config.working_path)
+
+            check_dir(self.config.save_path)
 
             if self.config.mode == 'train':
                 best_miss = 1
@@ -131,10 +131,11 @@ class Runner(object):
                         #     print('epoch', self.epoch)
                         #     self.epoch += 1
                         #     continue
-                        if epoch > self.epoch:
+                        if self.step % 160 == 159:
                             print('epoch time ', (time.time() - last_time) / 60)
                             last_time = time.time()
-                            self.epoch += 1
+                            if epoch > self.epoch:
+                                self.epoch += 1
 
                             miss_count = 0
                             false_count = 0
@@ -191,14 +192,14 @@ class Runner(object):
                                 best_false = false_accept_rate
                                 saver.save(sess,
                                            save_path=(path_join(
-                                               self.config.working_path,
+                                               self.config.save_path,
                                                'best.ckpt')))
                     if not DEBUG:
                         print(
                             'training finished, total epoch %d, the model will be save in %s' % (
-                                self.epoch, self.config.model_paths))
+                                self.epoch, self.config.save_path))
                         saver.save(sess, save_path=(
-                            path_join(self.config.model_path, 'latest.ckpt')))
+                            path_join(self.config.save_path, 'latest.ckpt')))
                         print('best miss rate:%f\tbest false rate"%f' % (
                             best_miss, best_false))
                 except tf.errors.OutOfRangeError:
@@ -207,9 +208,9 @@ class Runner(object):
                     if not DEBUG:
                         print(
                             'training shut down, total setp %s, the model will be save in %s' % (
-                                self.step, self.config.model_path))
+                                self.step, self.config.save_path))
                         saver.save(sess, save_path=(
-                            path_join(self.config.model_path, 'latest.ckpt')))
+                            path_join(self.config.save_path, 'latest.ckpt')))
                         print('best miss rate:%f\tbest false rate %f' % (
                             best_miss, best_false))
                 finally:
@@ -225,9 +226,9 @@ class Runner(object):
 
                 iter = 0
                 for i in range(self.data.valid_file_size):
-                    # if i > 3:
+                    # if i > 2:
                     #     break
-                    ind = 3
+                    ind = 1
                     logits, seqLen, correctness, names, _, _ = sess.run(
                         [self.valid_model.softmax,
                          self.valid_model.seqLengths,
@@ -279,8 +280,8 @@ class Runner(object):
                     false_count, total_count - target_count))
 
     def build_graph(self):
-        config_path = path_join(self.config.working_path, 'config.pkl')
-        graph_path = path_join(self.config.working_path, self.config.graph_name)
+        config_path = path_join(self.config.graph_path, 'config.pkl')
+        graph_path = path_join(self.config.graph_path, self.config.graph_name)
         import pickle
         pickle.dump(self.config, open(config_path, 'wb'))
 
@@ -290,6 +291,10 @@ class Runner(object):
                 model = DeployModel(config=config)
 
             print('Graph build finished')
+            # variable_names = [n.name for n in
+            #                   tf.get_default_graph().as_graph_def().node]
+            # for n in variable_names:
+            #     print(n)
 
             saver = tf.train.Saver()
             saver.restore(session, save_path=path_join(self.config.model_path,
@@ -298,7 +303,8 @@ class Runner(object):
 
             frozen_graph_def = graph_util.convert_variables_to_constants(
                 session, session.graph.as_graph_def(),
-                ['model/inputX', 'model/softmax', 'model/seqLength'])
+                ['model/inputX', 'model/softmax', 'model/seqLength',
+                 'model/fuck'])
             tf.train.write_graph(
                 frozen_graph_def,
                 os.path.dirname(graph_path),
@@ -327,8 +333,11 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--model_path',
                         help='The  model path for restoring',
                         default=None)
-    parser.add_argument('-w', '--working_path',
+    parser.add_argument('-s', '--save_path',
                         help='The  model path for  saving',
+                        default=None)
+    parser.add_argument('-graph', '--graph_path',
+                        help='The  path for saving graph proto',
                         default=None)
     parser.add_argument('-g', '--gpu',
                         help='visible GPU',
@@ -351,5 +360,5 @@ if __name__ == '__main__':
     os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
     print(flags)
     runner = Runner(config)
-    # runner.run()
-    runner.build_graph()
+    runner.run()
+    # runner.build_graph()

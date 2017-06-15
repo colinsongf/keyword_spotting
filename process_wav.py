@@ -29,8 +29,7 @@ wave_valid_dir = config.rawdata_path + 'valid/'
 save_train_dir = path_join(config.data_path, 'train/')
 save_valid_dir = path_join(config.data_path, 'valid/')
 
-check_dir(save_train_dir)
-check_dir(save_valid_dir)
+
 global_len = []
 
 
@@ -322,7 +321,10 @@ def generate_trainning_data(path):
 
 
 if __name__ == '__main__':
-    base_pkl = 'segment_nihaolele_extra5135.pkl'
+    check_dir(save_train_dir)
+    check_dir(save_valid_dir)
+
+    base_pkl = 'label_.pkl'
     # sort_wave(wave_train_dir + "segment_nihaolele_extra.pkl")
     # filter_wave(wave_train_dir + base_pkl+'.sorted')
     generate_trainning_data(wave_train_dir + base_pkl + '.sorted.filtered')

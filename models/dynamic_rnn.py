@@ -71,10 +71,12 @@ class DRNN(object):
         if is_train:
             flatten_labels = tf.reshape(self.labels,
                                         (-1, config.num_classes))
-            self.xent_loss = tf.reduce_mean(
+            # self.xent_loss = tf.reduce_mean(
+            #     tf.nn.softmax_cross_entropy_with_logits(labels=flatten_labels,
+            #                                             logits=flatten_logits))
+            self.xent_loss = tf.reduce_sum(
                 tf.nn.softmax_cross_entropy_with_logits(labels=flatten_labels,
                                                         logits=flatten_logits))
-
             # calculating maxpooling loss
             self.log_softmax = -tf.log(self.softmax)
             self.crop_log_softmax = tf.slice(self.log_softmax, [0, 0, 1],
@@ -85,8 +87,7 @@ class DRNN(object):
                                                 dtype=tf.float32)  # shape (batchsize,class_num)
             self.max_frame = tf.reduce_max(self.masked_log_softmax,
                                            1)  # shape (batchsize,class_num)
-            self.xent_max_frame = tf.reduce_sum(
-                self.max_frame * self.segment_len)
+            self.xent_max_frame = tf.reduce_sum(self.max_frame)
             self.background_log_softmax = tf.slice(self.log_softmax, [0, 0, 0],
                                                    [-1, -1, 1])
             self.background_label = tf.slice(self.labels, [0, 0, 0],
@@ -137,14 +138,16 @@ class DeployModel(object):
         # input place holder
         with tf.device('/cpu:0'):
             self.inputX = tf.placeholder(dtype=tf.float32,
-                                    shape=[None, config.num_features],
-                                    name='inputX')
+                                         shape=[None, config.num_features],
+                                         name='inputX')
             inputX = tf.expand_dims(self.inputX, 0, name='reshape_inputX')
+            self.fuck = tf.identity(inputX,name='fuck')
 
             self.seqLength = tf.placeholder(dtype=tf.int32, shape=[1],
-                                       name='seqLength')
+                                            name='seqLength')
 
-            rnn_outputs = build_multi_dynamic_rnn(config, inputX, self.seqLength)
+            rnn_outputs = build_multi_dynamic_rnn(config, inputX,
+                                                  self.seqLength)
             with tf.name_scope('fc-layer'):
                 if config.use_project:
                     weightsClasses = tf.get_variable(name='weightsClasses',

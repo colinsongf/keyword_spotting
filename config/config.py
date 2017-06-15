@@ -20,15 +20,16 @@ def get_config():
 
 class Config(object):
     def __init__(self):
-        self.mode = "train"  # train,valid
+        self.mode = "valid"  # train,valid
         self.max_pooling_loss = False
         self.spectrogram = 'mel'  # mfcc,mel
         self.label_id = 0  # nihaolele,lele,whole
         self.label_list = ['nihaolele', 'lele', 'whole']
         self._num_classes = [2, 1, 1]
 
-        self.model_path = './params/mel/'
-        self.working_path = './graph/mel/'
+        self.model_path = './params/mel_max/'
+        self.save_path = './params/mel_all/'
+        self.graph_path = './graph/mel/'
         self.graph_name = 'graph.pb'
         self.data_path = './data/mel/'
 
@@ -36,10 +37,10 @@ class Config(object):
         # self.working_path = './params/lele_mfcc/'
         # self.data_path = './data/lele_mfcc/'
 
-        # self.data_path = '/ssd/liuziqi/mel/'
-        self.model_name = 'latest.ckpt'
+        # self.data_path = '/ssd/liuziqi/mel_all/'
+        self.model_name = 'best.ckpt'
         self.rawdata_path = './rawdata/'
-        # self.rawdata_path = '/ssd/keyword/'
+        self.rawdata_path = '/ssd/keyword/'
         # self.data_path = './test/data/azure_garbage/'
         self.gpu = "0"
 
@@ -62,7 +63,7 @@ class Config(object):
         self.grad_clip = -1
         self.lr_decay = 0.5
         self.batch_size = 32
-        self.tfrecord_size = 32
+        self.tfrecord_size = 128
         self.trigger_threshold = 0.7  # between (0,1), but this param is somehow arbitrary
 
         # these three sizes are frames, which depend on STFT frame size
