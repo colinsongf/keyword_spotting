@@ -93,13 +93,15 @@ class DRNN(object):
                                                    [-1, -1, 1])
             self.background_label = tf.slice(self.labels, [0, 0, 0],
                                              [-1, -1, 1])
-            self.xent_background = tf.reduce_sum(
-                tf.reduce_sum(
-                    self.background_log_softmax * self.background_label,
-                    (1, 2)) / (tf.cast(self.seqLengths,
-                                       tf.float32) - self.segment_len_sum))
-            # self.xent_background = tf.reduce_sum(
-            #     self.background_log_softmax * self.background_label)
+            if config.max_pooling_standardize:
+                self.xent_background = tf.reduce_sum(
+                    tf.reduce_sum(
+                        self.background_log_softmax * self.background_label,
+                        (1, 2)) / (tf.cast(self.seqLengths,
+                                           tf.float32) - self.segment_len_sum))
+            else:
+                self.xent_background = tf.reduce_sum(
+                    self.background_log_softmax * self.background_label)
 
             self.flatten_masked_softmax = tf.reshape(self.masked_log_softmax,
                                                      (config.batch_size, -1))
@@ -109,6 +111,11 @@ class DRNN(object):
 
             self.var_trainable_op = tf.trainable_variables()
 
+            self.global_step = tf.Variable(0, trainable=False)
+            self.reset_global_step = tf.assign(self.global_step, 1)
+            self.learning_rate = tf.train.exponential_decay(
+                config.learning_rate, self.global_step, 20000, 0.8, name='lr')
+
             if config.max_pooling_loss:
                 self.loss = self.max_pooling_loss
             else:
@@ -116,17 +123,18 @@ class DRNN(object):
 
             if config.grad_clip == -1:
                 # not apply gradient clipping
-
                 self.optimizer = tf.train.AdamOptimizer(
-                    config.learning_rate).minimize(self.loss)
+                    self.learning_rate).minimize(self.loss)
             else:
                 # apply gradient clipping
                 grads, _ = tf.clip_by_global_norm(
                     tf.gradients(self.loss, self.var_trainable_op),
                     config.grad_clip)
-                opti = tf.train.AdamOptimizer(config.learning_rate)
+                opti = tf.train.AdamOptimizer(self.learning_rate,
+                                              self.global_step)
                 self.optimizer = opti.apply_gradients(
-                    zip(grads, self.var_trainable_op))
+                    zip(grads, self.var_trainable_op),
+                    global_step=self.global_step)
 
 
 class DeployModel(object):

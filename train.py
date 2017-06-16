@@ -41,6 +41,7 @@ class Runner(object):
         self.config = config
         self.epoch = 0
         self.step = 0
+        self.golden = config.golden
 
     def run(self):
 
@@ -92,11 +93,15 @@ class Runner(object):
                           'rb') as f:
                     best_miss, best_false = pickle.load(f)
                     print('best miss', best_miss, 'best false', best_false)
+            else:
+                print('best not exist')
 
             check_dir(self.config.save_path)
 
             if self.config.mode == 'train':
 
+                if self.config.reset_global:
+                    sess.run(self.train_model.reset_global_step)
                 last_time = time.time()
                 sess.run([self.valid_model.stage_op,
                           self.valid_model.input_filequeue_enqueue_op])
@@ -109,30 +114,25 @@ class Runner(object):
                         # if self.step > 1:
                         #     break
                         if not self.config.max_pooling_loss:
-                            _, _, _, l, keys, labels = sess.run(
+                            _, _, _, l, keys, lr = sess.run(
                                 [self.train_model.optimizer,
                                  self.train_model.stage_op,
                                  self.train_model.input_filequeue_enqueue_op,
                                  self.train_model.loss, self.train_model.keys,
-                                 self.train_model.labels])
+                                 self.train_model.learning_rate])
                             epoch = sess.run([self.data.epoch])[0]
-                            # np.set_printoptions(precision=4, threshold=np.inf,
-                            #                     suppress=True)
-                            # for la in labels:
-                            #     if la[:, 2].sum()>0:
-                            #         print('fuck')
-                            # print(la[:, 2])
-                            # print(keys[0])
+
                         else:
-                            _, _, _, l, xent_bg, xent_max = sess.run(
+                            _, _, _, l, xent_bg, xent_max, lr = sess.run(
                                 [self.train_model.optimizer,
                                  self.train_model.stage_op,
                                  self.train_model.input_filequeue_enqueue_op,
                                  self.train_model.loss,
                                  self.train_model.xent_background,
-                                 self.train_model.xent_max_frame])
+                                 self.train_model.xent_max_frame,
+                                 self.train_model.learning_rate])
                             epoch = sess.run([self.data.epoch])[0]
-                            print(xent_bg, xent_max)
+                            # print(xent_bg, xent_max)
                         # if epoch > self.epoch:
                         #     print('epoch', self.epoch)
                         #     self.epoch += 1
@@ -173,7 +173,8 @@ class Runner(object):
                                 # print(prediction[0].shape)
 
                                 result = [
-                                    decode(p, self.config.word_interval)
+                                    decode(p, self.config.word_interval,
+                                           self.golden)
                                     for p in prediction]
                                 miss, target, false_accept = evaluate(
                                     result, correctness.tolist())
@@ -189,6 +190,9 @@ class Runner(object):
                             print('--------------------------------')
                             print('epoch %d' % self.epoch)
                             print('loss:' + str(l))
+                            if config.max_pooling_loss:
+                                print(xent_bg, xent_max)
+                            print('learning rate:', lr)
                             print('miss rate:' + str(miss_rate))
                             print('flase_accept_rate:' + str(false_accept_rate))
                             print(miss_count, '/', target_count)
@@ -237,9 +241,9 @@ class Runner(object):
 
                 iter = 0
                 for i in range(self.data.valid_file_size):
-                    # if i > 2:
-                    #     break
-                    ind = 1
+                    if i > 0:
+                        break
+                    ind = 8
                     logits, seqLen, correctness, names, _, _ = sess.run(
                         [self.valid_model.softmax,
                          self.valid_model.seqLengths,
@@ -270,7 +274,8 @@ class Runner(object):
 
                     with open('trigger.txt', 'w') as f:
                         f.write(str(prediction[ind]))
-                    result = [decode(p, self.config.word_interval) for p in
+                    result = [decode(p, self.config.word_interval, self.golden)
+                              for p in
                               prediction]
                     miss, target, false_accept = evaluate(result,
                                                           correctness.tolist())
@@ -341,6 +346,14 @@ if __name__ == '__main__':
                                                            '0: cross entropy,',
                         type=int,
                         default=None)
+    parser.add_argument('-st', '--max_pooling_standardize',
+                        help='whether use maxpooling standardize',
+                        type=int,
+                        default=None)
+    parser.add_argument('-reset', '--reset_global',
+                        help='reset global step',
+                        type=int,
+                        default=None)
     parser.add_argument('-m', '--model_path',
                         help='The  model path for restoring',
                         default=None)
@@ -353,10 +366,15 @@ if __name__ == '__main__':
     parser.add_argument('-g', '--gpu', help='visible GPU',
                         default=None)
     parser.add_argument('-p', '--use_project',
-                        help='whether to use projection in LSTM',
+                        help='whether to use projection in LSTM, 1 or 0',
+                        type=int, default=None)
+    parser.add_argument('-layer', '--num_layers',
+                        help='number of RNN layer',
                         type=int, default=None)
     parser.add_argument('-l', '--learning_rate', help='learning rate',
                         type=float, default=None)
+    parser.add_argument('-label', '--label_id', help='label id',
+                        type=int, default=None)
     parser.add_argument('-thres', '--threshold', help='threshold for trigger',
                         type=float, default=None)
     parser.add_argument('--data_path', help='data path', default=None)

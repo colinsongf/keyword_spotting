@@ -22,10 +22,14 @@ class Config(object):
     def __init__(self):
         self.mode = "train"  # train,valid
         self.max_pooling_loss = False
+        self.max_pooling_standardize = True
         self.spectrogram = 'mel'  # mfcc,mel
         self.label_id = 0  # nihaolele,lele,whole
         self.label_list = ['nihaolele', 'lele', 'whole']
-        self._num_classes = [2, 1, 1]
+        self._num_classes = [3, 2, 2]  # word+1 for background
+        self._golden = [[2, 1], [1], [1]]
+
+        self.reset_global = 0
 
         self.model_path = './params/mel_max/'
         self.save_path = './params/mel_all/'
@@ -37,7 +41,7 @@ class Config(object):
         # self.working_path = './params/lele_mfcc/'
         # self.data_path = './data/lele_mfcc/'
 
-        # self.data_path = '/ssd/liuziqi/mel_all5x/'
+        self.data_path = '/ssd/liuziqi/mel_all5x/'
         self.model_name = 'best.ckpt'
         self.rawdata_path = './rawdata/'
         self.rawdata_path = '/ssd/keyword/'
@@ -53,7 +57,6 @@ class Config(object):
         self.init_scale = 0.1
         self.learning_rate = 5e-5
         self.max_grad_norm = 5
-        self.num_layers = 1
         self.num_features = 60
         self.hidden_size = 64
         self.use_project = False
@@ -79,7 +82,11 @@ class Config(object):
     @property
     def num_classes(self):
         # word+1 for background
-        return self._num_classes[self.label_id] + 1
+        return self._num_classes[self.label_id]
+
+    @property
+    def golden(self):
+        return self._golden[self.label_id]
 
     def show(self):
         for item in self.__dict__:

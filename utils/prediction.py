@@ -36,8 +36,8 @@ def predict(moving_avg, threshold, lockout, f=None):
     return prediction
 
 
-def decode(prediction, word_interval):
-    raw = [2, 1]
+def decode(prediction, word_interval, golden):
+    raw = golden
     keyword = list(raw)
     # prediction based on moving_avg,shape(t,p),sth like one-hot, but can may overlapping
     # prediction = prediction[:, 1:]
@@ -96,8 +96,8 @@ def decode(prediction, word_interval):
 
 def evaluate(result, target):
     assert len(result) == len(target)
-    print(target)
-    print(result)
+    # print(target)
+    # print(result)
     xor = [a ^ b for a, b in zip(target, result)]
     miss = sum([a & b for a, b in zip(xor, target)])
     false_accept = sum([a & b for a, b in zip(xor, result)])
