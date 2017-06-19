@@ -87,6 +87,7 @@ class Runner(object):
             #     print(n)
             best_miss = 1
             best_false = 1
+            accu_loss = 0
             st_time = time.time()
             if os.path.exists(path_join(self.config.save_path, 'best.pkl')):
                 with open(path_join(self.config.save_path, 'best.pkl'),
@@ -114,34 +115,39 @@ class Runner(object):
                         # if self.step > 1:
                         #     break
                         if not self.config.max_pooling_loss:
-                            _, _, _, l, keys, lr = sess.run(
+                            _, _, _, l, keys, lr, ste = sess.run(
                                 [self.train_model.optimizer,
                                  self.train_model.stage_op,
                                  self.train_model.input_filequeue_enqueue_op,
                                  self.train_model.loss, self.train_model.keys,
-                                 self.train_model.learning_rate])
+                                 self.train_model.learning_rate,
+                                 self.train_model.global_step])
                             epoch = sess.run([self.data.epoch])[0]
 
                         else:
-                            _, _, _, l, xent_bg, xent_max, lr = sess.run(
+                            _, _, _, l, xent_bg, xent_max, lr, set = sess.run(
                                 [self.train_model.optimizer,
                                  self.train_model.stage_op,
                                  self.train_model.input_filequeue_enqueue_op,
                                  self.train_model.loss,
                                  self.train_model.xent_background,
                                  self.train_model.xent_max_frame,
-                                 self.train_model.learning_rate])
+                                 self.train_model.learning_rate,
+                                 self.train_model.global_step])
                             epoch = sess.run([self.data.epoch])[0]
                             # print(xent_bg, xent_max)
                         # if epoch > self.epoch:
                         #     print('epoch', self.epoch)
                         #     self.epoch += 1
                         #     continue
+                        accu_loss += l
+                        if epoch > self.epoch:
+                            self.epoch += 1
+                            print('accumulated loss', accu_loss)
+                            accu_loss = 0
                         if self.step % 160 == 159:
                             print('epoch time ', (time.time() - last_time) / 60)
                             last_time = time.time()
-                            if epoch > self.epoch:
-                                self.epoch += 1
 
                             miss_count = 0
                             false_count = 0
@@ -192,7 +198,7 @@ class Runner(object):
                             print('loss:' + str(l))
                             if config.max_pooling_loss:
                                 print(xent_bg, xent_max)
-                            print('learning rate:', lr)
+                            print('learning rate:', lr, 'global step', ste)
                             print('miss rate:' + str(miss_rate))
                             print('flase_accept_rate:' + str(false_accept_rate))
                             print(miss_count, '/', target_count)
@@ -241,9 +247,9 @@ class Runner(object):
 
                 iter = 0
                 for i in range(self.data.valid_file_size):
-                    if i > 0:
-                        break
-                    ind = 8
+                    # if i > 0:
+                    #     break
+                    ind = 2
                     logits, seqLen, correctness, names, _, _ = sess.run(
                         [self.valid_model.softmax,
                          self.valid_model.seqLengths,

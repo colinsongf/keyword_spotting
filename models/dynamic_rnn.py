@@ -114,7 +114,7 @@ class DRNN(object):
             self.global_step = tf.Variable(0, trainable=False)
             self.reset_global_step = tf.assign(self.global_step, 1)
             self.learning_rate = tf.train.exponential_decay(
-                config.learning_rate, self.global_step, 20000, 0.8, name='lr')
+                config.learning_rate, self.global_step, 10000, 0.8, name='lr')
 
             if config.max_pooling_loss:
                 self.loss = self.max_pooling_loss
@@ -124,14 +124,13 @@ class DRNN(object):
             if config.grad_clip == -1:
                 # not apply gradient clipping
                 self.optimizer = tf.train.AdamOptimizer(
-                    self.learning_rate).minimize(self.loss)
+                    self.learning_rate).minimize(self.loss, self.global_step)
             else:
                 # apply gradient clipping
                 grads, _ = tf.clip_by_global_norm(
                     tf.gradients(self.loss, self.var_trainable_op),
                     config.grad_clip)
-                opti = tf.train.AdamOptimizer(self.learning_rate,
-                                              self.global_step)
+                opti = tf.train.AdamOptimizer(self.learning_rate)
                 self.optimizer = opti.apply_gradients(
                     zip(grads, self.var_trainable_op),
                     global_step=self.global_step)
