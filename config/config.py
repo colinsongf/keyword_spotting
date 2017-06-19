@@ -24,7 +24,7 @@ class Config(object):
         self.max_pooling_loss = False
         self.max_pooling_standardize = True
         self.ktq = False
-        self.optimizer = 'adam' # adam sgd nesterov
+        self.optimizer = 'adam'  # adam sgd nesterov
         self.spectrogram = 'mel'  # mfcc,mel
         self.label_id = 0  # nihaolele,lele,whole
         self.label_list = ['nihaolele', 'lele', 'whole']
@@ -39,10 +39,6 @@ class Config(object):
         self.graph_name = 'graph.pb'
         self.data_path = './data/mel/'
 
-        # self.model_path = './params/lele_mfcc/'
-        # self.working_path = './params/lele_mfcc/'
-        # self.data_path = './data/lele_mfcc/'
-
         # self.data_path = '/ssd/liuziqi/mel_all5x/'
         self.model_name = 'best.ckpt'
         self.rawdata_path = './rawdata/'
@@ -55,7 +51,7 @@ class Config(object):
         self.samplerate = 16000
 
         self.cell_clip = 3.
-        self.num_layers = 1
+        self.num_layers = 2
         self.init_scale = 0.1
         self.learning_rate = 5e-4
         self.max_grad_norm = 5
@@ -64,7 +60,8 @@ class Config(object):
         self.use_project = False
         self.num_proj = 32
         self.max_epoch = 200
-        self.keep_prob = 1.0
+        self.drop_out_input = 0.5
+        self.drop_out_output = 0.5
         self.grad_clip = 0
         self.lr_decay = 0.9
         self.decay_step = 20000

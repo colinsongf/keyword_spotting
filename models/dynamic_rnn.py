@@ -134,7 +134,7 @@ class DRNN(object):
             if config.grad_clip == 0:
                 # not apply gradient clipping
                 self.train_op = self.optimizer.minimize(self.loss,
-                                                       self.global_step)
+                                                        self.global_step)
             else:
                 # apply gradient clipping
                 self.var_trainable_op = tf.trainable_variables()
@@ -192,10 +192,7 @@ class DeployModel(object):
             self.softmax = tf.nn.softmax(flatten_logits, name='softmax')
 
 
-def build_multi_dynamic_rnn(config,
-                            inputX,
-                            seqLengths):
-    hid_input = inputX
+def get_cell(config):
     print(tf.get_variable_scope().reuse)
     cell = cell_fn(num_units=config.hidden_size,
                    use_peepholes=True,
@@ -208,30 +205,31 @@ def build_multi_dynamic_rnn(config,
                    activation=tf.tanh,
                    reuse=tf.get_variable_scope().reuse
                    )
-    for i in range(config.num_layers):
-        outputs, output_states = dynamic_rnn(cell,
-                                             inputs=hid_input,
-                                             sequence_length=seqLengths,
-                                             initial_state=None,
-                                             dtype=tf.float32,
-                                             scope="drnn")
+    if config.drop_out_input > 0 and config.drop_out_output > 0:
+        cell = tf.contrib.rnn.DropoutWrapper(cell,
+                                             input_keep_prob=1 - config.drop_out_input,
+                                             output_keep_prob=1 - config.drop_out_output)
 
-        # tensor of shape: [batch_size, max_time, input_size]
-        hidden = outputs
-        if config.mode == 'train':
-            hidden = dropout(hidden, config.keep_prob)
-
-        if i != config.num_layers - 1:
-            hid_input = hidden
-
-    return hidden
+    return cell
 
 
-def dropout(x, keep_prob):
-    """ Apply dropout to a tensor
-    """
-    return tf.contrib.layers.dropout(x, keep_prob=keep_prob,
-                                     is_training=True)
+def build_multi_dynamic_rnn(config,
+                            inputX,
+                            seqLengths):
+    if config.num_layers > 1:
+        cell = tf.contrib.rnn.MultiRNNCell(
+            [get_cell(config) for _ in range(config.num_layers)])
+    else:
+        cell = tf.contrib.rnn.MultiRNNCell(get_cell(config))
+
+    outputs, output_states = dynamic_rnn(cell,
+                                         inputs=inputX,
+                                         sequence_length=seqLengths,
+                                         initial_state=None,
+                                         dtype=tf.float32,
+                                         scope="drnn")
+
+    return outputs
 
 
 if __name__ == "__main__":

@@ -63,6 +63,10 @@ def get_args():
                         type=int, default=None)
     parser.add_argument('-decay', '--lr_decay', help='lr_decay',
                         type=float, default=None)
+    parser.add_argument('--drop_out_input', help='drop_out_input',
+                        type=float, default=None)
+    parser.add_argument('--drop_out_output', help='drop_out_output',
+                        type=float, default=None)
     parser.add_argument('-label', '--label_id', help='label id',
                         type=int, default=None)
     parser.add_argument('-thres', '--threshold', help='threshold for trigger',
