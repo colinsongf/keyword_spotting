@@ -90,6 +90,8 @@ class Runner(object):
             best_miss = 1
             best_false = 1
             accu_loss = 0
+            accu_bg_loss = 0
+            accu_key_loss = 0
             st_time = time.time()
             if os.path.exists(path_join(self.config.save_path, 'best.pkl')):
                 with open(path_join(self.config.save_path, 'best.pkl'),
@@ -137,7 +139,9 @@ class Runner(object):
                                  self.train_model.learning_rate,
                                  self.train_model.global_step])
                             epoch = sess.run([self.data.epoch])[0]
-                            print(xent_bg, xent_max)
+                            accu_bg_loss += xent_bg
+                            accu_key_loss += xent_max
+                            # print(xent_bg, xent_max)
                         # if epoch > self.epoch:
                         #     print('epoch', self.epoch)
                         #     self.epoch += 1
@@ -147,6 +151,10 @@ class Runner(object):
                             self.epoch += 1
                             print('accumulated loss', accu_loss)
                             accu_loss = 0
+                            if config.max_pooling_loss:
+                                print(accu_bg_loss, accu_key_loss)
+                                accu_bg_loss = 0
+                                accu_key_loss = 0
                         if self.step % 160 == 159:
                             print('epoch time ', (time.time() - last_time) / 60)
                             last_time = time.time()
