@@ -23,7 +23,7 @@ import pickle
 
 import numpy as np
 import tensorflow as tf
-from glob2 import glob
+from glob import glob
 from tensorflow.python.framework import graph_util
 
 from config.config import get_config
