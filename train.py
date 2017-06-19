@@ -71,6 +71,7 @@ class Runner(object):
             files = glob(path_join(self.config.model_path, '*.ckpt.*'))
 
             if len(files) > 0:
+                print(files)
                 saver.restore(sess, path_join(self.config.model_path,
                                               self.config.model_name))
                 print(('Model restored from:' + self.config.model_path))
@@ -403,5 +404,5 @@ if __name__ == '__main__':
         os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
     print(flags)
     runner = Runner(config)
-    # runner.run()
-    runner.build_graph()
+    runner.run()
+    # runner.build_graph()
