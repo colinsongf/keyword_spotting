@@ -60,8 +60,8 @@ class Config(object):
         self.use_project = False
         self.num_proj = 32
         self.max_epoch = 200
-        self.drop_out_input = 0.5
-        self.drop_out_output = 0.5
+        self.drop_out_input = -1
+        self.drop_out_output = -1
         self.grad_clip = 0
         self.lr_decay = 0.9
         self.decay_step = 20000
