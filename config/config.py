@@ -39,7 +39,7 @@ class Config(object):
         self.graph_name = 'graph.pb'
         self.data_path = './data/mel/'
 
-        # self.data_path = '/ssd/liuziqi/mel_all5x/'
+        self.data_path = '/ssd/liuziqi/mel_all5x/'
         self.model_name = 'best.ckpt'
         self.rawdata_path = './rawdata/'
         self.rawdata_path = '/ssd/keyword/'
@@ -67,10 +67,10 @@ class Config(object):
         self.decay_step = 20000
         self.batch_size = 32
         self.tfrecord_size = 32
-        self.trigger_threshold = 0.7  # between (0,1), but this param is somehow arbitrary
+        self.trigger_threshold = 0.6  # between (0,1), but this param is somehow arbitrary
 
         # these three sizes are frames, which depend on STFT frame size
-        self.smoothing_window = 7
+        self.smoothing_window = 9
         self.latency = 30
         self.word_interval = 70
         self.lockout = 50
