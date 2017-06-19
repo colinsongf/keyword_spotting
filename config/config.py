@@ -20,7 +20,7 @@ def get_config():
 
 class Config(object):
     def __init__(self):
-        self.mode = "train"  # train,valid
+        self.mode = "valid"  # train,valid
         self.max_pooling_loss = False
         self.max_pooling_standardize = True
         self.ktq = False
@@ -43,7 +43,7 @@ class Config(object):
         # self.working_path = './params/lele_mfcc/'
         # self.data_path = './data/lele_mfcc/'
 
-        self.data_path = '/ssd/liuziqi/mel_all5x/'
+        # self.data_path = '/ssd/liuziqi/mel_all5x/'
         self.model_name = 'best.ckpt'
         self.rawdata_path = './rawdata/'
         self.rawdata_path = '/ssd/keyword/'
@@ -66,7 +66,7 @@ class Config(object):
         self.max_epoch = 200
         self.keep_prob = 1.0
         self.grad_clip = 0
-        self.lr_decay = 0.8
+        self.lr_decay = 0.9
         self.decay_step = 20000
         self.batch_size = 32
         self.tfrecord_size = 32
