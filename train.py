@@ -386,6 +386,10 @@ if __name__ == '__main__':
                         type=int, default=None)
     parser.add_argument('-l', '--learning_rate', help='learning rate',
                         type=float, default=None)
+    parser.add_argument('--decay_step', help='decay_step',
+                        type=int, default=None)
+    parser.add_argument('-decay', '--lr_decay', help='lr_decay',
+                        type=float, default=None)
     parser.add_argument('-label', '--label_id', help='label id',
                         type=int, default=None)
     parser.add_argument('-thres', '--threshold', help='threshold for trigger',
