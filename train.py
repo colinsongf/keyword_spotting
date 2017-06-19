@@ -125,7 +125,7 @@ class Runner(object):
                             epoch = sess.run([self.data.epoch])[0]
 
                         else:
-                            _, _, _, l, xent_bg, xent_max, lr, set = sess.run(
+                            _, _, _, l, xent_bg, xent_max, lr, ste = sess.run(
                                 [self.train_model.train_op,
                                  self.train_model.stage_op,
                                  self.train_model.input_filequeue_enqueue_op,
@@ -398,8 +398,8 @@ if __name__ == '__main__':
                 print("WARNING: Invalid override with attribute %s" % (key))
             else:
                 setattr(config, key, flags[key])
-
-    os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
+    if not config.ktq:
+        os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
     print(flags)
     runner = Runner(config)
     # runner.run()

@@ -23,6 +23,7 @@ class Config(object):
         self.mode = "train"  # train,valid
         self.max_pooling_loss = False
         self.max_pooling_standardize = True
+        self.ktq = False
         self.optimizer = 'adam' # adam sgd nesterov
         self.spectrogram = 'mel'  # mfcc,mel
         self.label_id = 0  # nihaolele,lele,whole
