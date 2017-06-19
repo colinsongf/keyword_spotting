@@ -137,7 +137,7 @@ class Runner(object):
                                  self.train_model.learning_rate,
                                  self.train_model.global_step])
                             epoch = sess.run([self.data.epoch])[0]
-                            # print(xent_bg, xent_max)
+                            print(xent_bg, xent_max)
                         # if epoch > self.epoch:
                         #     print('epoch', self.epoch)
                         #     self.epoch += 1
@@ -249,8 +249,8 @@ class Runner(object):
 
                 iter = 0
                 for i in range(self.data.valid_file_size):
-                    if i > 7:
-                        break
+                    # if i > 7:
+                    #     break
                     ind = 14
                     logits, seqLen, correctness, names, _, _ = sess.run(
                         [self.valid_model.softmax,
