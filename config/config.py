@@ -43,7 +43,7 @@ class Config(object):
         # self.working_path = './params/lele_mfcc/'
         # self.data_path = './data/lele_mfcc/'
 
-        self.data_path = '/ssd/liuziqi/mel_all5x/'
+        # self.data_path = '/ssd/liuziqi/mel_all5x/'
         self.model_name = 'best.ckpt'
         self.rawdata_path = './rawdata/'
         self.rawdata_path = '/ssd/keyword/'

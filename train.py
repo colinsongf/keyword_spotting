@@ -20,6 +20,7 @@ import os
 import sys
 import time
 import pickle
+import signal
 
 import numpy as np
 import tensorflow as tf
@@ -37,11 +38,14 @@ sys.dont_write_bytecode = True
 DEBUG = False
 
 
+def handler_stop_signals(signum, frame):
+    global run
+    run = False
+
 class Runner(object):
     def __init__(self, config):
         self.config = config
         self.epoch = 0
-        self.step = 0
         self.golden = config.golden
 
     def run(self):
@@ -80,6 +84,7 @@ class Runner(object):
                 print("Model doesn't exist.\nInitializing........")
                 sess.run(tf.global_variables_initializer())
 
+
             sess.run(tf.local_variables_initializer())
             tf.Graph.finalize(graph)
             variable_names = [n.name for n in
@@ -104,22 +109,39 @@ class Runner(object):
             check_dir(self.config.save_path)
 
             if self.config.mode == 'train':
+                step=0
 
                 if self.config.reset_global:
                     sess.run(self.train_model.reset_global_step)
                 last_time = time.time()
                 sess.run([self.valid_model.stage_op,
                           self.valid_model.input_filequeue_enqueue_op])
+
+                def handler_stop_signals(signum, frame):
+                    global run
+                    run = False
+                    if not DEBUG:
+                        print(
+                            'training shut down, total setp %s, the model will be save in %s' % (
+                                step, self.config.save_path))
+                        saver.save(sess, save_path=(
+                            path_join(self.config.save_path, 'latest.ckpt')))
+                        print('best miss rate:%f\tbest false rate %f' % (
+                            best_miss, best_false))
+
+                signal.signal(signal.SIGINT, handler_stop_signals)
+                signal.signal(signal.SIGTERM, handler_stop_signals)
+
+
                 try:
                     sess.run([self.train_model.stage_op,
                               self.train_model.input_filequeue_enqueue_op])
 
                     while self.epoch < self.config.max_epoch:
-                        self.step += 1
-                        # if self.step > 1:
-                        #     break
+
+
                         if not self.config.max_pooling_loss:
-                            _, _, _, l, keys, lr, ste = sess.run(
+                            _, _, _, l, keys, lr, step = sess.run(
                                 [self.train_model.train_op,
                                  self.train_model.stage_op,
                                  self.train_model.input_filequeue_enqueue_op,
@@ -129,7 +151,7 @@ class Runner(object):
                             epoch = sess.run([self.data.epoch])[0]
 
                         else:
-                            _, _, _, l, xent_bg, xent_max, lr, ste = sess.run(
+                            _, _, _, l, xent_bg, xent_max, lr, step = sess.run(
                                 [self.train_model.train_op,
                                  self.train_model.stage_op,
                                  self.train_model.input_filequeue_enqueue_op,
@@ -155,7 +177,7 @@ class Runner(object):
                                 print(accu_bg_loss, accu_key_loss)
                                 accu_bg_loss = 0
                                 accu_key_loss = 0
-                        if self.step % 160 == 159:
+                        if step % 160 == 159:
                             print('epoch time ', (time.time() - last_time) / 60)
                             last_time = time.time()
 
@@ -208,7 +230,7 @@ class Runner(object):
                             print('loss:' + str(l))
                             if config.max_pooling_loss:
                                 print(xent_bg, xent_max)
-                            print('learning rate:', lr, 'global step', ste)
+                            print('learning rate:', lr, 'global step', step)
                             print('miss rate:' + str(miss_rate))
                             print('flase_accept_rate:' + str(false_accept_rate))
                             print(miss_count, '/', target_count)
@@ -235,15 +257,6 @@ class Runner(object):
                             best_miss, best_false))
                 except tf.errors.OutOfRangeError:
                     print('Done training -- epoch limit reached')
-                except KeyboardInterrupt:
-                    if not DEBUG:
-                        print(
-                            'training shut down, total setp %s, the model will be save in %s' % (
-                                self.step, self.config.save_path))
-                        saver.save(sess, save_path=(
-                            path_join(self.config.save_path, 'latest.ckpt')))
-                        print('best miss rate:%f\tbest false rate %f' % (
-                            best_miss, best_false))
                 finally:
                     print('total time:%f hours' % (
                         (time.time() - st_time) / 3600))
