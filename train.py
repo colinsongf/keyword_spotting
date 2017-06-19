@@ -42,6 +42,7 @@ def handler_stop_signals(signum, frame):
     global run
     run = False
 
+
 class Runner(object):
     def __init__(self, config):
         self.config = config
@@ -84,7 +85,6 @@ class Runner(object):
                 print("Model doesn't exist.\nInitializing........")
                 sess.run(tf.global_variables_initializer())
 
-
             sess.run(tf.local_variables_initializer())
             tf.Graph.finalize(graph)
             variable_names = [n.name for n in
@@ -109,7 +109,7 @@ class Runner(object):
             check_dir(self.config.save_path)
 
             if self.config.mode == 'train':
-                step=0
+                step = 0
 
                 if self.config.reset_global:
                     sess.run(self.train_model.reset_global_step)
@@ -132,13 +132,11 @@ class Runner(object):
                 signal.signal(signal.SIGINT, handler_stop_signals)
                 signal.signal(signal.SIGTERM, handler_stop_signals)
 
-
                 try:
                     sess.run([self.train_model.stage_op,
                               self.train_model.input_filequeue_enqueue_op])
 
                     while self.epoch < self.config.max_epoch:
-
 
                         if not self.config.max_pooling_loss:
                             _, _, _, l, keys, lr, step = sess.run(
