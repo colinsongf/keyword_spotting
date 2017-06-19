@@ -20,9 +20,10 @@ def get_config():
 
 class Config(object):
     def __init__(self):
-        self.mode = "valid"  # train,valid
+        self.mode = "train"  # train,valid
         self.max_pooling_loss = False
         self.max_pooling_standardize = True
+        self.optimizer = 'adam' # adam sgd nesterov
         self.spectrogram = 'mel'  # mfcc,mel
         self.label_id = 0  # nihaolele,lele,whole
         self.label_list = ['nihaolele', 'lele', 'whole']
@@ -32,7 +33,7 @@ class Config(object):
         self.reset_global = 0
 
         self.model_path = './params/mel_all/'
-        self.save_path = './params/mel_max/'
+        self.save_path = './params/mel_all/'
         self.graph_path = './graph/mel/'
         self.graph_name = 'graph.pb'
         self.data_path = './data/mel/'

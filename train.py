@@ -116,7 +116,7 @@ class Runner(object):
                         #     break
                         if not self.config.max_pooling_loss:
                             _, _, _, l, keys, lr, ste = sess.run(
-                                [self.train_model.optimizer,
+                                [self.train_model.train_op,
                                  self.train_model.stage_op,
                                  self.train_model.input_filequeue_enqueue_op,
                                  self.train_model.loss, self.train_model.keys,
@@ -126,7 +126,7 @@ class Runner(object):
 
                         else:
                             _, _, _, l, xent_bg, xent_max, lr, set = sess.run(
-                                [self.train_model.optimizer,
+                                [self.train_model.train_op,
                                  self.train_model.stage_op,
                                  self.train_model.input_filequeue_enqueue_op,
                                  self.train_model.loss,
@@ -348,6 +348,9 @@ if __name__ == '__main__':
     parser.add_argument('--mode', help='train: train model, ' +
                                        'valid: model validation, ',
                         default=None)
+    parser.add_argument('-opt', '--optimizer',
+                        help='optimizer: adam sgd nesterov',
+                        default=None)
     parser.add_argument('-max', '--max_pooling_loss', help='1: maxpooling, ' +
                                                            '0: cross entropy,',
                         type=int,
@@ -399,5 +402,5 @@ if __name__ == '__main__':
     os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
     print(flags)
     runner = Runner(config)
-    runner.run()
-    # runner.build_graph()
+    # runner.run()
+    runner.build_graph()
