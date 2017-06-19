@@ -65,7 +65,7 @@ class Config(object):
         self.num_proj = 32
         self.max_epoch = 200
         self.keep_prob = 1.0
-        self.grad_clip = -1
+        self.grad_clip = 0
         self.lr_decay = 0.8
         self.decay_step = 20000
         self.batch_size = 32

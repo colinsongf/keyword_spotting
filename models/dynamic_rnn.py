@@ -131,7 +131,7 @@ class DRNN(object):
             else:
                 raise Exception("optimizer not found")
 
-            if config.grad_clip == -1:
+            if config.grad_clip == 0:
                 # not apply gradient clipping
                 self.train_op = self.optimizer.minimize(self.loss,
                                                        self.global_step)

@@ -359,6 +359,10 @@ if __name__ == '__main__':
                                                            '0: cross entropy,',
                         type=int,
                         default=None)
+    parser.add_argument('-clip', '--grad_clip', help='grad_clip',
+                        type=int,
+                        default=None)
+
     parser.add_argument('-st', '--max_pooling_standardize',
                         help='whether use maxpooling standardize',
                         type=int,
