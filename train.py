@@ -348,8 +348,9 @@ if __name__ == '__main__':
     parser.add_argument('--mode', help='train: train model, ' +
                                        'valid: model validation, ',
                         default=None)
-    parser.add_argument('-opt', '--optimizer',
-                        help='optimizer: adam sgd nesterov',
+
+    parser.add_argument('-ktq', '--ktq',
+                        help='whether run in ktq', type=int,
                         default=None)
     parser.add_argument('-max', '--max_pooling_loss', help='1: maxpooling, ' +
                                                            '0: cross entropy,',
