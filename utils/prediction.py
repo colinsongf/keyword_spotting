@@ -96,8 +96,8 @@ def decode(prediction, word_interval, golden):
 
 def evaluate(result, target):
     assert len(result) == len(target)
-    print(target)
-    print(result)
+    # print(target)
+    # print(result)
     xor = [a ^ b for a, b in zip(target, result)]
     miss = sum([a & b for a, b in zip(xor, target)])
     false_accept = sum([a & b for a, b in zip(xor, result)])
