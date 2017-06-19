@@ -121,19 +121,19 @@ class DRNN(object):
                 self.loss = self.xent_loss
 
             if self.config.optimizer == 'sgd':
-                self.train_op = tf.train.GradientDescentOptimizer(
+                self.optimizer = tf.train.GradientDescentOptimizer(
                     self.learning_rate)
             elif self.config.optimizer == 'adam':
-                self.train_op = tf.train.AdamOptimizer(self.learning_rate)
+                self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
             elif self.config.optimizer == 'nesterov':
-                self.train_op = tf.train.MomentumOptimizer(
+                self.optimizer = tf.train.MomentumOptimizer(
                     self.learning_rate, 0.9, use_nesterov=True)
             else:
                 raise Exception("optimizer not found")
 
             if config.grad_clip == -1:
                 # not apply gradient clipping
-                self.train_op = self.train_op.minimize(self.loss,
+                self.train_op = self.optimizer.minimize(self.loss,
                                                        self.global_step)
             else:
                 # apply gradient clipping
@@ -141,7 +141,7 @@ class DRNN(object):
                 grads, _ = tf.clip_by_global_norm(
                     tf.gradients(self.loss, self.var_trainable_op),
                     config.grad_clip)
-                self.train_op = self.train_op.apply_gradients(
+                self.train_op = self.optimizer.apply_gradients(
                     zip(grads, self.var_trainable_op),
                     global_step=self.global_step)
 
