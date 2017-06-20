@@ -46,15 +46,15 @@ class Config(object):
         # self.data_path = './test/data/azure_garbage/'
         self.gpu = "0"
 
-        self.fft_size = 400
-        self.step_size = 160
+        self.fft_size = 640
+        self.step_size = 320
         self.samplerate = 16000
 
         self.cell_clip = 3.
         self.num_layers = 1
         self.init_scale = 0.1
         self.learning_rate = 5e-4
-        self.max_grad_norm = 5
+        self.max_grad_norm = 10
         self.num_features = 60
         self.hidden_size = 64
         self.use_project = False

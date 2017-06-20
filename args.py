@@ -12,6 +12,8 @@
 @desc:
 '''
 import argparse
+
+
 def get_args():
     parser = argparse.ArgumentParser()
 
@@ -28,10 +30,9 @@ def get_args():
                                                            '0: cross entropy,',
                         type=int,
                         default=None)
-    parser.add_argument('-clip', '--grad_clip', help='grad_clip',
+    parser.add_argument('-clip', '--max_grad_norm', help='max_grad_norm clip',
                         type=int,
                         default=None)
-
     parser.add_argument('-st', '--max_pooling_standardize',
                         help='whether use maxpooling standardize',
                         type=int,
