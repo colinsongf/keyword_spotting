@@ -51,7 +51,7 @@ class Config(object):
         self.samplerate = 16000
 
         self.cell_clip = 3.
-        self.num_layers = 2
+        self.num_layers = 1
         self.init_scale = 0.1
         self.learning_rate = 5e-4
         self.max_grad_norm = 5

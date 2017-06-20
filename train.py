@@ -376,5 +376,5 @@ if __name__ == '__main__':
         os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
     print(flags)
     runner = Runner(config)
-    runner.run()
-    # runner.build_graph()
+    # runner.run()
+    runner.build_graph()

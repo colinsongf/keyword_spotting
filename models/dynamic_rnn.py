@@ -220,7 +220,7 @@ def build_multi_dynamic_rnn(config,
         cell = tf.contrib.rnn.MultiRNNCell(
             [get_cell(config) for _ in range(config.num_layers)])
     else:
-        cell = tf.contrib.rnn.MultiRNNCell(get_cell(config))
+        cell = get_cell(config)
 
     outputs, output_states = dynamic_rnn(cell,
                                          inputs=inputX,
