@@ -64,7 +64,7 @@ class Config(object):
         self.drop_out_output = -1
         self.grad_clip = 0
         self.lr_decay = 0.9
-        self.decay_step = 20000
+        self.decay_step = 10000
         self.batch_size = 32
         self.tfrecord_size = 32
         self.trigger_threshold = 0.6  # between (0,1), but this param is somehow arbitrary
