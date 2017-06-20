@@ -410,5 +410,6 @@ if __name__ == '__main__':
     generate_trainning_data(
         wave_train_dir + base_pkl + '.sorted.filtered.shuffled')
 
-    # generate_valid_data(wave_valid_dir + "valid.pkl")
+    sort_wave(wave_valid_dir + "valid.pkl")
+    generate_valid_data(wave_valid_dir + "valid.pkl.sorted")
     # make_example(wave_train_dir+'azure_228965.wav',[[1, 4.12, 8.88]])

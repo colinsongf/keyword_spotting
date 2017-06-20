@@ -31,7 +31,7 @@ def get_args():
                         type=int,
                         default=None)
     parser.add_argument('-clip', '--max_grad_norm', help='max_grad_norm clip',
-                        type=int,
+                        type=float,
                         default=None)
     parser.add_argument('-st', '--max_pooling_standardize',
                         help='whether use maxpooling standardize',
