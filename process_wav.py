@@ -290,10 +290,12 @@ def sort_wave(pkl_path):
         y, sr = librosa.load(f, sr=config.samplerate)
         return len(y)
 
+    import re
+    dir = re.sub(r'[^//]+.pkl', '', pkl_path)
     with open(pkl_path, "rb") as f:
         training_data = pickle.load(f)
         sorted_data = sorted(training_data,
-                             key=lambda a: get_len(wave_train_dir + a[0]))
+                             key=lambda a: get_len(dir + a[0]))
     with open(pkl_path + '.sorted', "wb") as f:
         pickle.dump(sorted_data, f)
 
