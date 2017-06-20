@@ -36,6 +36,10 @@ def get_args():
                         help='whether use maxpooling standardize',
                         type=int,
                         default=None)
+    parser.add_argument('-epoch', '--max_epoch',
+                        help='max_epoch',
+                        type=int,
+                        default=None)
     parser.add_argument('-reset', '--reset_global',
                         help='reset global step',
                         type=int,
