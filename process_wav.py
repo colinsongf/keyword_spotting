@@ -91,7 +91,6 @@ def dense_to_ont_hot(labels_dense, num_classes):
 
 def process_wave(f):
     y, sr = librosa.load(f, sr=config.samplerate)
-    length = len(y)
 
     if config.spectrogram == 'mel':
         mel_spectrogram = np.transpose(

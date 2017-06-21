@@ -24,6 +24,7 @@ class Config(object):
         self.max_pooling_loss = False
         self.max_pooling_standardize = True
         self.ktq = False
+        self.use_white_noise = True
         self.optimizer = 'adam'  # adam sgd nesterov
         self.spectrogram = 'mel'  # mfcc,mel
         self.label_id = 0  # nihaolele,lele,whole
@@ -62,7 +63,7 @@ class Config(object):
         self.max_epoch = 200
         self.drop_out_input = -1
         self.drop_out_output = -1
-        self.lr_decay = 0.9
+        self.lr_decay = 0.8
         self.decay_step = 10000
         self.batch_size = 32
         self.tfrecord_size = 32
