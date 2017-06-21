@@ -21,6 +21,7 @@ import sys
 import time
 import pickle
 import signal
+import queue
 
 import numpy as np
 import tensorflow as tf
@@ -113,9 +114,6 @@ class Runner(object):
 
                 if self.config.reset_global:
                     sess.run(self.train_model.reset_global_step)
-                last_time = time.time()
-                sess.run([self.valid_model.stage_op,
-                          self.valid_model.input_filequeue_enqueue_op])
 
                 def handler_stop_signals(signum, frame):
                     global run
@@ -132,6 +130,12 @@ class Runner(object):
                 signal.signal(signal.SIGINT, handler_stop_signals)
                 signal.signal(signal.SIGTERM, handler_stop_signals)
 
+                best_list = []
+                best_threshold = 0.1
+                best_count = 0
+                # (miss,false,step,best_count)
+
+                last_time = time.time()
                 try:
                     sess.run([self.train_model.stage_op,
                               self.train_model.input_filequeue_enqueue_op])
@@ -162,10 +166,7 @@ class Runner(object):
                             accu_bg_loss += xent_bg
                             accu_key_loss += xent_max
                             # print(xent_bg, xent_max)
-                        # if epoch > self.epoch:
-                        #     print('epoch', self.epoch)
-                        #     self.epoch += 1
-                        #     continue
+
                         accu_loss += l
                         if epoch > self.epoch:
                             self.epoch += 1
@@ -182,7 +183,6 @@ class Runner(object):
                             miss_count = 0
                             false_count = 0
                             target_count = 0
-                            ind = 3
                             for i in range(self.data.valid_file_size):
                                 logits, seqLen, correctness, names, _, _ = sess.run(
                                     [self.valid_model.softmax,
@@ -194,9 +194,6 @@ class Runner(object):
                                 for j, logit in enumerate(logits):
                                     logit[seqLen[j]:] = 0
 
-                                # print(len(logits), len(labels), len(seqLen))
-                                with open('logits.txt', 'w') as f:
-                                    f.write(str(logits[ind]))
                                 moving_avg = [moving_average(record,
                                                              self.config.smoothing_window,
                                                              padding=True)
@@ -245,6 +242,18 @@ class Runner(object):
                                         'wb') as f:
                                     best_tuple = (best_miss, best_false)
                                     pickle.dump(best_tuple, f)
+                            if miss_rate + false_accept_rate < best_threshold:
+                                best_count += 1
+                                print('best_count', best_count)
+                                best_list.append((miss_rate,
+                                                  false_accept_rate, step,
+                                                  best_count))
+                                saver.save(sess,
+                                           save_path=(path_join(
+                                               self.config.save_path,
+                                               'best' + str(
+                                                   best_count) + '.ckpt')))
+
                     if not DEBUG:
                         print(
                             'training finished, total epoch %d, the model will be save in %s' % (
