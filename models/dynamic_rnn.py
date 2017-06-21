@@ -20,7 +20,6 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.rnn.python.ops import core_rnn_cell_impl
 from tensorflow.python.ops.rnn import dynamic_rnn
-import ffmpeg_normalize
 from utils.common import describe
 
 cell_fn = core_rnn_cell_impl.LSTMCell
