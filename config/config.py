@@ -39,7 +39,7 @@ class Config(object):
         self.graph_name = 'graph.pb'
         self.data_path = './data/mel/'
 
-        self.data_path = '/ssd/liuziqi/mel_all5x/'
+        # self.data_path = '/ssd/liuziqi/mel_all5x/'
         self.model_name = 'best.ckpt'
         self.rawdata_path = './rawdata/'
         self.rawdata_path = '/ssd/keyword/'
@@ -53,8 +53,8 @@ class Config(object):
         self.cell_clip = 3.
         self.num_layers = 1
         self.init_scale = 0.1
-        self.learning_rate = 5e-4
-        self.max_grad_norm = 10
+        self.learning_rate = 5e-2
+        self.max_grad_norm = -1
         self.num_features = 60
         self.hidden_size = 64
         self.use_project = False
@@ -62,7 +62,6 @@ class Config(object):
         self.max_epoch = 200
         self.drop_out_input = -1
         self.drop_out_output = -1
-        self.grad_clip = 0
         self.lr_decay = 0.9
         self.decay_step = 10000
         self.batch_size = 32

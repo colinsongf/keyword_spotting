@@ -20,7 +20,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.contrib.rnn.python.ops import core_rnn_cell_impl
 from tensorflow.python.ops.rnn import dynamic_rnn
-
+import ffmpeg_normalize
 from utils.common import describe
 
 cell_fn = core_rnn_cell_impl.LSTMCell
@@ -139,7 +139,7 @@ class DRNN(object):
                 self.var_trainable_op = tf.trainable_variables()
                 grads, _ = tf.clip_by_global_norm(
                     tf.gradients(self.loss, self.var_trainable_op),
-                    config.grad_clip)
+                    config.max_grad_norm)
                 self.train_op = self.optimizer.apply_gradients(
                     zip(grads, self.var_trainable_op),
                     global_step=self.global_step)
@@ -216,9 +216,11 @@ def build_multi_dynamic_rnn(config,
                             inputX,
                             seqLengths):
     if config.num_layers > 1:
+        print('building multi layer LSTM')
         cell = tf.contrib.rnn.MultiRNNCell(
             [get_cell(config) for _ in range(config.num_layers)])
     else:
+        # cell = tf.contrib.rnn.MultiRNNCell([get_cell(config)])
         cell = get_cell(config)
 
     outputs, output_states = dynamic_rnn(cell,
