@@ -14,7 +14,6 @@
 import librosa
 import numpy as np
 from config.config import get_config
-from glob2 import glob
 import os
 import pickle
 import tensorflow as tf
@@ -351,53 +350,50 @@ def shuffle(pkl_path):
     with open(pkl_path, 'rb') as f:
         wave_list = pickle.load(f)
     total = 0
-    for r in wave_list[18 * batch:19 * batch]:
-        if len(r[1]) > 0:
-            total += 1
-    print(total)
-    # for i in range(len(wave_list) // batch):
-    #     print('batch', i)
-    #
-    #     temp = wave_list[i * batch:(i + 1) * batch]
-    #     # flag = False
-    #     # for k in temp:
-    #     #     if len(k[1]) > 0:
-    #     #         flag = True
-    #     #         break
-    #     # if not flag:
-    #     #     print('fuck', i)
-    #
-    #     ok = False
-    #     again = 0
-    #
-    #     while not ok and again < 100:
-    #         count = 0
-    #         random.shuffle(temp)
-    #         # print(temp[32:64])
-    #         c = 0
-    #         for j in range(batch // 32):
-    #             subok = False
-    #             small_batch = temp[j * 32:(j + 1) * 32]
-    #             for record in small_batch:
-    #                 if len(record[1]) > 0:
-    #                     subok = True
-    #                     break
-    #             if subok:
-    #                 c += 1
-    #                 continue
-    #             else:
-    #                 print(i, 'again')
-    #                 again += 1
-    #                 break
-    #
-    #         if c == batch // 32:
-    #             ok = True
-    #     new_list.extend(temp)
-    # print(len(wave_list))
-    # new_list.extend(wave_list[len(wave_list) // batch * batch:])
-    # print(len(new_list))
-    # with open(pkl_path + '.shuffled', "wb") as f:
-    #     pickle.dump(new_list, f)
+
+    for i in range(len(wave_list) // batch):
+        print('batch', i)
+
+        temp = wave_list[i * batch:(i + 1) * batch]
+        # flag = False
+        # for k in temp:
+        #     if len(k[1]) > 0:
+        #         flag = True
+        #         break
+        # if not flag:
+        #     print('fuck', i)
+
+        ok = False
+        again = 0
+
+        while not ok and again < 100:
+            count = 0
+            random.shuffle(temp)
+            # print(temp[32:64])
+            c = 0
+            for j in range(batch // 32):
+                subok = False
+                small_batch = temp[j * 32:(j + 1) * 32]
+                for record in small_batch:
+                    if len(record[1]) > 0:
+                        subok = True
+                        break
+                if subok:
+                    c += 1
+                    continue
+                else:
+                    print(i, 'again')
+                    again += 1
+                    break
+
+            if c == batch // 32:
+                ok = True
+        new_list.extend(temp)
+    print(len(wave_list))
+    new_list.extend(wave_list[len(wave_list) // batch * batch:])
+    print(len(new_list))
+    with open(pkl_path + '.shuffled', "wb") as f:
+        pickle.dump(new_list, f)
 
 
 if __name__ == '__main__':
@@ -405,12 +401,12 @@ if __name__ == '__main__':
     check_dir(save_valid_dir)
 
     base_pkl = 'label_5x.pkl'
-    # sort_wave(wave_train_dir + base_pkl)
-    # filter_wave(wave_train_dir + base_pkl + '.sorted')
-    # shuffle(wave_train_dir + base_pkl + '.sorted.filtered')
-    generate_trainning_data(
-        wave_train_dir + base_pkl + '.sorted.filtered.shuffled')
+    sort_wave(wave_train_dir + base_pkl)
+    filter_wave(wave_train_dir + base_pkl + '.sorted')
+    shuffle(wave_train_dir + base_pkl + '.sorted.filtered')
+    # generate_trainning_data(
+    #     wave_train_dir + base_pkl + '.sorted.filtered.shuffled')
 
-    sort_wave(wave_valid_dir + "valid.pkl")
-    generate_valid_data(wave_valid_dir + "valid.pkl.sorted")
+    sort_wave(wave_valid_dir + "valid_1024.pkl")
+    generate_valid_data(wave_valid_dir + "valid_1024.pkl.sorted")
     # make_example(wave_train_dir+'azure_228965.wav',[[1, 4.12, 8.88]])

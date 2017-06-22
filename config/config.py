@@ -40,7 +40,7 @@ class Config(object):
         self.graph_name = 'graph.pb'
         self.data_path = './data/mel/'
 
-        # self.data_path = '/ssd/liuziqi/mel_all5x/'
+        self.data_path = '/ssd/liuziqi/mel_all5x/'
         self.model_name = 'best.ckpt'
         self.rawdata_path = './rawdata/'
         self.rawdata_path = '/ssd/keyword/'
