@@ -176,7 +176,7 @@ class Runner(object):
                                 print(accu_bg_loss, accu_key_loss)
                                 accu_bg_loss = 0
                                 accu_key_loss = 0
-                        if step % config.valid_step == config.valid_step-1:
+                        if step % config.valid_step == config.valid_step - 1:
                             print('epoch time ', (time.time() - last_time) / 60)
                             last_time = time.time()
 
@@ -385,5 +385,6 @@ if __name__ == '__main__':
         os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
     print(flags)
     runner = Runner(config)
+    if config.mode == 'build':
+        runner.build_graph()
     runner.run()
-    # runner.build_graph()

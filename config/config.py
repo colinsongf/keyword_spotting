@@ -20,7 +20,7 @@ def get_config():
 
 class Config(object):
     def __init__(self):
-        self.mode = "train"  # train,valid
+        self.mode = "train"  # train,valid,build
         self.max_pooling_loss = False
         self.max_pooling_standardize = True
         self.ktq = False
