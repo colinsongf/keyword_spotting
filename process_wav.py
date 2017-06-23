@@ -293,6 +293,7 @@ def sort_wave(pkl_path):
 
     import re
     dir = re.sub(r'[^//]+.pkl', '', pkl_path)
+
     with open(pkl_path, "rb") as f:
         training_data = pickle.load(f)
         sorted_data = sorted(training_data,
@@ -403,13 +404,13 @@ if __name__ == '__main__':
     check_dir(save_train_dir)
     check_dir(save_valid_dir)
 
-    base_pkl = 'label_5x.pkl'
-    # sort_wave(wave_train_dir + base_pkl)
-    # filter_wave(wave_train_dir + base_pkl + '.sorted')
-    # shuffle(wave_train_dir + base_pkl + '.sorted.filtered')
-    # generate_trainning_data(
-    #     wave_train_dir + base_pkl + '.sorted.filtered.shuffled')
+    base_pkl = 'label_5x_old.pkl'
+    sort_wave(wave_train_dir + base_pkl)
+    filter_wave(wave_train_dir + base_pkl + '.sorted')
+    shuffle(wave_train_dir + base_pkl + '.sorted.filtered')
+    generate_trainning_data(
+        wave_train_dir + base_pkl + '.sorted.filtered.shuffled')
 
     # sort_wave(wave_valid_dir + "valid_1024.pkl")
-    generate_valid_data(wave_valid_dir + "valid_1024.pkl.sorted")
+    # generate_valid_data(wave_valid_dir + "valid_1024.pkl.sorted")
     # make_example(wave_train_dir+'azure_228965.wav',[[1, 4.12, 8.88]])
