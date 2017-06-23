@@ -41,8 +41,8 @@ class Config(object):
         self.train_path = './data/mel/train'
         self.valid_path = './data/mel/valid'
 
-        self.train_path = '/ssd/liuziqi/mel_all5x/train'
-        self.valid_path = '/ssd/liuziqi/mel_all5x/valid'
+        # self.train_path = '/ssd/liuziqi/mel_all5x/train'
+        # self.valid_path = '/ssd/liuziqi/mel_all5x/valid'
         self.model_name = 'best.ckpt'
         self.rawdata_path = './rawdata/'
         self.rawdata_path = '/ssd/keyword/'

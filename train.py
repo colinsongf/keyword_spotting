@@ -136,6 +136,9 @@ class Runner(object):
                 # (miss,false,step,best_count)
 
                 last_time = time.time()
+                all_va = [n.name for n in tf.global_variables()]
+                for i in all_va:
+                    print(i)
                 try:
                     sess.run([self.train_model.stage_op,
                               self.train_model.input_filequeue_enqueue_op])
