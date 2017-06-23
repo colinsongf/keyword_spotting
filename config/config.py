@@ -38,7 +38,8 @@ class Config(object):
         self.save_path = './params/mel_all/'
         self.graph_path = './graph/mel/'
         self.graph_name = 'graph.pb'
-        self.data_path = './data/mel/'
+        self.train_path = './data/mel/train'
+        self.valid_path = './data/mel/valid'
 
         self.train_path = '/ssd/liuziqi/mel_all5x/train'
         self.valid_path = '/ssd/liuziqi/mel_all5x/valid'

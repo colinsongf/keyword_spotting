@@ -24,9 +24,8 @@ config = get_config()
 wave_train_dir = config.rawdata_path + 'train/'
 wave_valid_dir = config.rawdata_path + 'valid/'
 
-save_train_dir = path_join(config.data_path, 'train/')
-save_valid_dir = path_join(config.data_path, 'valid_512/')
-
+save_train_dir = config.train_path
+save_valid_dir = config.valid_path
 global_len = []
 temp_list = []
 error_list = []
@@ -412,5 +411,5 @@ if __name__ == '__main__':
     #     wave_train_dir + base_pkl + '.sorted.filtered.shuffled')
 
     # sort_wave(wave_valid_dir + "valid_1024.pkl")
-    generate_valid_data(wave_valid_dir + "valid_512.pkl.sorted")
+    generate_valid_data(wave_valid_dir + "valid_1024.pkl.sorted")
     # make_example(wave_train_dir+'azure_228965.wav',[[1, 4.12, 8.88]])

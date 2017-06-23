@@ -34,6 +34,7 @@ class DataSet(object):
         self.config = config
         if mode == 'train':
             self.train_filename = glob(path_join(train_dir, '*.tfrecords'))
+            print(path_join(train_dir, '*.tfrecords'))
             # self.train_filename = ['./data/mel_all/train/data00029.tfrecords',
             #                        './data/mel_all/train/data00030.tfrecords',
             #                        './data/mel_all/train/data00031.tfrecords']
