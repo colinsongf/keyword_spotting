@@ -13,6 +13,7 @@
 '''
 import argparse
 
+
 def get_args():
     parser = argparse.ArgumentParser()
 
@@ -78,7 +79,8 @@ def get_args():
                         type=int, default=None)
     parser.add_argument('-thres', '--threshold', help='threshold for trigger',
                         type=float, default=None)
-    parser.add_argument('--data_path', help='data path', default=None)
+    parser.add_argument('--train_path', help='train data path', default=None)
+    parser.add_argument('--valid_path', help='valid data path', default=None)
     parser.add_argument('--feature_num', help='data path', type=int,
                         default=None)
 
