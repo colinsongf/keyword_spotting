@@ -63,6 +63,7 @@ class Config(object):
         self.use_project = False
         self.num_proj = 32
         self.max_epoch = 200
+        self.valid_step = 320
         self.drop_out_input = -1
         self.drop_out_output = -1
         self.lr_decay = 0.8

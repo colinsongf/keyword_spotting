@@ -131,7 +131,7 @@ class Runner(object):
                 signal.signal(signal.SIGTERM, handler_stop_signals)
 
                 best_list = []
-                best_threshold = 0.1
+                best_threshold = 0.22
                 best_count = 0
                 # (miss,false,step,best_count)
 
@@ -176,7 +176,7 @@ class Runner(object):
                                 print(accu_bg_loss, accu_key_loss)
                                 accu_bg_loss = 0
                                 accu_key_loss = 0
-                        if step % 160 == 159:
+                        if step % config.valid_step == config.valid_step-1:
                             print('epoch time ', (time.time() - last_time) / 60)
                             last_time = time.time()
 
