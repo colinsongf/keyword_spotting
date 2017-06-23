@@ -25,7 +25,7 @@ wave_train_dir = config.rawdata_path + 'train/'
 wave_valid_dir = config.rawdata_path + 'valid/'
 
 save_train_dir = path_join(config.data_path, 'train/')
-save_valid_dir = path_join(config.data_path, 'valid/')
+save_valid_dir = path_join(config.data_path, 'valid_512/')
 
 global_len = []
 temp_list = []
@@ -193,6 +193,7 @@ def process_valid_data(f, fname, correctness):
 def generate_valid_data(pkl_path):
     with open(pkl_path, 'rb') as f:
         wav_list = pickle.load(f)
+    print('read pkl from %s' % f)
     audio_list = [i[0] for i in wav_list]
     correctness_list = [i[1] for i in wav_list]
     assert len(audio_list) == len(correctness_list)
@@ -210,7 +211,7 @@ def generate_valid_data(pkl_path):
             ex_list = [make_valid_example(spec, seq_len, correctness, name) for
                        spec, seq_len, correctness, name in tuple_list]
             writer = tf.python_io.TFRecordWriter(
-                path_join(path_join(config.data_path, 'valid/'), fname))
+                path_join(save_valid_dir, fname))
             for ex in ex_list:
                 writer.write(ex.SerializeToString())
             writer.close()
@@ -218,6 +219,7 @@ def generate_valid_data(pkl_path):
             counter = 0
             tuple_list.clear()
             print(fname, 'created')
+    print('save in %s' % save_valid_dir)
 
 
 def batch_padding_trainning(tup_list):
@@ -254,6 +256,7 @@ def batch_padding_valid(tup_list):
 def generate_trainning_data(path):
     with open(path, 'rb') as f:
         wav_list = pickle.load(f)
+    print('read pkl from %s' % f)
     audio_list = [i[0] for i in wav_list]
     time_list = [i[1] for i in wav_list]
     assert len(audio_list) == len(time_list)
@@ -273,7 +276,7 @@ def generate_trainning_data(path):
             ex_list = [make_trainning_example(spec, labels, seq_len) for
                        spec, labels, seq_len in tuple_list]
             writer = tf.python_io.TFRecordWriter(
-                path_join(path_join(config.data_path, 'train/'), fname))
+                path_join(save_train_dir, fname))
             for ex in ex_list:
                 writer.write(ex.SerializeToString())
             writer.close()
@@ -281,6 +284,7 @@ def generate_trainning_data(path):
             counter = 0
             tuple_list.clear()
             print(fname, 'created')
+    print('save in %s' % save_train_dir)
 
 
 def sort_wave(pkl_path):
@@ -407,6 +411,6 @@ if __name__ == '__main__':
     # generate_trainning_data(
     #     wave_train_dir + base_pkl + '.sorted.filtered.shuffled')
 
-    sort_wave(wave_valid_dir + "valid_1024.pkl")
-    generate_valid_data(wave_valid_dir + "valid_1024.pkl.sorted")
+    # sort_wave(wave_valid_dir + "valid_1024.pkl")
+    generate_valid_data(wave_valid_dir + "valid_512.pkl.sorted")
     # make_example(wave_train_dir+'azure_228965.wav',[[1, 4.12, 8.88]])
