@@ -97,15 +97,15 @@ def process_wave(f):
                                            power=1.,
                                            fmin=300,
                                            fmax=8000,
-                                           n_mels=config.num_features))
+                                           n_mels=config.freq_size))
     elif config.spectrogram == 'mfcc':
         mel_spectrogram = np.transpose(
-            librosa.feature.mfcc(y, sr=sr, n_mfcc=config.num_features,
+            librosa.feature.mfcc(y, sr=sr, n_mfcc=config.freq_size,
                                  n_fft=config.fft_size,
                                  hop_length=config.step_size,
                                  power=2.,
                                  fmin=300, fmax=8000,
-                                 n_mels=config.num_features))
+                                 n_mels=config.freq_size))
     else:
         raise (Exception('spectrogram %s not defined' % config.spectrogram))
     return mel_spectrogram, y

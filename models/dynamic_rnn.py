@@ -18,11 +18,57 @@
 
 import numpy as np
 import tensorflow as tf
+import math
 from tensorflow.contrib.rnn.python.ops import core_rnn_cell_impl
 from tensorflow.python.ops.rnn import dynamic_rnn
 from utils.common import describe
 
 cell_fn = core_rnn_cell_impl.LSTMCell
+
+
+def self_attention(inputs, config, scope_name='self_attention'):
+    # inputs - [batch_size, time_steps, model_size]
+    # return - [batch_size, time_steps, model_size]
+    assert (config.model_size % config.multi_head_num == 0)
+    head_size = config.model_size // config.multi_head_num
+    outputs = []
+    with tf.variable_scope(scope_name):
+        combined = tf.layers.conv2d(
+            tf.expand_dims(inputs, 2), 3 * config.model_size,
+            (1, 1), name="qkv_transform")
+        q, k, v = tf.split(
+            tf.squeeze(combined, 2),
+            [config.model_size, config.model_size, config.model_size],
+            axis=2)
+
+        q_ = tf.concat(tf.split(q, config.multi_head_num, axis=2),
+                       axis=0)  # (h * B, T, N / h)
+        k_ = tf.concat(tf.split(k, config.multi_head_num, axis=2),
+                       axis=0)  # (h * B, T, N / h)
+        v_ = tf.concat(tf.split(v, config.multi_head_num, axis=2),
+                       axis=0)  # (h * B, T, N / h)
+
+        a = tf.matmul(q_, tf.transpose(k_, [0, 2, 1]))  # (h * B, T, T)
+        a = tf.nn.softmax(a / math.sqrt(head_size))
+        a = tf.nn.dropout(a, config.keep_prob)
+        a = tf.matmul(a, v_)  # [h * B, T, N / h]
+
+        outputs = tf.concat(tf.split(a, config.multi_head_num, axis=0),
+                            axis=2)  # [B, T, N]
+
+    return outputs
+
+
+def feed_forward(inputs, config, scope_name='feed_forward'):
+    # inputs - [batch_size, time_steps, model_size]
+    # return - [batch_size, time_steps, model_size]
+    with tf.variable_scope(scope_name):
+        inners = tf.layers.conv2d(
+            tf.expand_dims(inputs, 2), config.feed_forward_inner_size,
+            (1, 1), activation=tf.nn.relu, name="conv1")  # [B, T, 1, F]
+        outputs = tf.layers.conv2d(
+            inners, config.model_size, (1, 1), name="conv2")  # [B, T, 1, F]
+    return tf.squeeze(outputs, 2)
 
 
 class DRNN(object):
@@ -41,28 +87,53 @@ class DRNN(object):
     @describe
     def build_graph(self, config, is_train):
 
-        outputs = build_multi_dynamic_rnn(config, self.inputX,
-                                          self.seqLengths)
-        with tf.name_scope('fc-layer'):
-            if config.use_project:
-                weightsClasses = tf.get_variable(name='weightsClasses',
-                                                 initializer=tf.truncated_normal(
-                                                     [config.num_proj,
-                                                      config.num_classes]))
-                flatten_outputs = tf.reshape(outputs, (-1, config.num_proj))
-            else:
-                weightsClasses = tf.get_variable(name='weightsClasses',
-                                                 initializer=tf.truncated_normal(
-                                                     [config.hidden_size,
-                                                      config.num_classes]))
-                flatten_outputs = tf.reshape(outputs,
-                                             (-1, config.hidden_size))
-            biasesClasses = tf.get_variable(name='biasesClasses',
-                                            initializer=tf.truncated_normal(
-                                                [config.num_classes]))
+        max_length = tf.reduce_max(self.seqLengths)
+        padding = tf.zeros([1, 1, config.freq_size])
+        padding = tf.tile(padding,
+                          [config.batch_size, 4 - tf.mod(max_length, 4), 1])
+        inputs = tf.concat([self.inputX, padding], 1)
+        inputs = tf.reshape(inputs,
+                            [config.batch_size, -1, config.freq_size * 4])
+        self.seqLengths = self.seqLengths // 4 + 1
 
-        flatten_logits = tf.matmul(flatten_outputs,
-                                   weightsClasses) + biasesClasses
+        # positional encoding
+        inputs = tf.layers.conv2d(
+            tf.expand_dims(inputs, 2), config.model_size, (1, 1),
+            name='input_linear_trans')  # [B, T, 1, F]
+        inputs = tf.squeeze(inputs, 2)  # [B, T, F]
+
+        from plugins.positional_encoding import positional_encoding_op
+        pe = positional_encoding_op.positional_encoding(
+            max_length // 4 + 1, config.model_size)
+        inputs = inputs + pe
+
+        layer_inputs = inputs
+        for j in range(config.num_layers):
+            with tf.variable_scope('layer_%d' % j):
+                # self attention sub-layer
+                attention_outputs = self_attention(layer_inputs, config)
+                attention_outputs = tf.nn.dropout(
+                    attention_outputs, config.keep_prob)
+                # add and norm
+                feed_forward_inputs = tf.contrib.layers.layer_norm(
+                    attention_outputs + layer_inputs)
+                # feed forward sub-layer
+                feed_forward_outputs = feed_forward(feed_forward_inputs, config)
+                feed_forward_outputs = tf.nn.dropout(
+                    feed_forward_outputs, config.keep_prob)
+                # add and norm
+                layer_outputs = tf.contrib.layers.layer_norm(
+                    feed_forward_outputs + feed_forward_inputs)
+                layer_inputs = layer_outputs
+
+        outputs = tf.layers.conv2d(
+            tf.expand_dims(layer_outputs, 2), config.num_classes,
+            (1, 1), name='output_linear_trans')  # [B, T, 1, F]
+        outputs = tf.squeeze(outputs, 2)  # [B, T, F]
+        outputs = tf.nn.relu(outputs)
+
+        flatten_logits = tf.reshape(outputs,
+                                    (-1, config.num_classes))
         self.softmax = tf.reshape(tf.nn.softmax(flatten_logits),
                                   (config.batch_size, -1,
                                    config.num_classes))

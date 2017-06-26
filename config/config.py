@@ -54,18 +54,19 @@ class Config(object):
         self.samplerate = 16000
 
         self.cell_clip = 3.
-        self.num_layers = 1
+        self.num_layers = 2
         self.init_scale = 0.1
         self.learning_rate = 5e-3
         self.max_grad_norm = -1
-        self.num_features = 60
-        self.hidden_size = 64
+        self.freq_size = 60
+        self.feed_forward_inner_size = 2048
+        self.keep_prob = 0.9
+        self.multi_head_num = 8
+        self.model_size = 512
         self.use_project = False
         self.num_proj = 32
         self.max_epoch = 200
         self.valid_step = 320
-        self.drop_out_input = -1
-        self.drop_out_output = -1
         self.lr_decay = 0.8
         self.decay_step = 10000
         self.batch_size = 32

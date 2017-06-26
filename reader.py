@@ -67,7 +67,7 @@ class DataSet(object):
             "seq_len": tf.FixedLenFeature([1], dtype=tf.int64),
         }
         audio_features = {
-            "audio": tf.FixedLenSequenceFeature([self.config.num_features],
+            "audio": tf.FixedLenSequenceFeature([self.config.freq_size],
                                                 dtype=tf.float32),
             self.config.label + '_label': tf.FixedLenSequenceFeature(
                 [self.config.num_classes], dtype=tf.float32)
@@ -104,7 +104,7 @@ class DataSet(object):
             "correctness": tf.FixedLenFeature([1], dtype=tf.int64)
         }
         audio_features = {
-            "audio": tf.FixedLenSequenceFeature([self.config.num_features],
+            "audio": tf.FixedLenSequenceFeature([self.config.freq_size],
                                                 dtype=tf.float32)
         }
         audio_list = []
@@ -161,7 +161,7 @@ class DataSet(object):
 
             stager = data_flow_ops.StagingArea(
                 [tf.float32, tf.float32, tf.int64, tf.string],
-                shapes=[(self.config.batch_size, None, self.config.num_features),
+                shapes=[(self.config.batch_size, None, self.config.freq_size),
                         (self.config.batch_size, None, self.config.num_classes),
                         (self.config.batch_size), (None,)])
 
@@ -179,7 +179,7 @@ class DataSet(object):
 
             stager = data_flow_ops.StagingArea(
                 [tf.float32, tf.int64, tf.int64, tf.string],
-                shapes=[(self.config.batch_size, None, self.config.num_features),
+                shapes=[(self.config.batch_size, None, self.config.freq_size),
                         (self.config.batch_size), (self.config.batch_size),
                         (None,)])
 
