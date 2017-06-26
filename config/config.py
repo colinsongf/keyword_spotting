@@ -56,7 +56,7 @@ class Config(object):
         self.cell_clip = 3.
         self.num_layers = 1
         self.init_scale = 0.1
-        self.learning_rate = 5e-2
+        self.learning_rate = 5e-3
         self.max_grad_norm = -1
         self.num_features = 60
         self.hidden_size = 64
