@@ -94,7 +94,7 @@ def process_wave(f):
         mel_spectrogram = np.transpose(
             librosa.feature.melspectrogram(y, sr=sr, n_fft=config.fft_size,
                                            hop_length=config.step_size,
-                                           power=2.,
+                                           power=1.,
                                            fmin=300,
                                            fmax=8000,
                                            n_mels=config.num_features))
@@ -404,13 +404,13 @@ if __name__ == '__main__':
     check_dir(save_train_dir)
     check_dir(save_valid_dir)
 
-    base_pkl = 'label_5x_old.pkl'
-    sort_wave(wave_train_dir + base_pkl)
-    filter_wave(wave_train_dir + base_pkl + '.sorted')
-    shuffle(wave_train_dir + base_pkl + '.sorted.filtered')
+    base_pkl = 'label_5x.pkl'
+    # sort_wave(wave_train_dir + base_pkl)
+    # filter_wave(wave_train_dir + base_pkl + '.sorted')
+    # shuffle(wave_train_dir + base_pkl + '.sorted.filtered')
     generate_trainning_data(
         wave_train_dir + base_pkl + '.sorted.filtered.shuffled')
 
     # sort_wave(wave_valid_dir + "valid_1024.pkl")
-    # generate_valid_data(wave_valid_dir + "valid_1024.pkl.sorted")
+    generate_valid_data(wave_valid_dir + "valid_1024.pkl.sorted")
     # make_example(wave_train_dir+'azure_228965.wav',[[1, 4.12, 8.88]])
