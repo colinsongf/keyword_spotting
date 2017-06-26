@@ -12,7 +12,7 @@
 @desc:
 '''
 
-#!/usr/bin/env python
+# !/usr/bin/env python
 """
 ffmpeg-normalize 0.5.1
 
@@ -83,8 +83,8 @@ import re
 import sys
 import logging
 
+import argparse
 from docopt import docopt
-
 
 # -------------------------------------------------------------------------------------------------
 
@@ -94,9 +94,11 @@ logger.setLevel(logging.DEBUG)
 stream_handler = logging.StreamHandler()
 stream_handler.setLevel(logging.ERROR)
 
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
+
 
 # -------------------------------------------------------------------------------------------------
 
@@ -105,6 +107,7 @@ def which(program):
     Find a program in PATH and return path
     From: http://stackoverflow.com/q/377017/
     """
+
     def is_exe(fpath):
         found = os.path.isfile(fpath) and os.access(fpath, os.X_OK)
         if not found and sys.platform == 'win32':
@@ -126,8 +129,8 @@ def which(program):
     return None
 
 
-def run_command(cmd, raw=True, dry=False):
-    print(cmd)
+def run_command(cmd, raw=True):
+    logger.info(cmd)
     """
     Generic function to run a command.
     Set raw to pass the actual command.
@@ -137,13 +140,13 @@ def run_command(cmd, raw=True, dry=False):
     """
     logger.debug("[command] {0}".format(cmd))
 
-    if dry:
-        return
-
     if raw:
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, shell=True,
+                             universal_newlines=True)
     else:
-        p = subprocess.Popen(cmd.split(" "), stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        p = subprocess.Popen(cmd.split(" "), stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, universal_newlines=True)
 
     stdout, stderr = p.communicate()
 
@@ -154,6 +157,7 @@ def run_command(cmd, raw=True, dry=False):
         logger.error(str(stderr))
         raise SystemExit("Failed running a command")
 
+
 # -------------------------------------------------------------------------------------------------
 
 class InputFile(object):
@@ -162,26 +166,23 @@ class InputFile(object):
     """
 
     def __init__(self, path, args):
-        self.args          = args
-        self.acodec        = self.args['--acodec']
-        self.write_to_dir  = self.args['--dir']
-        self.dry_run       = self.args['--dry-run']
-        self.extra_options = self.args['--extra-options']
-        self.force         = self.args['--force']
-        self.format        = self.args['--format']
-        self.max           = self.args['--max']
-        self.ebu           = self.args['--ebu']
-        self.merge         = self.args['--merge']
-        self.no_prefix     = self.args['--no-prefix']
-        self.prefix        = self.args['--prefix']
-        self.target_level  = float(self.args['--level'])
-        self.threshold     = float(self.args['--threshold'])
+        self.args = args
+        self.write_to_dir = self.args['dir'] is not None
+        self.extra_options = self.args['extra_options']
+        self.force = self.args['force'] is not None
+        self.max = self.args['max'] is not None
+        self.ebu = self.args['ebu'] is not None
+        self.format = self.args['format']
+        self.prefix = self.args['prefix']
+        self.target_level = float(self.args['level'])
+        self.threshold = float(self.args['threshold'])
 
         # Find ffmpeg command in PATH
         self.ffmpeg_cmd = which('ffmpeg')
         if not self.ffmpeg_cmd:
             if which('avconv'):
-                logger.error("avconv is not supported anymore. Please install ffmpeg from http://ffmpeg.org instead.")
+                logger.error(
+                    "avconv is not supported anymore. Please install ffmpeg from http://ffmpeg.org instead.")
                 raise SystemExit("No ffmpeg installed")
             else:
                 raise SystemExit("Could not find ffmpeg in your $PATH")
@@ -189,23 +190,27 @@ class InputFile(object):
         if self.max and self.ebu:
             raise SystemExit("Either --max or --ebu have to be specified.")
 
-        if self.ebu and ((self.target_level > -5.0) or (self.target_level < -70.0)):
-            raise SystemExit("Target levels for EBU R128 must lie between -70 and -5")
+        if self.ebu and (
+                    (self.target_level > -5.0) or (self.target_level < -70.0)):
+            raise SystemExit(
+                "Target levels for EBU R128 must lie between -70 and -5")
 
-        self.skip = False # whether the file should be skipped
+        self.skip = False  # whether the file should be skipped
 
         self.mean_volume = None
-        self.max_volume  = None
-        self.adjustment  = None
+        self.max_volume = None
+        self.adjustment = None
+        self.hist = []
+        self.main_volume = None
 
         self.input_file = path
         self.dir, self.filename = os.path.split(self.input_file)
         self.basename = os.path.splitext(self.filename)[0]
 
         # by default, the output path is the same as the input file's one
-        self.output_file     = None
+        self.output_file = None
         self.output_filename = None
-        self.output_dir     = self.dir
+        self.output_dir = self.dir
 
         self.set_output_filename()
 
@@ -214,24 +219,16 @@ class InputFile(object):
         Set all the required output filenames and paths
         """
 
-        if self.merge:
-            # when merging, output file is the same as input file
-            self.output_filename = self.filename
-        else:
-            # by default, output filename is the input filename, plus the format chosen (default: WAV)
-            self.output_filename = os.path.splitext(self.filename)[0] + "." + self.format
+        # by default, output filename is the input filename, plus the format chosen (default: WAV)
+        self.output_filename = os.path.splitext(self.filename)[
+                                   0] + "." + self.format
 
-        # prefix is disabled, so we need to make sure we're not writing ot a directory
-        if self.no_prefix:
-            if self.write_to_dir:
-                raise SystemExit("Cannot write to a directory if '--no-prefix' is set.")
+        # if writing to a directory, change the output path by using the prefix
+        if self.write_to_dir:
+            self.output_dir = os.path.join(self.dir, self.prefix)
         else:
-            # if writing to a directory, change the output path by using the prefix
-            if self.write_to_dir:
-                self.output_dir = os.path.join(self.dir, self.prefix)
-            else:
-                # if not, the output filename is prefixed (this is the default behavior)
-                self.output_filename = self.prefix + "-" + self.output_filename
+            # if not, the output filename is prefixed (this is the default behavior)
+            self.output_filename = self.prefix + "-" + self.output_filename
 
         # create the output dir if necessary
         if self.output_dir and not os.path.exists(self.output_dir):
@@ -243,13 +240,14 @@ class InputFile(object):
         logger.debug("writing result in " + self.output_file)
 
         if self.output_file == self.input_file:
-            raise SystemExit("output file is the same as input file, cannot proceed")
+            raise SystemExit(
+                "output file is the same as input file, cannot proceed")
 
         # some checks
         if not self.force and os.path.exists(self.output_file):
-            logger.warning("output file " + self.output_file + " already exists, skipping. Use -f to force overwriting.")
+            logger.warning(
+                "output file " + self.output_file + " already exists, skipping. Use -f to force overwriting.")
             self.skip = True
-
 
     def get_mean(self):
         """
@@ -263,7 +261,7 @@ class InputFile(object):
         cmd = '"' + self.ffmpeg_cmd + '" -i "' + self.input_file + '" -filter:a "volumedetect" -vn -sn -f null ' + nul
 
         output = run_command(cmd)
-
+        logger.info(output)
         logger.debug(output)
 
         mean_volume_matches = re.findall(r"mean_volume: ([\-\d\.]+) dB", output)
@@ -278,9 +276,17 @@ class InputFile(object):
         else:
             raise ValueError("could not get max volume for " + self.input_file)
 
+        hist = re.findall(r"(histogram_([\d])+db: ([\-\d\.]+))", output)
+        self.hist = [(float(i[1]), float(i[2])) for i in hist]
+        self.hist = sorted(self.hist, key=lambda a: a[0])
+
+        for h in self.hist:
+            if h[1] > 3:
+                self.main_volume = -h[0]
+                break
+
         logger.info("mean volume: " + str(self.mean_volume))
         logger.info("max volume: " + str(self.max_volume))
-
 
     def set_adjustment(self):
         """
@@ -288,18 +294,23 @@ class InputFile(object):
         """
         if self.max:
             self.adjustment = 0 + self.target_level - self.max_volume
-            logger.info("file needs " + str(self.adjustment) + " dB gain to reach maximum")
+            logger.info("file needs " + str(
+                self.adjustment) + " dB gain to reach maximum")
         else:
-            self.adjustment = self.target_level - self.mean_volume
-            logger.info("file needs " + str(self.adjustment) + " dB gain to reach " + str(self.target_level) + " dB")
+            self.adjustment = self.target_level - self.main_volume
+            logger.info('main volume peak at %f dB' % self.main_volume)
+            logger.info("file needs " + str(
+                self.adjustment) + " dB gain to reach target main volume " + str(
+                self.target_level) + " dB")
 
         if self.max_volume + self.adjustment > 0:
-            logger.info("adjusting " + self.filename + " will lead to clipping of " + str(self.max_volume + self.adjustment) + "dB")
-
-        if abs(self.adjustment) <= self.threshold:
-            logger.info("gain of " + str(self.adjustment) + " is below threshold, will not adjust file")
+            logger.info(
+                "adjusting " + self.filename + " will lead to clipping of " + str(
+                    self.max_volume + self.adjustment) + "dB")
+        if self.adjustment < self.threshold:
+            logger.info("gain of " + str(
+                self.adjustment) + " is below threshold, will not adjust file")
             self.skip = True
-
 
     def adjust_volume(self):
         """
@@ -315,19 +326,8 @@ class InputFile(object):
         else:
             chosen_filter = 'volume=' + str(self.adjustment) + 'dB '
 
-        if self.merge:
-            # when merging, copy the video and subtitle stream over and apply the audio filter
-            cmd += '-strict -2 -c:v copy -c:s copy -map_metadata 0 -filter:a ' + chosen_filter
-            if not self.acodec:
-                logger.warn("Merging audio with the original file, but encoder was automatically chosen. Set '--acodec' to overwrite.")
-        else:
-            # when outputting a file, disable video and subtitles
-            cmd += '-vn -sn -filter:a ' + chosen_filter
-
-
-        # set codec
-        if self.acodec:
-            cmd += '-c:a ' + self.acodec + ' '
+        # when outputting a file, disable video and subtitles
+        cmd += '-vn -sn -filter:a ' + chosen_filter
 
         # any extra options passed to ffmpeg
         if self.extra_options:
@@ -335,7 +335,7 @@ class InputFile(object):
 
         cmd += '"' + self.output_file + '"'
 
-        run_command(cmd, dry=self.dry_run)
+        run_command(cmd)
 
 
 class FFmpegNormalize(object):
@@ -345,9 +345,10 @@ class FFmpegNormalize(object):
 
     def __init__(self, args):
         # Set arguments
-        self.args          = args
-        self.debug         = self.args['--debug']
-        self.verbose       = self.args['--verbose']
+        self.args = args
+        print(args)
+        self.debug = self.args['debug'] is not None
+        self.verbose = self.args['verbose'] is not None
 
         if self.debug:
             stream_handler.setLevel(logging.DEBUG)
@@ -358,8 +359,9 @@ class FFmpegNormalize(object):
 
         # Checks
         self.input_files = []
-        self.create_input_files(self.args['<input-file>'])
-
+        if self.args['input_file'] is None:
+            raise ('no input file')
+        self.create_input_files(self.args['input_file'])
 
     def create_input_files(self, input_files):
         """
@@ -369,7 +371,8 @@ class FFmpegNormalize(object):
 
         for input_file in input_files:
             if not os.path.exists(input_file):
-                logger.error("file " + input_file + " does not exist, will skip")
+                logger.error(
+                    "file " + input_file + " does not exist, will skip")
                 to_remove.append(input_file)
 
         for input_file in to_remove:
@@ -379,7 +382,6 @@ class FFmpegNormalize(object):
 
         for input_file in input_files:
             self.input_files.append(InputFile(input_file, self.args))
-
 
     def run(self):
         """
@@ -392,20 +394,58 @@ class FFmpegNormalize(object):
             if input_file.skip:
                 continue
 
-            logger.info("reading file " + str(count) + " of " + str(self.file_count) + " - " + input_file.filename)
+            logger.info("reading file " + str(count) + " of " + str(
+                self.file_count) + " - " + input_file.filename)
 
-            if not self.args["--ebu"]:
+            if self.args["ebu"] is None:
                 input_file.get_mean()
                 input_file.set_adjustment()
 
             input_file.adjust_volume()
             logger.info("normalized file written to " + input_file.output_file)
 
+
 # -------------------------------------------------------------------------------------------------
 
 def main():
-    args = docopt(__doc__, version=str('test'), options_first=False)
+    parser = argparse.ArgumentParser()
 
+    parser.add_argument('-l', '--level',
+                        help='dB level to normalize to [default: -26]',
+                        default=-26, type=float)
+    parser.add_argument('-b', '--ebu', nargs='*',
+                        help='Normalize according to EBU R128 (ffmpeg `loudnorm` filter)')
+    parser.add_argument('-m', '--max', nargs='*',
+                        help='Normalize to the maximum (peak) volume instead of RMS')
+    parser.add_argument('-t', '--threshold',
+                        help='dB threshold below which the audio will be not adjusted [default: 0.5]',
+                        type=float,
+                        default=0)
+    parser.add_argument('-e', '--extra-options',
+                        help='Set extra options passed to ffmpeg (e.g. `-b:a 192k` to set audio bitrate)')
+    parser.add_argument('-f', '--force', nargs='*',
+                        help='Force overwriting existing files')
+    parser.add_argument('-p', '--prefix',
+                        help='Prefix for normalized files or output folder name [default: normalized]')
+    parser.add_argument('-o', '--dir', nargs='*',
+                        help="Create an output folder under the input file's directory with the prefix")
+    parser.add_argument('-v', '--verbose', nargs='*',
+                        help='Enable verbose output')
+    parser.add_argument('-d', '--debug', nargs='*',
+                        help='Show debug output')
+    parser.add_argument('-i', '--input_file', nargs='*',
+                        help='input')
+    parser.add_argument('--format', default='wav',
+                        help='format [default:wav')
+    args = parser.parse_args().__dict__
+
+    args = {'level': -5.0, 'ebu': None, 'max': None, 'threshold': 0,
+            'extra_options': '-ar 16000', 'force': [], 'prefix': 'normalized',
+            'dir': None, 'verbose': None, 'debug': None,
+            'input_file': ['temp/normal.wav',
+                           'temp/s_49FBC6B3F5B67D5E_你好乐乐.wav',
+                           'temp/temp.wav'], 'format': 'wav'}
+    # print(args)
     ffmpeg_normalize = FFmpegNormalize(args)
     ffmpeg_normalize.run()
 
