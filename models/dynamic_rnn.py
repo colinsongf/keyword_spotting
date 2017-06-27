@@ -70,15 +70,16 @@ def feed_forward(inputs, config, scope_name='feed_forward'):
     return tf.squeeze(outputs, 2)
 
 
-def inference(inputs, seqLengths, max_length, config):
+def inference(inputs, seqLengths, config):
     # positional encoding
+    max_length = tf.reduce_max(tf.cast(seqLengths, tf.int32))
     inputs = tf.layers.conv2d(
         tf.expand_dims(inputs, 2), config.model_size, (1, 1),
         name='input_linear_trans')  # [B, T, 1, F]
     inputs = tf.squeeze(inputs, 2)  # [B, T, F]
 
     pe = positional_encoding_op.positional_encoding(
-        max_length // 4 + 1, config.model_size)
+        max_length, config.model_size)
     inputs = inputs + pe
 
     layer_inputs = inputs
@@ -125,19 +126,7 @@ class DRNN(object):
     @describe
     def build_graph(self, config, is_train):
 
-        max_length = tf.reduce_max(tf.cast(self.seqLengths,tf.int32))
-        padding = tf.zeros([1, 1, config.freq_size])
-
-
-        padding = tf.tile(padding,
-                          [config.batch_size,4-tf.mod(max_length, 4), 1])
-
-        inputs = tf.concat([self.inputX, padding], 1)
-        inputs = tf.reshape(inputs,
-                            [config.batch_size, -1, config.freq_size * 4])
-        self.seqLengths = self.seqLengths // 4 + 1
-
-        outputs = inference(inputs, self.seqLengths, max_length, config)
+        outputs = inference(self.inputX, self.seqLengths, config)
 
         flatten_logits = tf.reshape(outputs,
                                     (-1, config.num_classes))
@@ -239,9 +228,7 @@ class DeployModel(object):
 
             self.seqLength = tf.placeholder(dtype=tf.int32, shape=[1],
                                             name='seqLength')
-            max_length = tf.reduce_max(self.seqLength)
-            attention_output = inference(inputX, self.seqLength, max_length,
-                                         config)
+            attention_output = inference(inputX, self.seqLength, config)
 
             with tf.name_scope('fc-layer'):
                 if config.use_project:
