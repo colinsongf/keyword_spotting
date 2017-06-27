@@ -54,7 +54,7 @@ class Runner(object):
 
         graph = tf.Graph()
         with graph.as_default(), tf.Session() as sess:
-            print(tf.get_default_graph())
+
             self.data = read_dataset(self.config)
 
             if config.mode == 'train':
@@ -78,7 +78,7 @@ class Runner(object):
             files = glob(path_join(self.config.model_path, '*.ckpt.*'))
 
             if len(files) > 0:
-                print(files)
+
                 saver.restore(sess, path_join(self.config.model_path,
                                               self.config.model_name))
                 print(('Model restored from:' + self.config.model_path))
@@ -90,9 +90,7 @@ class Runner(object):
             tf.Graph.finalize(graph)
             variable_names = [n.name for n in
                               tf.get_default_graph().as_graph_def().node]
-            # glo=sess.run([tf.global_variables()])
-            # for n in variable_names:
-            #     print(n)
+
             best_miss = 1
             best_false = 1
             accu_loss = 0
@@ -136,9 +134,9 @@ class Runner(object):
                 # (miss,false,step,best_count)
 
                 last_time = time.time()
-                all_va = [n.name for n in tf.global_variables()]
-                for i in all_va:
-                    print(i)
+                # all_va = [n.name for n in tf.global_variables()]
+                # for i in all_va:
+                #     print(i)
                 try:
                     sess.run([self.train_model.stage_op,
                               self.train_model.input_filequeue_enqueue_op])
@@ -388,6 +386,7 @@ if __name__ == '__main__':
                 setattr(config, key, flags[key])
     if not config.ktq:
         os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
+        print('-------------------====================gpu:', os.environ['CUDA_VISIBLE_DEVICES'])
     print(flags)
     runner = Runner(config)
     if config.mode == 'build':

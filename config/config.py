@@ -48,7 +48,7 @@ class Config(object):
         self.rawdata_path = './rawdata/'
         self.rawdata_path = '/ssd/keyword/'
         # self.data_path = './test/data/azure_garbage/'
-        self.gpu = "0"
+        self.gpu = ""
 
         self.fft_size = 400
         self.step_size = 160
