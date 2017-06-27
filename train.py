@@ -172,8 +172,10 @@ class Runner(object):
                             # print(xent_bg, xent_max)
 
                         # accu_loss += l
-                        print(seq, ma)
-                        print(pe.shape, x.shape)
+                        print('='*25)
+                        print(seq)
+                        print('max', ma)
+                        print('pe len', pe.shape[0], 'input len', x.shape[1])
                         if epoch > self.epoch:
                             self.epoch += 1
                             print('accumulated loss', accu_loss)
