@@ -34,7 +34,7 @@ from utils.prediction import predict, decode, moving_average, evaluate
 from args import get_args
 
 sys.dont_write_bytecode = True
-DEBUG = True
+DEBUG = False
 
 
 class Runner(object):
@@ -145,7 +145,6 @@ class Runner(object):
                                  self.train_model.learning_rate,
                                  self.train_model.global_step])
                             epoch = sess.run([self.data.epoch])[0]
-                            print(step)
 
                         else:
                             _, _, _, l, xent_bg, xent_max, lr, step = sess.run(
