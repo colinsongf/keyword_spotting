@@ -91,14 +91,13 @@ class DataSet(object):
                                  (-1,))
 
         return tf.stack(audio_list, name='input_audio'), tf.stack(label_list,
-                                                                  name='input_label'), seq_lengths, keys
+                                                                  name='input_label'), seq_lengths
 
     def valid_filequeue_reader(self, filename_queue):
         (keys, values) = self.valid_reader.read_up_to(filename_queue,
                                                       self.config.batch_size)
         context_features = {
             "seq_len": tf.FixedLenFeature([1], dtype=tf.int64),
-            "name": tf.FixedLenFeature([], dtype=tf.string),
             "correctness": tf.FixedLenFeature([1], dtype=tf.int64)
         }
         audio_features = {
@@ -108,7 +107,6 @@ class DataSet(object):
         audio_list = []
         len_list = []
         correct_list = []
-        name_list = []
 
         for i in range(self.config.batch_size):
             context, sequence = tf.parse_single_sequence_example(
@@ -119,19 +117,16 @@ class DataSet(object):
             audio = sequence['audio']
             seq_len = context['seq_len']
             correct = context['correctness']
-            name = context['name']
             audio_list.append(audio)
             len_list.append(seq_len)
             correct_list.append(correct)
-            name_list.append(name)
 
         seq_lengths = tf.reshape(tf.stack(len_list), (-1,), name='seq_lengths')
         correctness = tf.reshape(tf.stack(correct_list), (-1,),
                                  name='correctness')
-        name_tensor = tf.stack(name_list)
 
         return tf.stack(audio_list,
-                        name='input_audio'), seq_lengths, correctness, name_tensor
+                        name='input_audio'), seq_lengths, correctness
 
     def string_input_queue(self, string_tensor, shuffle=True,
                            name=None, seed=None, capacity=16384):
@@ -154,16 +149,16 @@ class DataSet(object):
             self.train_filename_queue, self.train_filequeue_enqueue_op = self.string_input_queue(
                 self.train_filename, shuffle=shuffle, capacity=16384)
 
-            audio, label, seq_len, keys = self.train_filequeue_reader(
-                    self.train_filename_queue)
+            audio, label, seq_len = self.train_filequeue_reader(
+                self.train_filename_queue)
 
             stager = data_flow_ops.StagingArea(
-                [tf.float32, tf.float32, tf.int64, tf.string],
+                [tf.float32, tf.float32, tf.int64],
                 shapes=[(self.config.batch_size, None, self.config.freq_size),
                         (self.config.batch_size, None, self.config.num_classes),
-                        (self.config.batch_size), (None,)])
+                        (self.config.batch_size)])
 
-            stage_op = stager.put((audio, label, seq_len, keys))
+            stage_op = stager.put((audio, label, seq_len))
 
             return stager, stage_op, self.train_filequeue_enqueue_op
 
@@ -172,16 +167,15 @@ class DataSet(object):
             self.valid_filename_queue, self.valid_filequeue_enqueue_op = self.string_input_queue(
                 self.valid_filename, shuffle=False, capacity=16384)
 
-            audio, seq_len, correctness, names = self.valid_filequeue_reader(
+            audio, seq_len, correctness = self.valid_filequeue_reader(
                 self.valid_filename_queue)
 
             stager = data_flow_ops.StagingArea(
-                [tf.float32, tf.int64, tf.int64, tf.string],
+                [tf.float32, tf.int64, tf.int64],
                 shapes=[(self.config.batch_size, None, self.config.freq_size),
-                        (self.config.batch_size), (self.config.batch_size),
-                        (None,)])
+                        (self.config.batch_size), (self.config.batch_size)])
 
-            stage_op = stager.put((audio, seq_len, correctness,names))
+            stage_op = stager.put((audio, seq_len, correctness))
 
             return stager, stage_op, self.valid_filequeue_enqueue_op
 

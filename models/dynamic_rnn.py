@@ -116,11 +116,11 @@ class DRNN(object):
         if is_train:
             stager, self.stage_op, self.input_filequeue_enqueue_op = input
             # we only use 1 gpu
-            self.inputX, self.labels, self.seqLengths, self.keys = stager.get()
+            self.inputX, self.labels, self.seqLengths = stager.get()
             self.build_graph(config, is_train)
         else:
             stager, self.stage_op, self.input_filequeue_enqueue_op = input
-            self.inputX, self.seqLengths, self.correctness, self.names = stager.get()
+            self.inputX, self.seqLengths, self.correctness = stager.get()
             self.build_graph(config, is_train)
 
     @describe
