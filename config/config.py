@@ -60,10 +60,10 @@ class Config(object):
         self.learning_rate = 5e-3
         self.max_grad_norm = -1
         self.freq_size = 60
-        self.feed_forward_inner_size = 512
+        self.feed_forward_inner_size = 256
         self.keep_prob = 0.9
         self.multi_head_num = 8
-        self.model_size = 128
+        self.model_size = 64
         self.use_project = False
         self.num_proj = 32
         self.max_epoch = 200
