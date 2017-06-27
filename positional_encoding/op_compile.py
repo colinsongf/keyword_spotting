@@ -59,8 +59,8 @@ class OperaterCompiler:
             cuo_paths = []
 
         print('Compiling {} CPU kernel...'.format(self._op_name))
-        print(self._so_path)
-        print(self._lib_dirs)
+        print('.so path', self._so_path)
+        print('lib dirs', self._lib_dirs)
         os.system(
             'g++ -std=c++11 -shared %s -o %s -fPIC -I %s %s -O2 '
             '-D_GLIBCXX_USE_CXX11_ABI=0 -msse4.1 -w %s' % (
@@ -77,4 +77,3 @@ class OperaterCompiler:
                     os.remove(cuo_path)
 
         return tf.load_op_library(self._so_path)
-
