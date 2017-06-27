@@ -24,6 +24,7 @@ class Config(object):
         self.max_pooling_loss = False
         self.max_pooling_standardize = True
         self.ktq = False
+        self.use_relu = True
         self.use_white_noise = True
         self.optimizer = 'adam'  # adam sgd nesterov
         self.spectrogram = 'mel'  # mfcc,mel
@@ -41,8 +42,8 @@ class Config(object):
         self.train_path = './data/mel/train'
         self.valid_path = './data/mel/valid'
 
-        self.train_path = '/ssd/liuziqi/mel_all5x_energy/train'
-        self.valid_path = '/ssd/liuziqi/mel_all5x_energy/valid'
+        # self.train_path = '/ssd/liuziqi/mel_all5x_energy/train'
+        # self.valid_path = '/ssd/liuziqi/mel_all5x_energy/valid'
         self.model_name = 'best.ckpt'
         self.rawdata_path = './rawdata/'
         self.rawdata_path = '/ssd/keyword/'
@@ -59,10 +60,10 @@ class Config(object):
         self.learning_rate = 5e-3
         self.max_grad_norm = -1
         self.freq_size = 60
-        self.feed_forward_inner_size = 2048
+        self.feed_forward_inner_size = 512
         self.keep_prob = 0.9
         self.multi_head_num = 8
-        self.model_size = 512
+        self.model_size = 128
         self.use_project = False
         self.num_proj = 32
         self.max_epoch = 200

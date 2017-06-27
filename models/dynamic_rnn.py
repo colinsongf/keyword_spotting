@@ -16,12 +16,11 @@
 # -*- coding:utf-8 -*-
 
 
-import numpy as np
 import tensorflow as tf
 import math
 from tensorflow.contrib.rnn.python.ops import core_rnn_cell_impl
-from tensorflow.python.ops.rnn import dynamic_rnn
 from utils.common import describe
+from positional_encoding import positional_encoding_op
 
 cell_fn = core_rnn_cell_impl.LSTMCell
 
@@ -71,6 +70,45 @@ def feed_forward(inputs, config, scope_name='feed_forward'):
     return tf.squeeze(outputs, 2)
 
 
+def inference(inputs, seqLengths, max_length, config):
+    # positional encoding
+    inputs = tf.layers.conv2d(
+        tf.expand_dims(inputs, 2), config.model_size, (1, 1),
+        name='input_linear_trans')  # [B, T, 1, F]
+    inputs = tf.squeeze(inputs, 2)  # [B, T, F]
+
+    pe = positional_encoding_op.positional_encoding(
+        max_length // 4 + 1, config.model_size)
+    inputs = inputs + pe
+
+    layer_inputs = inputs
+    for j in range(config.num_layers):
+        with tf.variable_scope('layer_%d' % j):
+            # self attention sub-layer
+            attention_outputs = self_attention(layer_inputs, config)
+            attention_outputs = tf.nn.dropout(
+                attention_outputs, config.keep_prob)
+            # add and norm
+            feed_forward_inputs = tf.contrib.layers.layer_norm(
+                attention_outputs + layer_inputs)
+            # feed forward sub-layer
+            feed_forward_outputs = feed_forward(feed_forward_inputs, config)
+            feed_forward_outputs = tf.nn.dropout(
+                feed_forward_outputs, config.keep_prob)
+            # add and norm
+            layer_outputs = tf.contrib.layers.layer_norm(
+                feed_forward_outputs + feed_forward_inputs)
+            layer_inputs = layer_outputs
+
+    outputs = tf.layers.conv2d(
+        tf.expand_dims(layer_outputs, 2), config.num_classes,
+        (1, 1), name='output_linear_trans')  # [B, T, 1, F]
+    outputs = tf.squeeze(outputs, 2)  # [B, T, F]
+    if config.use_relu:
+        outputs = tf.nn.relu(outputs)
+    return outputs
+
+
 class DRNN(object):
     def __init__(self, config, input, is_train):
         self.config = config
@@ -96,41 +134,7 @@ class DRNN(object):
                             [config.batch_size, -1, config.freq_size * 4])
         self.seqLengths = self.seqLengths // 4 + 1
 
-        # positional encoding
-        inputs = tf.layers.conv2d(
-            tf.expand_dims(inputs, 2), config.model_size, (1, 1),
-            name='input_linear_trans')  # [B, T, 1, F]
-        inputs = tf.squeeze(inputs, 2)  # [B, T, F]
-
-        from plugins.positional_encoding import positional_encoding_op
-        pe = positional_encoding_op.positional_encoding(
-            max_length // 4 + 1, config.model_size)
-        inputs = inputs + pe
-
-        layer_inputs = inputs
-        for j in range(config.num_layers):
-            with tf.variable_scope('layer_%d' % j):
-                # self attention sub-layer
-                attention_outputs = self_attention(layer_inputs, config)
-                attention_outputs = tf.nn.dropout(
-                    attention_outputs, config.keep_prob)
-                # add and norm
-                feed_forward_inputs = tf.contrib.layers.layer_norm(
-                    attention_outputs + layer_inputs)
-                # feed forward sub-layer
-                feed_forward_outputs = feed_forward(feed_forward_inputs, config)
-                feed_forward_outputs = tf.nn.dropout(
-                    feed_forward_outputs, config.keep_prob)
-                # add and norm
-                layer_outputs = tf.contrib.layers.layer_norm(
-                    feed_forward_outputs + feed_forward_inputs)
-                layer_inputs = layer_outputs
-
-        outputs = tf.layers.conv2d(
-            tf.expand_dims(layer_outputs, 2), config.num_classes,
-            (1, 1), name='output_linear_trans')  # [B, T, 1, F]
-        outputs = tf.squeeze(outputs, 2)  # [B, T, F]
-        outputs = tf.nn.relu(outputs)
+        outputs = inference(inputs, self.seqLengths, max_length, config)
 
         flatten_logits = tf.reshape(outputs,
                                     (-1, config.num_classes))
@@ -140,9 +144,7 @@ class DRNN(object):
         if is_train:
             flatten_labels = tf.reshape(self.labels,
                                         (-1, config.num_classes))
-            # self.xent_loss = tf.reduce_mean(
-            #     tf.nn.softmax_cross_entropy_with_logits(labels=flatten_labels,
-            #                                             logits=flatten_logits))
+
             self.xent_loss = tf.reduce_sum(
                 tf.nn.softmax_cross_entropy_with_logits(labels=flatten_labels,
                                                         logits=flatten_logits))
@@ -234,23 +236,24 @@ class DeployModel(object):
 
             self.seqLength = tf.placeholder(dtype=tf.int32, shape=[1],
                                             name='seqLength')
+            max_length = tf.reduce_max(self.seqLength)
+            attention_output = inference(inputX, self.seqLength, max_length,
+                                         config)
 
-            rnn_outputs = build_multi_dynamic_rnn(config, inputX,
-                                                  self.seqLength)
             with tf.name_scope('fc-layer'):
                 if config.use_project:
                     weightsClasses = tf.get_variable(name='weightsClasses',
                                                      initializer=tf.truncated_normal(
                                                          [config.num_proj,
                                                           config.num_classes]))
-                    flatten_outputs = tf.reshape(rnn_outputs,
+                    flatten_outputs = tf.reshape(attention_output,
                                                  (-1, config.num_proj))
                 else:
                     weightsClasses = tf.get_variable(name='weightsClasses',
                                                      initializer=tf.truncated_normal(
                                                          [config.hidden_size,
                                                           config.num_classes]))
-                    flatten_outputs = tf.reshape(rnn_outputs,
+                    flatten_outputs = tf.reshape(attention_output,
                                                  (-1, config.hidden_size))
                 biasesClasses = tf.get_variable(name='biasesClasses',
                                                 initializer=tf.truncated_normal(
@@ -259,48 +262,6 @@ class DeployModel(object):
             flatten_logits = tf.matmul(flatten_outputs,
                                        weightsClasses) + biasesClasses
             self.softmax = tf.nn.softmax(flatten_logits, name='softmax')
-
-
-def get_cell(config):
-    print(tf.get_variable_scope().reuse)
-    cell = cell_fn(num_units=config.hidden_size,
-                   use_peepholes=True,
-                   cell_clip=config.cell_clip,
-                   initializer=tf.contrib.layers.xavier_initializer(),
-                   num_proj=config.num_proj if config.use_project else None,
-                   proj_clip=None,
-                   forget_bias=1.0,
-                   state_is_tuple=True,
-                   activation=tf.tanh,
-                   reuse=tf.get_variable_scope().reuse
-                   )
-    if config.drop_out_input > 0 and config.drop_out_output > 0:
-        cell = tf.contrib.rnn.DropoutWrapper(cell,
-                                             input_keep_prob=1 - config.drop_out_input,
-                                             output_keep_prob=1 - config.drop_out_output)
-
-    return cell
-
-
-def build_multi_dynamic_rnn(config,
-                            inputX,
-                            seqLengths):
-    if config.num_layers > 1:
-        print('building multi layer LSTM')
-        cell = tf.contrib.rnn.MultiRNNCell(
-            [get_cell(config) for _ in range(config.num_layers)])
-    else:
-        # cell = tf.contrib.rnn.MultiRNNCell([get_cell(config)])
-        cell = get_cell(config)
-
-    outputs, output_states = dynamic_rnn(cell,
-                                         inputs=inputX,
-                                         sequence_length=seqLengths,
-                                         initial_state=None,
-                                         dtype=tf.float32,
-                                         scope="drnn")
-
-    return outputs
 
 
 if __name__ == "__main__":
