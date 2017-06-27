@@ -127,8 +127,8 @@ class DRNN(object):
     def build_graph(self, config, is_train):
         self.fuck = tf.get_variable(name='weightsClasses',
                                                  initializer=tf.truncated_normal(
-                                                     [config.hidden_size,
-                                                      config.num_classes]))
+                                                     [20,
+                                                      20]))
         self.max = tf.reduce_max(tf.cast(self.seqLengths, tf.int32))
         # outputs = inference(self.inputX, self.seqLengths, config)
         #
