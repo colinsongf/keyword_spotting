@@ -133,21 +133,23 @@ class Runner(object):
                 try:
                     sess.run([self.train_model.stage_op,
                               self.train_model.input_filequeue_enqueue_op,
-                              self.valid_model.input_filequeue_enqueue_op,
-                              self.valid_model.stage_op])
+                              self.valid_model.stage_op,
+                              self.valid_model.input_filequeue_enqueue_op])
 
                     while self.epoch < self.config.max_epoch:
 
                         if not self.config.max_pooling_loss:
+                            ma, seq = sess.run([self.train_model.max,
+                                                self.train_model.seqLengths])
 
-                            _, _, _, l, lr, step = sess.run(
-                                [self.train_model.train_op,
-                                 self.train_model.stage_op,
-                                 self.train_model.input_filequeue_enqueue_op,
-                                 self.train_model.loss,
-                                 self.train_model.learning_rate,
-                                 self.train_model.global_step
-                                 ])
+                            # _, _, _, l, lr, step = sess.run(
+                            #     [self.train_model.train_op,
+                            #      self.train_model.stage_op,
+                            #      self.train_model.input_filequeue_enqueue_op,
+                            #      self.train_model.loss,
+                            #      self.train_model.learning_rate,
+                            #      self.train_model.global_step
+                            #      ])
                             epoch = sess.run([self.data.epoch])[0]
                         else:
                             _, _, _, l, xent_bg, xent_max, lr, step = sess.run(
