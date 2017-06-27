@@ -139,7 +139,7 @@ class Runner(object):
                     while self.epoch < self.config.max_epoch:
 
                         if not self.config.max_pooling_loss:
-                            seq = sess.run([self.train_model.seqLengths])
+
                             _, _, _, l, lr, step = sess.run(
                                 [self.train_model.train_op,
                                  self.train_model.stage_op,
@@ -149,7 +149,6 @@ class Runner(object):
                                  self.train_model.global_step
                                  ])
                             epoch = sess.run([self.data.epoch])[0]
-                            print(seq)
                         else:
                             _, _, _, l, xent_bg, xent_max, lr, step = sess.run(
                                 [self.train_model.train_op,

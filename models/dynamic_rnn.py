@@ -70,6 +70,8 @@ def feed_forward(inputs, config, scope_name='feed_forward'):
     return tf.squeeze(outputs, 2)
 
 
+
+
 def inference(inputs, seqLengths, config):
     # positional encoding
     max_length = tf.reduce_max(tf.cast(seqLengths, tf.int32))
@@ -125,7 +127,7 @@ class DRNN(object):
 
     @describe
     def build_graph(self, config, is_train):
-
+        self.max = tf.reduce_max(tf.cast(self.seqLengths, tf.int32))
         outputs = inference(self.inputX, self.seqLengths, config)
 
         flatten_logits = tf.reshape(outputs,
@@ -207,6 +209,7 @@ class DRNN(object):
                 self.train_op = self.optimizer.apply_gradients(
                     zip(grads, self.var_trainable_op),
                     global_step=self.global_step)
+            pass
 
 
 class DeployModel(object):
