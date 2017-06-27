@@ -166,7 +166,8 @@ class Runner(object):
                             accu_key_loss += xent_max
                             # print(xent_bg, xent_max)
 
-                        accu_loss += l
+                        # accu_loss += l
+                        print(seq, ma)
                         if epoch > self.epoch:
                             self.epoch += 1
                             print('accumulated loss', accu_loss)
