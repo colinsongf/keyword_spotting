@@ -135,9 +135,9 @@ class Runner(object):
                               self.train_model.input_filequeue_enqueue_op,
                               self.valid_model.stage_op,
                               self.valid_model.input_filequeue_enqueue_op])
-
+                    co=0
                     while self.epoch < self.config.max_epoch:
-
+                        co+=1
                         if not self.config.max_pooling_loss:
                             _, _, ma, seq, pe, x = sess.run(
                                 [self.train_model.stage_op,
@@ -172,7 +172,8 @@ class Runner(object):
                             # print(xent_bg, xent_max)
 
                         # accu_loss += l
-                        print('='*25)
+                        if co%2==0:
+                            print('='*25)
                         print(seq)
                         print('max', ma)
                         print('pe len', pe.shape[0], 'input len', x.shape[1])
