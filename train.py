@@ -140,13 +140,14 @@ class Runner(object):
 
                         if not self.config.max_pooling_loss:
 
-                            _, _, _, l, lr, step = sess.run(
+                            _, _, _, l, lr, step, seq = sess.run(
                                 [self.train_model.train_op,
                                  self.train_model.stage_op,
                                  self.train_model.input_filequeue_enqueue_op,
                                  self.train_model.loss,
                                  self.train_model.learning_rate,
-                                 self.train_model.global_step
+                                 self.train_model.global_step,
+                                 self.train_model.seqLengths
                                  ])
                             epoch = sess.run([self.data.epoch])[0]
                         else:

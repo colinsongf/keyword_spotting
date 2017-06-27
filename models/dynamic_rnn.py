@@ -49,7 +49,7 @@ def self_attention(inputs, config, scope_name='self_attention'):
 
         a = tf.matmul(q_, tf.transpose(k_, [0, 2, 1]))  # (h * B, T, T)
         a = tf.nn.softmax(a / math.sqrt(head_size))
-        a = tf.nn.dropout(a, config.keep_prob)
+        # a = tf.nn.dropout(a, config.keep_prob)
         a = tf.matmul(a, v_)  # [h * B, T, N / h]
 
         outputs = tf.concat(tf.split(a, config.multi_head_num, axis=0),
