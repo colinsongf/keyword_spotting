@@ -125,10 +125,13 @@ class DRNN(object):
     @describe
     def build_graph(self, config, is_train):
 
-        max_length = tf.reduce_max(self.seqLengths)
+        max_length = tf.reduce_max(tf.cast(self.seqLengths,tf.int32))
         padding = tf.zeros([1, 1, config.freq_size])
+
+
         padding = tf.tile(padding,
-                          [config.batch_size, 4 - tf.mod(max_length, 4), 1])
+                          [config.batch_size,4-tf.mod(max_length, 4), 1])
+
         inputs = tf.concat([self.inputX, padding], 1)
         inputs = tf.reshape(inputs,
                             [config.batch_size, -1, config.freq_size * 4])

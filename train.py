@@ -268,7 +268,8 @@ class Runner(object):
                 except tf.errors.OutOfRangeError:
                     print('Done training -- epoch limit reached')
                 finally:
-                    pickle.dump(best_list, 'best_list.pkl')
+                    with open('best_list.pkl', 'wb') as f:
+                        pickle.dump(best_list, f)
                     print('total time:%f hours' % (
                         (time.time() - st_time) / 3600))
                     # When done, ask the threads to stop.
