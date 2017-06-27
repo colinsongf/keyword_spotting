@@ -15,13 +15,11 @@
 # -*- coding:utf-8 -*-
 # !/usr/bin/python
 
-import argparse
 import os
 import sys
 import time
 import pickle
 import signal
-import queue
 
 import numpy as np
 import tensorflow as tf
@@ -36,12 +34,7 @@ from utils.prediction import predict, decode, moving_average, evaluate
 from args import get_args
 
 sys.dont_write_bytecode = True
-DEBUG = False
-
-
-def handler_stop_signals(signum, frame):
-    global run
-    run = False
+DEBUG = True
 
 
 class Runner(object):
@@ -152,6 +145,7 @@ class Runner(object):
                                  self.train_model.learning_rate,
                                  self.train_model.global_step])
                             epoch = sess.run([self.data.epoch])[0]
+                            print(step)
 
                         else:
                             _, _, _, l, xent_bg, xent_max, lr, step = sess.run(
@@ -385,8 +379,8 @@ if __name__ == '__main__':
             else:
                 setattr(config, key, flags[key])
     if not config.ktq:
-        os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
-        print('-------------------====================gpu:', os.environ['CUDA_VISIBLE_DEVICES'])
+        # os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
+        pass
     print(flags)
     runner = Runner(config)
     if config.mode == 'build':
