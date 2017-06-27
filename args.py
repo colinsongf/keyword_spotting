@@ -62,8 +62,11 @@ def get_args():
     parser.add_argument('-layer', '--num_layers',
                         help='number of RNN layer',
                         type=int, default=None)
-    parser.add_argument('-hidden', '--hidden_size',
-                        help='number of hidden unit in RNN layer',
+    parser.add_argument('-hidden', '--model_size',
+                        help='number of hidden unit in attention layer',
+                        type=int, default=None)
+    parser.add_argument('-feed', '--feed_forward_inner_size',
+                        help='number of feed_forward_inner_size',
                         type=int, default=None)
     parser.add_argument('-l', '--learning_rate', help='learning rate',
                         type=float, default=None)
