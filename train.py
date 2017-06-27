@@ -139,8 +139,13 @@ class Runner(object):
                     while self.epoch < self.config.max_epoch:
 
                         if not self.config.max_pooling_loss:
-                            ma, seq = sess.run([self.train_model.max,
-                                                self.train_model.seqLengths])
+                            _, _, ma, seq, pe, x = sess.run(
+                                [self.train_model.stage_op,
+                                 self.train_model.input_filequeue_enqueue_op,
+                                 self.train_model.max,
+                                 self.train_model.seqLengths,
+                                 self.train_model.pe,
+                                 self.train_model.inputX])
 
                             # _, _, _, l, lr, step = sess.run(
                             #     [self.train_model.train_op,
@@ -168,6 +173,7 @@ class Runner(object):
 
                         # accu_loss += l
                         print(seq, ma)
+                        print(pe.shape, x.shape)
                         if epoch > self.epoch:
                             self.epoch += 1
                             print('accumulated loss', accu_loss)
