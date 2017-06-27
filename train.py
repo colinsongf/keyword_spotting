@@ -137,14 +137,15 @@ class Runner(object):
                     while self.epoch < self.config.max_epoch:
 
                         if not self.config.max_pooling_loss:
-                            _, _, _, l, lr, step,seq = sess.run(
+                            seq = sess.run([self.train_model.seqLengths])
+                            _, _, _, l, lr, step = sess.run(
                                 [self.train_model.train_op,
                                  self.train_model.stage_op,
                                  self.train_model.input_filequeue_enqueue_op,
                                  self.train_model.loss,
                                  self.train_model.learning_rate,
-                                 self.train_model.global_step,
-                                 self.train_model.seqLengths])
+                                 self.train_model.global_step
+                                 ])
                             epoch = sess.run([self.data.epoch])[0]
                             print(seq)
                         else:
@@ -179,7 +180,7 @@ class Runner(object):
                             false_count = 0
                             target_count = 0
                             for i in range(self.data.valid_file_size):
-                                logits, seqLen, correctness,  _, _ = sess.run(
+                                logits, seqLen, correctness, _, _ = sess.run(
                                     [self.valid_model.softmax,
                                      self.valid_model.seqLengths,
                                      self.valid_model.correctness,
@@ -276,7 +277,7 @@ class Runner(object):
                     # if i > 7:
                     #     break
                     ind = 14
-                    logits, seqLen, correctness,  _, _ = sess.run(
+                    logits, seqLen, correctness, _, _ = sess.run(
                         [self.valid_model.softmax,
                          self.valid_model.seqLengths,
                          self.valid_model.correctness,
