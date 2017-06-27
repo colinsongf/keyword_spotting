@@ -72,7 +72,7 @@ def feed_forward(inputs, config, scope_name='feed_forward'):
 
 def inference(inputs, seqLengths, config):
     # positional encoding
-    max_length = tf.reduce_max(tf.cast(seqLengths, tf.int32))
+    max_length = tf.shape(inputs)[1]
     inputs = tf.layers.conv2d(
         tf.expand_dims(inputs, 2), config.model_size, (1, 1),
         name='input_linear_trans')  # [B, T, 1, F]
@@ -125,95 +125,87 @@ class DRNN(object):
 
     @describe
     def build_graph(self, config, is_train):
-        self.fuck = tf.get_variable(name='weightsClasses',
-                                    initializer=tf.truncated_normal([20, 20]))
-        self.max = tf.reduce_max(tf.cast(self.seqLengths, tf.int32))
+        outputs = inference(self.inputX, self.seqLengths, config)
 
-
-        self.pe = positional_encoding_op.positional_encoding(
-            self.max, config.model_size)
-
-        # outputs = inference(self.inputX, self.seqLengths, config)
-        #
-        # flatten_logits = tf.reshape(outputs,
-        #                             (-1, config.num_classes))
-        # self.softmax = tf.reshape(tf.nn.softmax(flatten_logits),
-        #                           (config.batch_size, -1,
-        #                            config.num_classes))
+        flatten_logits = tf.reshape(outputs,
+                                    (-1, config.num_classes))
+        self.softmax = tf.reshape(tf.nn.softmax(flatten_logits),
+                                  (config.batch_size, -1,
+                                   config.num_classes))
         if is_train:
-            # flatten_labels = tf.reshape(self.labels,
-            #                             (-1, config.num_classes))
-            #
-            # self.xent_loss = tf.reduce_sum(
-            #     tf.nn.softmax_cross_entropy_with_logits(labels=flatten_labels,
-            #                                             logits=flatten_logits))
-            # # calculating maxpooling loss
-            # self.log_softmax = -tf.log(self.softmax)
-            # self.crop_log_softmax = tf.slice(self.log_softmax, [0, 0, 1],
-            #                                  [-1, -1, -1])
-            # self.crop_labels = tf.slice(self.labels, [0, 0, 1], [-1, -1, -1])
-            # self.masked_log_softmax = self.crop_log_softmax * self.crop_labels
-            # self.segment_len = tf.count_nonzero(self.masked_log_softmax, 1,
-            #                                     dtype=tf.float32)  # shape (batchsize,class_num)
-            # self.segment_len_sum = tf.reduce_sum(self.segment_len, axis=1)
-            # self.max_frame = tf.reduce_max(self.masked_log_softmax,
-            #                                1)  # shape (batchsize,class_num)
-            # self.xent_max_frame = tf.reduce_sum(self.max_frame)
-            # self.background_log_softmax = tf.slice(self.log_softmax, [0, 0, 0],
-            #                                        [-1, -1, 1])
-            # self.background_label = tf.slice(self.labels, [0, 0, 0],
-            #                                  [-1, -1, 1])
-            # if config.max_pooling_standardize:
-            #     self.xent_background = tf.reduce_sum(
-            #         tf.reduce_sum(
-            #             self.background_log_softmax * self.background_label,
-            #             (1, 2)) / (tf.cast(self.seqLengths,
-            #                                tf.float32) - self.segment_len_sum))
-            # else:
-            #     self.xent_background = tf.reduce_sum(
-            #         self.background_log_softmax * self.background_label)
-            #
-            # self.flatten_masked_softmax = tf.reshape(self.masked_log_softmax,
-            #                                          (config.batch_size, -1))
-            # self.max_index = tf.arg_max(self.flatten_masked_softmax, 1)
-            #
-            # self.max_pooling_loss = self.xent_background + self.xent_max_frame
-            #
-            # self.global_step = tf.Variable(0, trainable=False)
-            # self.reset_global_step = tf.assign(self.global_step, 1)
-            # self.learning_rate = tf.train.exponential_decay(
-            #     config.learning_rate, self.global_step, self.config.decay_step,
-            #     self.config.lr_decay, name='lr')
-            #
-            # if config.max_pooling_loss:
-            #     self.loss = self.max_pooling_loss
-            # else:
-            #     self.loss = self.xent_loss
-            #
-            # if self.config.optimizer == 'sgd':
-            #     self.optimizer = tf.train.GradientDescentOptimizer(
-            #         self.learning_rate)
-            # elif self.config.optimizer == 'adam':
-            #     self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
-            # elif self.config.optimizer == 'nesterov':
-            #     self.optimizer = tf.train.MomentumOptimizer(
-            #         self.learning_rate, 0.9, use_nesterov=True)
-            # else:
-            #     raise Exception("optimizer not found")
-            #
-            # if config.max_grad_norm <= 0:
-            #     # not apply gradient clipping
-            #     self.train_op = self.optimizer.minimize(self.loss,
-            #                                             self.global_step)
-            # else:
-            #     # apply gradient clipping
-            #     self.var_trainable_op = tf.trainable_variables()
-            #     grads, _ = tf.clip_by_global_norm(
-            #         tf.gradients(self.loss, self.var_trainable_op),
-            #         config.max_grad_norm)
-            #     self.train_op = self.optimizer.apply_gradients(
-            #         zip(grads, self.var_trainable_op),
-            #         global_step=self.global_step)
+            flatten_labels = tf.reshape(self.labels,
+                                        (-1, config.num_classes))
+
+            self.xent_loss = tf.reduce_sum(
+                tf.nn.softmax_cross_entropy_with_logits(labels=flatten_labels,
+                                                        logits=flatten_logits))
+            # calculating maxpooling loss
+            self.log_softmax = -tf.log(self.softmax)
+            self.crop_log_softmax = tf.slice(self.log_softmax, [0, 0, 1],
+                                             [-1, -1, -1])
+            self.crop_labels = tf.slice(self.labels, [0, 0, 1], [-1, -1, -1])
+            self.masked_log_softmax = self.crop_log_softmax * self.crop_labels
+            self.segment_len = tf.count_nonzero(self.masked_log_softmax, 1,
+                                                dtype=tf.float32)  # shape (batchsize,class_num)
+            self.segment_len_sum = tf.reduce_sum(self.segment_len, axis=1)
+            self.max_frame = tf.reduce_max(self.masked_log_softmax,
+                                           1)  # shape (batchsize,class_num)
+            self.xent_max_frame = tf.reduce_sum(self.max_frame)
+            self.background_log_softmax = tf.slice(self.log_softmax, [0, 0, 0],
+                                                   [-1, -1, 1])
+            self.background_label = tf.slice(self.labels, [0, 0, 0],
+                                             [-1, -1, 1])
+            if config.max_pooling_standardize:
+                self.xent_background = tf.reduce_sum(
+                    tf.reduce_sum(
+                        self.background_log_softmax * self.background_label,
+                        (1, 2)) / (tf.cast(self.seqLengths,
+                                           tf.float32) - self.segment_len_sum))
+            else:
+                self.xent_background = tf.reduce_sum(
+                    self.background_log_softmax * self.background_label)
+
+            self.flatten_masked_softmax = tf.reshape(self.masked_log_softmax,
+                                                     (config.batch_size, -1))
+            self.max_index = tf.arg_max(self.flatten_masked_softmax, 1)
+
+            self.max_pooling_loss = self.xent_background + self.xent_max_frame
+
+            self.global_step = tf.Variable(0, trainable=False)
+            self.reset_global_step = tf.assign(self.global_step, 1)
+            self.learning_rate = tf.train.exponential_decay(
+                config.learning_rate, self.global_step, self.config.decay_step,
+                self.config.lr_decay, name='lr')
+
+            if config.max_pooling_loss:
+                self.loss = self.max_pooling_loss
+            else:
+                self.loss = self.xent_loss
+
+            if self.config.optimizer == 'sgd':
+                self.optimizer = tf.train.GradientDescentOptimizer(
+                    self.learning_rate)
+            elif self.config.optimizer == 'adam':
+                self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
+            elif self.config.optimizer == 'nesterov':
+                self.optimizer = tf.train.MomentumOptimizer(
+                    self.learning_rate, 0.9, use_nesterov=True)
+            else:
+                raise Exception("optimizer not found")
+
+            if config.max_grad_norm <= 0:
+                # not apply gradient clipping
+                self.train_op = self.optimizer.minimize(self.loss,
+                                                        self.global_step)
+            else:
+                # apply gradient clipping
+                self.var_trainable_op = tf.trainable_variables()
+                grads, _ = tf.clip_by_global_norm(
+                    tf.gradients(self.loss, self.var_trainable_op),
+                    config.max_grad_norm)
+                self.train_op = self.optimizer.apply_gradients(
+                    zip(grads, self.var_trainable_op),
+                    global_step=self.global_step)
             pass
 
 

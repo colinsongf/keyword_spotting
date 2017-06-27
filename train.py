@@ -135,26 +135,19 @@ class Runner(object):
                               self.train_model.input_filequeue_enqueue_op,
                               self.valid_model.stage_op,
                               self.valid_model.input_filequeue_enqueue_op])
-                    co=0
-                    while self.epoch < self.config.max_epoch:
-                        co+=1
-                        if not self.config.max_pooling_loss:
-                            _, _, ma, seq, pe, x = sess.run(
-                                [self.train_model.stage_op,
-                                 self.train_model.input_filequeue_enqueue_op,
-                                 self.train_model.max,
-                                 self.train_model.seqLengths,
-                                 self.train_model.pe,
-                                 self.train_model.inputX])
 
-                            # _, _, _, l, lr, step = sess.run(
-                            #     [self.train_model.train_op,
-                            #      self.train_model.stage_op,
-                            #      self.train_model.input_filequeue_enqueue_op,
-                            #      self.train_model.loss,
-                            #      self.train_model.learning_rate,
-                            #      self.train_model.global_step
-                            #      ])
+                    while self.epoch < self.config.max_epoch:
+
+                        if not self.config.max_pooling_loss:
+
+                            _, _, _, l, lr, step = sess.run(
+                                [self.train_model.train_op,
+                                 self.train_model.stage_op,
+                                 self.train_model.input_filequeue_enqueue_op,
+                                 self.train_model.loss,
+                                 self.train_model.learning_rate,
+                                 self.train_model.global_step
+                                 ])
                             epoch = sess.run([self.data.epoch])[0]
                         else:
                             _, _, _, l, xent_bg, xent_max, lr, step = sess.run(
@@ -171,12 +164,8 @@ class Runner(object):
                             accu_key_loss += xent_max
                             # print(xent_bg, xent_max)
 
-                        # accu_loss += l
-                        if co%2==0:
-                            print('='*25)
-                        print(seq)
-                        print('max', ma)
-                        print('pe len', pe.shape[0], 'input len', x.shape[1])
+                        accu_loss += l
+
                         if epoch > self.epoch:
                             self.epoch += 1
                             print('accumulated loss', accu_loss)
