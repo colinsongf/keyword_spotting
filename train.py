@@ -132,7 +132,9 @@ class Runner(object):
                 #     print(i)
                 try:
                     sess.run([self.train_model.stage_op,
-                              self.train_model.input_filequeue_enqueue_op])
+                              self.train_model.input_filequeue_enqueue_op,
+                              self.valid_model.input_filequeue_enqueue_op,
+                              self.valid_model.stage_op])
 
                     while self.epoch < self.config.max_epoch:
 
