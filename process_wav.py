@@ -405,9 +405,9 @@ if __name__ == '__main__':
     check_dir(save_valid_dir)
 
     base_pkl = 'label_5x.pkl'
-    # sort_wave(wave_train_dir + base_pkl)
-    # filter_wave(wave_train_dir + base_pkl + '.sorted')
-    # shuffle(wave_train_dir + base_pkl + '.sorted.filtered')
+    sort_wave(wave_train_dir + base_pkl)
+    filter_wave(wave_train_dir + base_pkl + '.sorted')
+    shuffle(wave_train_dir + base_pkl + '.sorted.filtered')
     generate_trainning_data(
         wave_train_dir + base_pkl + '.sorted.filtered.shuffled')
 
