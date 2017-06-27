@@ -83,6 +83,8 @@ def get_args():
     parser.add_argument('--valid_path', help='valid data path', default=None)
     parser.add_argument('--feature_num', help='data path', type=int,
                         default=None)
+    parser.add_argument('-batch', '--batch_size', help='batch size', type=int,
+                        default=None)
 
     flags = parser.parse_args().__dict__
     return flags
