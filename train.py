@@ -150,6 +150,7 @@ class Runner(object):
                                  self.train_model.seqLengths
                                  ])
                             epoch = sess.run([self.data.epoch])[0]
+                            print(seq)
                         else:
                             _, _, _, l, xent_bg, xent_max, lr, step = sess.run(
                                 [self.train_model.train_op,
