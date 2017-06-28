@@ -73,6 +73,7 @@ def feed_forward(inputs, config, scope_name='feed_forward'):
 def inference(inputs, seqLengths, config):
     print('building attention layers.....')
     print('variable reuse = ' + str(tf.get_variable_scope().reuse))
+    print(tf.get_variable_scope())
     # positional encoding
     max_length = tf.shape(inputs)[1]
     inputs = tf.layers.conv2d(
@@ -95,7 +96,8 @@ def inference(inputs, seqLengths, config):
             # add and norm
             feed_forward_inputs = tf.contrib.layers.layer_norm(
                 attention_outputs + layer_inputs,
-                reuse=tf.get_variable_scope().reuse)
+                reuse=tf.get_variable_scope().reuse,
+                scope=tf.get_variable_scope())
             # feed forward sub-layer
             feed_forward_outputs = feed_forward(feed_forward_inputs, config)
             feed_forward_outputs = tf.nn.dropout(
@@ -103,7 +105,8 @@ def inference(inputs, seqLengths, config):
             # add and norm
             layer_outputs = tf.contrib.layers.layer_norm(
                 feed_forward_outputs + feed_forward_inputs,
-                reuse=tf.get_variable_scope().reuse)
+                reuse=tf.get_variable_scope().reuse,
+                scope=tf.get_variable_scope())
             layer_inputs = layer_outputs
 
     outputs = tf.layers.conv2d(
