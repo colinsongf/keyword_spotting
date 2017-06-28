@@ -62,11 +62,9 @@ def feed_forward(inputs, config, scope_name='feed_forward'):
     with tf.variable_scope(scope_name):
         inners = tf.layers.conv2d(
             tf.expand_dims(inputs, 2), config.feed_forward_inner_size,
-            (1, 1), activation=tf.nn.relu, name="conv1",
-            reuse=tf.get_variable_scope().reuse)  # [B, T, 1, F]
+            (1, 1), activation=tf.nn.relu, name="conv1")  # [B, T, 1, F]
         outputs = tf.layers.conv2d(
-            inners, config.model_size, (1, 1), name="conv2",
-            reuse=tf.get_variable_scope().reuse)  # [B, T, 1, F]
+            inners, config.model_size, (1, 1), name="conv2")  # [B, T, 1, F]
     return tf.squeeze(outputs, 2)
 
 
@@ -78,8 +76,7 @@ def inference(inputs, seqLengths, config):
     max_length = tf.shape(inputs)[1]
     inputs = tf.layers.conv2d(
         tf.expand_dims(inputs, 2), config.model_size, (1, 1),
-        name='input_linear_trans',
-        reuse=tf.get_variable_scope().reuse)  # [B, T, 1, F]
+        name='input_linear_trans')  # [B, T, 1, F]
     inputs = tf.squeeze(inputs, 2)  # [B, T, F]
 
     pe = positional_encoding_op.positional_encoding(
@@ -89,7 +86,7 @@ def inference(inputs, seqLengths, config):
     layer_inputs = inputs
     for j in range(config.num_layers):
         with tf.variable_scope('layer_%d' % j):
-            print(tf.get_variable_scope().name)
+            print(tf.get_variable_scope().reuse)
             # self attention sub-layer
             attention_outputs = self_attention(layer_inputs, config)
             attention_outputs = tf.nn.dropout(
@@ -97,9 +94,7 @@ def inference(inputs, seqLengths, config):
             # add and norm
             with tf.variable_scope('layer_norm_1'):
                 feed_forward_inputs = tf.contrib.layers.layer_norm(
-                    attention_outputs + layer_inputs,
-                    reuse=tf.get_variable_scope().reuse,
-                    scope=tf.get_variable_scope())
+                    attention_outputs + layer_inputs)
             # feed forward sub-layer
             feed_forward_outputs = feed_forward(feed_forward_inputs, config)
             feed_forward_outputs = tf.nn.dropout(
@@ -107,9 +102,7 @@ def inference(inputs, seqLengths, config):
             # add and norm
             with tf.variable_scope('layer_norm_1'):
                 layer_outputs = tf.contrib.layers.layer_norm(
-                    feed_forward_outputs + feed_forward_inputs,
-                    reuse=tf.get_variable_scope().reuse,
-                    scope=tf.get_variable_scope())
+                    feed_forward_outputs + feed_forward_inputs)
             layer_inputs = layer_outputs
 
     outputs = tf.layers.conv2d(
