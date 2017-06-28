@@ -150,6 +150,7 @@ class Runner(object):
                                  self.train_model.seqLengths
                                  ])
                             epoch = sess.run([self.data.epoch])[0]
+                            print(l)
                             batch_loss += l
                         else:
                             _, _, _, l, xent_bg, xent_max, lr, step = sess.run(
@@ -191,10 +192,14 @@ class Runner(object):
                                      self.valid_model.correctness,
                                      self.valid_model.stage_op,
                                      self.valid_model.input_filequeue_enqueue_op])
+                                np.set_printoptions(precision=4,
+                                                    threshold=np.inf,
+                                                    suppress=True)
                                 for j, logit in enumerate(logits):
                                     logit[seqLen[j]:] = 0
-                                with open('logits%d.txt' % i, 'w') as f:
-                                    f.write(str(logits[0][:seqLen[0]]))
+                                if i == 0:
+                                    with open('logits%d.txt' % step, 'w') as f:
+                                        f.write(str(logits[0][:seqLen[0]]))
                                 # print(logits.sum())
 
                                 moving_avg = [moving_average(record,

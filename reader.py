@@ -144,7 +144,7 @@ class DataSet(object):
                           lambda: tf.no_op())
             return q, enq
 
-    def batch_input_queue(self, shuffle=True):
+    def batch_input_queue(self, shuffle=False):
         with tf.device('/cpu:0'):
             self.train_filename_queue, self.train_filequeue_enqueue_op = self.string_input_queue(
                 self.train_filename, shuffle=shuffle, capacity=16384)
