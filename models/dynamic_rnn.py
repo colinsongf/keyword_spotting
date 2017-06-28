@@ -178,8 +178,12 @@ class DRNN(object):
 
             self.global_step = tf.Variable(0, trainable=False)
             self.reset_global_step = tf.assign(self.global_step, 1)
+
+            initial_learning_rate = tf.Variable(
+                config.learning_rate, trainable=False)
+
             self.learning_rate = tf.train.exponential_decay(
-                config.learning_rate, self.global_step, self.config.decay_step,
+                initial_learning_rate, self.global_step, self.config.decay_step,
                 self.config.lr_decay, name='lr')
 
             if config.max_pooling_loss:
@@ -191,7 +195,14 @@ class DRNN(object):
             #     tf.cast(config.model_size, tf.float32)) * tf.minimum(
             #     1 / tf.sqrt(tf.cast(self.global_step, tf.float32)),
             #     tf.div(tf.cast(self.global_step, tf.float32), self.warmup))
-            self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
+            if config.optimizer == 'adam':
+                self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
+            elif config.optimizer == 'nesterov':
+                self.optimizer = tf.train.MomentumOptimizer(self.learning_rate,
+                                                            0.9,
+                                                            use_nesterov=True)
+            else:
+                raise Exception('optimizer not defined')
 
             self.vs = tf.trainable_variables()
             grads_and_vars = self.optimizer.compute_gradients(self.loss,

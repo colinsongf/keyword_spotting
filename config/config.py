@@ -26,7 +26,7 @@ class Config(object):
         self.ktq = False
         self.use_relu = True
         self.use_white_noise = True
-        self.optimizer = 'adam'  # adam sgd nesterov
+        self.optimizer = 'nesterov'  # adam sgd nesterov
         self.spectrogram = 'mel'  # mfcc,mel
         self.label_id = 0  # nihaolele,lele,whole
         self.label_list = ['nihaolele', 'lele', 'whole']
@@ -57,7 +57,7 @@ class Config(object):
         self.cell_clip = 3.
         self.num_layers = 2
         self.init_scale = 0.1
-        self.learning_rate = 5e-3
+        self.learning_rate = 0.01
         self.max_grad_norm = -1
         self.freq_size = 60
         self.feed_forward_inner_size = 512
@@ -68,7 +68,7 @@ class Config(object):
         self.num_proj = 32
         self.max_epoch = 200
         self.valid_step = 320
-        self.lr_decay = 0.8
+        self.lr_decay = 0.9
         self.decay_step = 20000
         self.batch_size = 16
         self.tfrecord_size = 32
