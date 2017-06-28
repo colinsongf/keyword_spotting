@@ -32,7 +32,7 @@ def self_attention(inputs, config, scope_name='self_attention'):
     with tf.variable_scope(scope_name):
         combined = tf.layers.conv2d(
             tf.expand_dims(inputs, 2), 3 * config.model_size,
-            (1, 1), name="qkv_transform", reuse=tf.get_variable_scope().reuse)
+            (1, 1), name="qkv_transform")
         q, k, v = tf.split(
             tf.squeeze(combined, 2),
             [config.model_size, config.model_size, config.model_size],
