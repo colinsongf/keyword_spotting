@@ -137,7 +137,7 @@ class Runner(object):
                               self.valid_model.input_filequeue_enqueue_op])
 
                     while self.epoch < self.config.max_epoch:
-
+                        batch_loss = 0
                         if not self.config.max_pooling_loss:
 
                             _, _, _, l, lr, step, seq = sess.run(
@@ -150,7 +150,7 @@ class Runner(object):
                                  self.train_model.seqLengths
                                  ])
                             epoch = sess.run([self.data.epoch])[0]
-                            print('batch loss',l)
+                            batch_loss += l
                         else:
                             _, _, _, l, xent_bg, xent_max, lr, step = sess.run(
                                 [self.train_model.train_op,
@@ -225,7 +225,7 @@ class Runner(object):
                                 self.data.validation_size - target_count)
                             print('--------------------------------')
                             print('epoch %d' % self.epoch)
-                            print('training loss:' + str(l))
+                            print('training loss:' + str(batch_loss))
                             if config.max_pooling_loss:
                                 print(xent_bg, xent_max)
                             print('learning rate:', lr, 'global step', step)
