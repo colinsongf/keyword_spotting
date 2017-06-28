@@ -184,11 +184,11 @@ class DRNN(object):
                 self.loss = self.max_pooling_loss
             else:
                 self.loss = self.xent_loss
-            self.warmup_step = 4000
+            self.warmup = 250000
             self.learning_rate = tf.sqrt(
                 tf.cast(config.model_size, tf.float32)) * tf.minimum(
                 1 / tf.sqrt(tf.cast(self.global_step, tf.float32)),
-                tf.pow(self.warmup_step, -1.5))
+                tf.div(self.global_step, self.warmup))
             self.optimizer = tf.train.AdamOptimizer(self.learning_rate, 0.9,
                                                     0.98)
 
