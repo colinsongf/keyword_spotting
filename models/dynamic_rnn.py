@@ -191,23 +191,19 @@ class DRNN(object):
             #     tf.cast(config.model_size, tf.float32)) * tf.minimum(
             #     1 / tf.sqrt(tf.cast(self.global_step, tf.float32)),
             #     tf.div(tf.cast(self.global_step, tf.float32), self.warmup))
-            self.optimizer = tf.train.AdamOptimizer(self.learning_rate, 0.9,
-                                                    0.98)
+            self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
 
-            if config.max_grad_norm <= 0:
-                # not apply gradient clipping
-                self.train_op = self.optimizer.minimize(self.loss,
-                                                        self.global_step)
-            else:
-                # apply gradient clipping
-                self.var_trainable_op = tf.trainable_variables()
+            self.vs = tf.trainable_variables()
+            grads_and_vars = self.optimizer.compute_gradients(self.loss,
+                                                              self.vs)
+            self.grads = [grad for (grad, var) in grads_and_vars]
+            self.vs = [var for (grad, var) in grads_and_vars]
+            if config.max_grad_norm > 0:
                 self.grads, _ = tf.clip_by_global_norm(
-                    tf.gradients(self.loss, self.var_trainable_op),
-                    config.max_grad_norm)
-                self.train_op = self.optimizer.apply_gradients(
-                    zip(self.grads, self.var_trainable_op),
-                    global_step=self.global_step)
-            pass
+                    self.grads, config.max_grad_norm)
+            self.train_op = self.optimizer.apply_gradients(
+                zip(self.grads, self.vs),
+                global_step=self.global_step)
 
 
 class DeployModel(object):

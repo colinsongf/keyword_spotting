@@ -127,15 +127,15 @@ class Runner(object):
                 # (miss,false,step,best_count)
 
                 last_time = time.time()
-                all_va = [n.name for n in tf.global_variables()]
-                for i in all_va:
-                    print(i)
+
                 try:
                     sess.run([self.train_model.stage_op,
                               self.train_model.input_filequeue_enqueue_op,
                               self.valid_model.stage_op,
                               self.valid_model.input_filequeue_enqueue_op])
-
+                    va = tf.trainable_variables()
+                    for i in va:
+                        print(i.name)
                     while self.epoch < self.config.max_epoch:
                         batch_loss = 0
                         if not self.config.max_pooling_loss:
@@ -150,7 +150,7 @@ class Runner(object):
                                  self.train_model.grads
                                  ])
                             epoch = sess.run([self.data.epoch])[0]
-                            print(grad)
+                            # print(grad[2])
                             batch_loss += l
                         else:
                             _, _, _, l, xent_bg, xent_max, lr, step = sess.run(
@@ -390,8 +390,8 @@ if __name__ == '__main__':
             else:
                 setattr(config, key, flags[key])
     if not config.ktq:
-        # os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
-        pass
+        os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
+        # pass
     print(flags)
     runner = Runner(config)
     if config.mode == 'build':
