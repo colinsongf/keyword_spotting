@@ -150,7 +150,6 @@ class Runner(object):
                                  self.train_model.seqLengths
                                  ])
                             epoch = sess.run([self.data.epoch])[0]
-                            # print(seq)
                         else:
                             _, _, _, l, xent_bg, xent_max, lr, step = sess.run(
                                 [self.train_model.train_op,
@@ -225,7 +224,7 @@ class Runner(object):
                                 self.data.validation_size - target_count)
                             print('--------------------------------')
                             print('epoch %d' % self.epoch)
-                            print('loss:' + str(l))
+                            print('training loss:' + str(l))
                             if config.max_pooling_loss:
                                 print(xent_bg, xent_max)
                             print('learning rate:', lr, 'global step', step)
