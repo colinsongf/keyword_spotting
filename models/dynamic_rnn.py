@@ -18,11 +18,9 @@
 
 import tensorflow as tf
 import math
-from tensorflow.contrib.rnn.python.ops import core_rnn_cell_impl
+
 from utils.common import describe
 from positional_encoding import positional_encoding_op
-
-cell_fn = core_rnn_cell_impl.LSTMCell
 
 
 def self_attention(inputs, config, scope_name='self_attention'):
@@ -34,7 +32,7 @@ def self_attention(inputs, config, scope_name='self_attention'):
     with tf.variable_scope(scope_name):
         combined = tf.layers.conv2d(
             tf.expand_dims(inputs, 2), 3 * config.model_size,
-            (1, 1), name="qkv_transform")
+            (1, 1), name="qkv_transform", reuse=tf.get_variable_scope().reuse)
         q, k, v = tf.split(
             tf.squeeze(combined, 2),
             [config.model_size, config.model_size, config.model_size],
@@ -64,18 +62,23 @@ def feed_forward(inputs, config, scope_name='feed_forward'):
     with tf.variable_scope(scope_name):
         inners = tf.layers.conv2d(
             tf.expand_dims(inputs, 2), config.feed_forward_inner_size,
-            (1, 1), activation=tf.nn.relu, name="conv1")  # [B, T, 1, F]
+            (1, 1), activation=tf.nn.relu, name="conv1",
+            reuse=tf.get_variable_scope().reuse)  # [B, T, 1, F]
         outputs = tf.layers.conv2d(
-            inners, config.model_size, (1, 1), name="conv2")  # [B, T, 1, F]
+            inners, config.model_size, (1, 1), name="conv2",
+            reuse=tf.get_variable_scope().reuse)  # [B, T, 1, F]
     return tf.squeeze(outputs, 2)
 
 
 def inference(inputs, seqLengths, config):
+    print('building attention layers.....')
+    print('variable reuse = ' + str(tf.get_variable_scope().reuse))
     # positional encoding
     max_length = tf.shape(inputs)[1]
     inputs = tf.layers.conv2d(
         tf.expand_dims(inputs, 2), config.model_size, (1, 1),
-        name='input_linear_trans')  # [B, T, 1, F]
+        name='input_linear_trans',
+        reuse=tf.get_variable_scope().reuse)  # [B, T, 1, F]
     inputs = tf.squeeze(inputs, 2)  # [B, T, F]
 
     pe = positional_encoding_op.positional_encoding(
@@ -91,19 +94,22 @@ def inference(inputs, seqLengths, config):
                 attention_outputs, config.keep_prob)
             # add and norm
             feed_forward_inputs = tf.contrib.layers.layer_norm(
-                attention_outputs + layer_inputs)
+                attention_outputs + layer_inputs,
+                reuse=tf.get_variable_scope().reuse)
             # feed forward sub-layer
             feed_forward_outputs = feed_forward(feed_forward_inputs, config)
             feed_forward_outputs = tf.nn.dropout(
                 feed_forward_outputs, config.keep_prob)
             # add and norm
             layer_outputs = tf.contrib.layers.layer_norm(
-                feed_forward_outputs + feed_forward_inputs)
+                feed_forward_outputs + feed_forward_inputs,
+                reuse=tf.get_variable_scope().reuse)
             layer_inputs = layer_outputs
 
     outputs = tf.layers.conv2d(
         tf.expand_dims(layer_outputs, 2), config.num_classes,
-        (1, 1), name='output_linear_trans')  # [B, T, 1, F]
+        (1, 1), name='output_linear_trans',
+        reuse=tf.get_variable_scope().reuse)  # [B, T, 1, F]
     outputs = tf.squeeze(outputs, 2)  # [B, T, F]
     if config.use_relu:
         outputs = tf.nn.relu(outputs)
