@@ -83,8 +83,6 @@ class Runner(object):
 
             sess.run(tf.local_variables_initializer())
             tf.Graph.finalize(graph)
-            variable_names = [n.name for n in
-                              tf.get_default_graph().as_graph_def().node]
 
             best_miss = 1
             best_false = 1
@@ -129,9 +127,9 @@ class Runner(object):
                 # (miss,false,step,best_count)
 
                 last_time = time.time()
-                # all_va = [n.name for n in tf.global_variables()]
-                # for i in all_va:
-                #     print(i)
+                all_va = [n.name for n in tf.global_variables()]
+                for i in all_va:
+                    print(i)
                 try:
                     sess.run([self.train_model.stage_op,
                               self.train_model.input_filequeue_enqueue_op,
