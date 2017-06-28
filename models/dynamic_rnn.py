@@ -47,7 +47,7 @@ def self_attention(inputs, config, scope_name='self_attention'):
 
         a = tf.matmul(q_, tf.transpose(k_, [0, 2, 1]))  # (h * B, T, T)
         a = tf.nn.softmax(a / math.sqrt(head_size))
-        # a = tf.nn.dropout(a, config.keep_prob)
+        a = tf.nn.dropout(a, config.keep_prob)
         a = tf.matmul(a, v_)  # [h * B, T, N / h]
 
         outputs = tf.concat(tf.split(a, config.multi_head_num, axis=0),
@@ -176,25 +176,19 @@ class DRNN(object):
 
             self.global_step = tf.Variable(0, trainable=False)
             self.reset_global_step = tf.assign(self.global_step, 1)
-            self.learning_rate = tf.train.exponential_decay(
-                config.learning_rate, self.global_step, self.config.decay_step,
-                self.config.lr_decay, name='lr')
+            # self.learning_rate = tf.train.exponential_decay(
+            #     config.learning_rate, self.global_step, self.config.decay_step,
+            #     self.config.lr_decay, name='lr')
 
             if config.max_pooling_loss:
                 self.loss = self.max_pooling_loss
             else:
                 self.loss = self.xent_loss
-
-            if self.config.optimizer == 'sgd':
-                self.optimizer = tf.train.GradientDescentOptimizer(
-                    self.learning_rate)
-            elif self.config.optimizer == 'adam':
-                self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
-            elif self.config.optimizer == 'nesterov':
-                self.optimizer = tf.train.MomentumOptimizer(
-                    self.learning_rate, 0.9, use_nesterov=True)
-            else:
-                raise Exception("optimizer not found")
+            self.warmup_step = 4000
+            self.learning_rate = tf.sqrt(config.model_size) * tf.minimum(
+                1 / tf.sqrt(self.global_step), tf.pow(self.warmup_step, -1.5))
+            self.optimizer = tf.train.AdamOptimizer(self.learning_rate, 0.9,
+                                                    0.98)
 
             if config.max_grad_norm <= 0:
                 # not apply gradient clipping
