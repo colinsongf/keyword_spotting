@@ -142,7 +142,8 @@ class DRNN(object):
                 tf.nn.softmax_cross_entropy_with_logits(labels=flatten_labels,
                                                         logits=flatten_logits))
             self.mean_loss = tf.div(self.xent_loss,
-                                    tf.reduce_sum(self.seqLengths))
+                                    tf.reduce_sum(
+                                        tf.cast(self.seqLengths, tf.float32)))
             # calculating maxpooling loss
             self.log_softmax = -tf.log(self.softmax)
             self.crop_log_softmax = tf.slice(self.log_softmax, [0, 0, 1],
