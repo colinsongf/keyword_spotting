@@ -52,7 +52,7 @@ class Runner(object):
 
             if config.mode == 'train':
                 print('building training model....')
-                with tf.variable_scope("model", reuse=False):
+                with tf.variable_scope("model"):
                     self.train_model = DRNN(self.config,
                                             self.data.batch_input_queue(),
                                             is_train=True)

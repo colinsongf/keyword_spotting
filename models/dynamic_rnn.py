@@ -95,19 +95,21 @@ def inference(inputs, seqLengths, config):
             attention_outputs = tf.nn.dropout(
                 attention_outputs, config.keep_prob)
             # add and norm
-            feed_forward_inputs = tf.contrib.layers.layer_norm(
-                attention_outputs + layer_inputs,
-                reuse=tf.get_variable_scope().reuse,
-                scope=tf.get_variable_scope())
+            with tf.variable_scope('layer_norm_1'):
+                feed_forward_inputs = tf.contrib.layers.layer_norm(
+                    attention_outputs + layer_inputs,
+                    reuse=tf.get_variable_scope().reuse,
+                    scope=tf.get_variable_scope())
             # feed forward sub-layer
             feed_forward_outputs = feed_forward(feed_forward_inputs, config)
             feed_forward_outputs = tf.nn.dropout(
                 feed_forward_outputs, config.keep_prob)
             # add and norm
-            layer_outputs = tf.contrib.layers.layer_norm(
-                feed_forward_outputs + feed_forward_inputs,
-                reuse=tf.get_variable_scope().reuse,
-                scope=tf.get_variable_scope())
+            with tf.variable_scope('layer_norm_1'):
+                layer_outputs = tf.contrib.layers.layer_norm(
+                    feed_forward_outputs + feed_forward_inputs,
+                    reuse=tf.get_variable_scope().reuse,
+                    scope=tf.get_variable_scope())
             layer_inputs = layer_outputs
 
     outputs = tf.layers.conv2d(
