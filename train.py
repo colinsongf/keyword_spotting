@@ -183,7 +183,7 @@ class Runner(object):
                             miss_count = 0
                             false_count = 0
                             target_count = 0
-                            valid_batch = self.data.valid_file_size * config.tfrecord_size / config.batch_size
+                            valid_batch = self.data.valid_file_size * config.tfrecord_size // config.batch_size
                             for i in range(valid_batch):
                                 logits, seqLen, correctness, _, _ = sess.run(
                                     [self.valid_model.softmax,
