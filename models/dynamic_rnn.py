@@ -104,8 +104,7 @@ def inference(inputs, seqLengths, config):
 
     outputs = tf.layers.conv2d(
         tf.expand_dims(layer_outputs, 2), config.num_classes,
-        (1, 1), name='output_linear_trans',
-        reuse=tf.get_variable_scope().reuse)  # [B, T, 1, F]
+        (1, 1), name='output_linear_trans')  # [B, T, 1, F]
     outputs = tf.squeeze(outputs, 2)  # [B, T, F]
     if config.use_relu:
         outputs = tf.nn.relu(outputs)
@@ -143,7 +142,8 @@ class DRNN(object):
                                                         logits=flatten_logits))
             self.mean_loss = tf.div(self.xent_loss,
                                     tf.reduce_sum(
-                                        tf.cast(self.seqLengths, tf.float32)))
+                                        tf.cast(self.seqLengths,
+                                                tf.float32))) * 1000
             # calculating maxpooling loss
             self.log_softmax = -tf.log(self.softmax)
             self.crop_log_softmax = tf.slice(self.log_softmax, [0, 0, 1],
