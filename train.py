@@ -34,7 +34,7 @@ from utils.prediction import predict, decode, moving_average, evaluate
 from args import get_args
 
 sys.dont_write_bytecode = True
-DEBUG = False
+DEBUG = True
 
 
 class Runner(object):
@@ -140,17 +140,17 @@ class Runner(object):
                         batch_loss = 0
                         if not self.config.max_pooling_loss:
 
-                            _, _, _, l, lr, step, seq = sess.run(
+                            _, _, _, l, lr, step, grad = sess.run(
                                 [self.train_model.train_op,
                                  self.train_model.stage_op,
                                  self.train_model.input_filequeue_enqueue_op,
                                  self.train_model.loss,
                                  self.train_model.learning_rate,
                                  self.train_model.global_step,
-                                 self.train_model.seqLengths
+                                 self.train_model.grads
                                  ])
                             epoch = sess.run([self.data.epoch])[0]
-                            print(l)
+                            print(grad)
                             batch_loss += l
                         else:
                             _, _, _, l, xent_bg, xent_max, lr, step = sess.run(

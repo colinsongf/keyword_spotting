@@ -201,11 +201,11 @@ class DRNN(object):
             else:
                 # apply gradient clipping
                 self.var_trainable_op = tf.trainable_variables()
-                grads, _ = tf.clip_by_global_norm(
+                self.grads, _ = tf.clip_by_global_norm(
                     tf.gradients(self.loss, self.var_trainable_op),
                     config.max_grad_norm)
                 self.train_op = self.optimizer.apply_gradients(
-                    zip(grads, self.var_trainable_op),
+                    zip(self.grads, self.var_trainable_op),
                     global_step=self.global_step)
             pass
 
