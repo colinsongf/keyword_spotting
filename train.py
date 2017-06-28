@@ -51,11 +51,13 @@ class Runner(object):
             self.data = read_dataset(self.config)
 
             if config.mode == 'train':
-                with tf.variable_scope("model",reuse=False):
+                print('building training model....')
+                with tf.variable_scope("model", reuse=False):
                     self.train_model = DRNN(self.config,
                                             self.data.batch_input_queue(),
                                             is_train=True)
                     self.train_model.config.show()
+                print('building training model....')
                 with tf.variable_scope("model", reuse=True):
                     self.valid_model = DRNN(self.config,
                                             self.data.valid_queue(),

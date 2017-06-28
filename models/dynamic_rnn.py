@@ -89,6 +89,7 @@ def inference(inputs, seqLengths, config):
     layer_inputs = inputs
     for j in range(config.num_layers):
         with tf.variable_scope('layer_%d' % j):
+            print(tf.get_variable_scope().name)
             # self attention sub-layer
             attention_outputs = self_attention(layer_inputs, config)
             attention_outputs = tf.nn.dropout(
