@@ -192,6 +192,9 @@ class Runner(object):
                                      self.valid_model.input_filequeue_enqueue_op])
                                 for j, logit in enumerate(logits):
                                     logit[seqLen[j]:] = 0
+                                with open('logits%d.txt' % i, 'w') as f:
+                                    f.write(str(logits[0][:seqLen[0]]))
+                                print(logits.sum())
 
                                 moving_avg = [moving_average(record,
                                                              self.config.smoothing_window,
