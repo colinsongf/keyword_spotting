@@ -84,7 +84,7 @@ import sys
 import logging
 
 import argparse
-from docopt import docopt
+
 
 # -------------------------------------------------------------------------------------------------
 
@@ -439,12 +439,12 @@ def main():
                         help='format [default:wav')
     args = parser.parse_args().__dict__
 
-    args = {'level': -5.0, 'ebu': None, 'max': None, 'threshold': 0,
-            'extra_options': '-ar 16000', 'force': [], 'prefix': 'normalized',
-            'dir': None, 'verbose': None, 'debug': None,
-            'input_file': ['temp/normal.wav',
-                           'temp/s_49FBC6B3F5B67D5E_你好乐乐.wav',
-                           'temp/temp.wav'], 'format': 'wav'}
+    # args = {'level': -5.0, 'ebu': None, 'max': None, 'threshold': 0,
+    #         'extra_options': '-ar 16000', 'force': [], 'prefix': 'normalized',
+    #         'dir': None, 'verbose': None, 'debug': None,
+    #         'input_file': ['temp/normal.wav',
+    #                        'temp/s_49FBC6B3F5B67D5E_你好乐乐.wav',
+    #                        'temp/temp.wav'], 'format': 'wav'}
     # print(args)
     ffmpeg_normalize = FFmpegNormalize(args)
     ffmpeg_normalize.run()
