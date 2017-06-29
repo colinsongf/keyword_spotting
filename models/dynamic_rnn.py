@@ -32,7 +32,8 @@ def self_attention(inputs, config, scope_name='self_attention'):
     with tf.variable_scope(scope_name):
         combined = tf.layers.conv2d(
             tf.expand_dims(inputs, 2), 3 * config.model_size,
-            (1, 1), name="qkv_transform")
+            (1, 1), name="qkv_transform",
+            kernel_initializer=tf.contrib.layers.xavier_initializer)
         q, k, v = tf.split(
             tf.squeeze(combined, 2),
             [config.model_size, config.model_size, config.model_size],
@@ -62,9 +63,11 @@ def feed_forward(inputs, config, scope_name='feed_forward'):
     with tf.variable_scope(scope_name):
         inners = tf.layers.conv2d(
             tf.expand_dims(inputs, 2), config.feed_forward_inner_size,
-            (1, 1), activation=tf.nn.relu, name="conv1")  # [B, T, 1, F]
+            (1, 1), activation=tf.nn.relu, name="conv1",
+            kernel_initializer=tf.contrib.layers.xavier_initializer)  # [B, T, 1, F]
         outputs = tf.layers.conv2d(
-            inners, config.model_size, (1, 1), name="conv2")  # [B, T, 1, F]
+            inners, config.model_size, (1, 1), name="conv2",
+            kernel_initializer=tf.contrib.layers.xavier_initializer)  # [B, T, 1, F]
     return tf.squeeze(outputs, 2)
 
 
@@ -76,7 +79,8 @@ def inference(inputs, seqLengths, config):
     max_length = tf.shape(inputs)[1]
     inputs = tf.layers.conv2d(
         tf.expand_dims(inputs, 2), config.model_size, (1, 1),
-        name='input_linear_trans')  # [B, T, 1, F]
+        name='input_linear_trans',
+        kernel_initializer=tf.contrib.layers.xavier_initializer)  # [B, T, 1, F]
     inputs = tf.squeeze(inputs, 2)  # [B, T, F]
 
     pe = positional_encoding_op.positional_encoding(
