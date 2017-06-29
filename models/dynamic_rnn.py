@@ -32,8 +32,7 @@ def self_attention(inputs, config, scope_name='self_attention'):
     with tf.variable_scope(scope_name):
         combined = tf.layers.conv2d(
             tf.expand_dims(inputs, 2), 3 * config.model_size,
-            (1, 1), name="qkv_transform",
-            kernel_initializer=tf.contrib.layers.xavier_initializer)
+            (1, 1), name="qkv_transform")
         q, k, v = tf.split(
             tf.squeeze(combined, 2),
             [config.model_size, config.model_size, config.model_size],
@@ -63,24 +62,18 @@ def feed_forward(inputs, config, scope_name='feed_forward'):
     with tf.variable_scope(scope_name):
         inners = tf.layers.conv2d(
             tf.expand_dims(inputs, 2), config.feed_forward_inner_size,
-            (1, 1), activation=tf.nn.relu, name="conv1",
-            kernel_initializer=tf.contrib.layers.xavier_initializer)  # [B, T, 1, F]
+            (1, 1), activation=tf.nn.relu, name="conv1")  # [B, T, 1, F]
         outputs = tf.layers.conv2d(
-            inners, config.model_size, (1, 1), name="conv2",
-            kernel_initializer=tf.contrib.layers.xavier_initializer)  # [B, T, 1, F]
+            inners, config.model_size, (1, 1), name="conv2")  # [B, T, 1, F]
     return tf.squeeze(outputs, 2)
 
 
 def inference(inputs, seqLengths, config):
-    print('building attention layers.....')
-    print('variable reuse = ' + str(tf.get_variable_scope().reuse))
-    print(tf.get_variable_scope())
     # positional encoding
     max_length = tf.shape(inputs)[1]
     inputs = tf.layers.conv2d(
         tf.expand_dims(inputs, 2), config.model_size, (1, 1),
-        name='input_linear_trans',
-        kernel_initializer=tf.contrib.layers.xavier_initializer)  # [B, T, 1, F]
+        name='input_linear_trans')  # [B, T, 1, F]
     inputs = tf.squeeze(inputs, 2)  # [B, T, F]
 
     pe = positional_encoding_op.positional_encoding(
@@ -121,65 +114,32 @@ class DRNN(object):
         if is_train:
             stager, self.stage_op, self.input_filequeue_enqueue_op = input
             # we only use 1 gpu
-            self.inputX, self.labels, self.seqLengths = stager.get()
+            self.inputX, self.label_values, self.label_indices, self.label_dense_shape, self.seqLengths = stager.get()
+            self.label_batch = tf.SparseTensor(
+                self.label_indices,
+                tf.cast(self.label_values, tf.int32),
+                self.label_dense_shape)
             self.build_graph(config, is_train)
         else:
             stager, self.stage_op, self.input_filequeue_enqueue_op = input
-            self.inputX, self.seqLengths, self.correctness = stager.get()
+            self.inputX, self.seqLengths, self.correctness, self.labels = stager.get()
             self.build_graph(config, is_train)
 
     @describe
     def build_graph(self, config, is_train):
-        outputs = inference(self.inputX, self.seqLengths, config)
 
-        flatten_logits = tf.reshape(outputs,
-                                    (-1, config.num_classes))
-        self.softmax = tf.reshape(tf.nn.softmax(flatten_logits),
-                                  (config.batch_size, -1,
-                                   config.num_classes))
+        self.nn_outputs = inference(self.inputX, self.seqLengths, config)
+        self.ctc_input = tf.transpose(self.nn_outputs, perm=[1, 0, 2])
+
         if is_train:
-            flatten_labels = tf.reshape(self.labels,
-                                        (-1, config.num_classes))
-
-            self.xent_loss = tf.reduce_sum(
-                tf.nn.softmax_cross_entropy_with_logits(labels=flatten_labels,
-                                                        logits=flatten_logits))
-            self.mean_loss = tf.div(self.xent_loss,
-                                    tf.reduce_sum(
-                                        tf.cast(self.seqLengths,
-                                                tf.float32))) * 1000
-            # calculating maxpooling loss
-            self.log_softmax = -tf.log(self.softmax)
-            self.crop_log_softmax = tf.slice(self.log_softmax, [0, 0, 1],
-                                             [-1, -1, -1])
-            self.crop_labels = tf.slice(self.labels, [0, 0, 1], [-1, -1, -1])
-            self.masked_log_softmax = self.crop_log_softmax * self.crop_labels
-            self.segment_len = tf.count_nonzero(self.masked_log_softmax, 1,
-                                                dtype=tf.float32)  # shape (batchsize,class_num)
-            self.segment_len_sum = tf.reduce_sum(self.segment_len, axis=1)
-            self.max_frame = tf.reduce_max(self.masked_log_softmax,
-                                           1)  # shape (batchsize,class_num)
-            self.xent_max_frame = tf.reduce_sum(self.max_frame)
-            self.background_log_softmax = tf.slice(self.log_softmax, [0, 0, 0],
-                                                   [-1, -1, 1])
-            self.background_label = tf.slice(self.labels, [0, 0, 0],
-                                             [-1, -1, 1])
-            if config.max_pooling_standardize:
-                self.xent_background = tf.reduce_sum(
-                    tf.reduce_sum(
-                        self.background_log_softmax * self.background_label,
-                        (1, 2)) / (tf.cast(self.seqLengths,
-                                           tf.float32) - self.segment_len_sum))
-            else:
-                self.xent_background = tf.reduce_sum(
-                    self.background_log_softmax * self.background_label)
-
-            self.flatten_masked_softmax = tf.reshape(self.masked_log_softmax,
-                                                     (config.batch_size, -1))
-            self.max_index = tf.arg_max(self.flatten_masked_softmax, 1)
-
-            self.max_pooling_loss = self.xent_background + self.xent_max_frame
-
+            self.label_dense = tf.sparse_tensor_to_dense(self.label_batch)
+            self.ctc_loss = tf.nn.ctc_loss(inputs=self.ctc_input,
+                                           labels=self.label_batch,
+                                           sequence_length=self.seqLengths,
+                                           ctc_merge_repeated=True,
+                                           preprocess_collapse_repeated=False,
+                                           time_major=True)
+            self.loss = tf.reduce_sum(self.ctc_loss) / config.batch_size
             self.global_step = tf.Variable(0, trainable=False)
             self.reset_global_step = tf.assign(self.global_step, 1)
 
@@ -190,10 +150,6 @@ class DRNN(object):
                 initial_learning_rate, self.global_step, self.config.decay_step,
                 self.config.lr_decay, name='lr')
 
-            if config.max_pooling_loss:
-                self.loss = self.max_pooling_loss
-            else:
-                self.loss = self.xent_loss
             # self.warmup = 250000
             # self.learning_rate = tf.sqrt(
             #     tf.cast(config.model_size, tf.float32)) * tf.minimum(
@@ -219,6 +175,14 @@ class DRNN(object):
             self.train_op = self.optimizer.apply_gradients(
                 zip(self.grads, self.vs),
                 global_step=self.global_step)
+        else:
+            self.softmax = tf.nn.softmax(self.ctc_input)
+            self.ctc_decode_input = tf.log(self.softmax)
+            self.ctc_decode_result, self.ctc_decode_log_prob = tf.nn.ctc_beam_search_decoder(
+                self.ctc_decode_input, self.seqLengths,
+                beam_width=config.beam_size, top_paths=1)
+            self.dense_output = tf.sparse_tensor_to_dense(
+                self.ctc_decode_result[0], default_value=-1)
 
 
 class DeployModel(object):

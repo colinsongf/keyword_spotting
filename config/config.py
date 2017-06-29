@@ -21,17 +21,12 @@ def get_config():
 class Config(object):
     def __init__(self):
         self.mode = "train"  # train,valid,build
-        self.max_pooling_loss = False
-        self.max_pooling_standardize = True
         self.ktq = False
         self.use_relu = True
-        self.use_white_noise = True
-        self.optimizer = 'nesterov'  # adam sgd nesterov
+        self.use_white_noise = False
+        self.optimizer = 'adam'  # adam sgd nesterov
         self.spectrogram = 'mel'  # mfcc,mel
-        self.label_id = 0  # nihaolele,lele,whole
-        self.label_list = ['nihaolele', 'lele', 'whole']
-        self._num_classes = [3, 2, 2]  # word+1 for background
-        self._golden = [[2, 1], [1], [1]]
+        self.label_dict = {'你': 1, '好': 2, '乐': 3}  # 0 for space 4 for other
 
         self.reset_global = 0
 
@@ -42,8 +37,8 @@ class Config(object):
         self.train_path = './data/mel/train'
         self.valid_path = './data/mel/valid'
 
-        self.train_path = '/ssd/liuziqi/mel_all5x_energy/train'
-        self.valid_path = '/ssd/liuziqi/mel_all5x_energy/valid'
+        self.train_path = '/ssd/liuziqi/ctc/train/'
+        self.valid_path = '/ssd/liuziqi/ctc/valid/'
         self.model_name = 'best.ckpt'
         self.rawdata_path = './rawdata/'
         self.rawdata_path = '/ssd/keyword/'
@@ -53,11 +48,14 @@ class Config(object):
         self.fft_size = 400
         self.step_size = 160
         self.samplerate = 16000
+        self.power = 1
+        self.fmin = 300
+        self.fmax = 8000
 
         self.cell_clip = 3.
         self.num_layers = 2
         self.init_scale = 0.1
-        self.learning_rate = 0.01
+        self.learning_rate = 5e-3
         self.max_grad_norm = -1
         self.freq_size = 60
         self.feed_forward_inner_size = 512
@@ -81,17 +79,13 @@ class Config(object):
         self.lockout = 50
 
     @property
-    def label(self):
-        return self.label_list[self.label_id]
-
-    @property
     def num_classes(self):
         # word+1 for background
-        return self._num_classes[self.label_id]
+        return len(self.label_dict)+3  # 0 for space 4 for others, 5 for ctc blank
 
     @property
-    def golden(self):
-        return self._golden[self.label_id]
+    def beam_size(self):
+        return self.num_classes-1
 
     def show(self):
         for item in self.__dict__:

@@ -30,18 +30,18 @@ from config.config import get_config
 from models.dynamic_rnn import DRNN, DeployModel
 from reader import read_dataset
 from utils.common import check_dir, path_join
-from utils.prediction import predict, decode, moving_average, evaluate
+from utils.prediction import evaluate
 from args import get_args
+from utils.wer import WERCalculator
 
-sys.dont_write_bytecode = True
-DEBUG = True
+DEBUG = False
 
 
 class Runner(object):
     def __init__(self, config):
         self.config = config
         self.epoch = 0
-        self.golden = config.golden
+        self.wer_cal = WERCalculator([0, -1])
 
     def run(self):
 
@@ -57,7 +57,7 @@ class Runner(object):
                                             self.data.batch_input_queue(),
                                             is_train=True)
                     self.train_model.config.show()
-                print('building training model....')
+                print('building valid model....')
                 with tf.variable_scope("model", reuse=True):
                     self.valid_model = DRNN(self.config,
                                             self.data.valid_queue(),
@@ -87,8 +87,6 @@ class Runner(object):
             best_miss = 1
             best_false = 1
             accu_loss = 0
-            accu_bg_loss = 0
-            accu_key_loss = 0
             st_time = time.time()
             if os.path.exists(path_join(self.config.save_path, 'best.pkl')):
                 with open(path_join(self.config.save_path, 'best.pkl'),
@@ -101,7 +99,6 @@ class Runner(object):
             check_dir(self.config.save_path)
 
             if self.config.mode == 'train':
-                step = 0
 
                 if self.config.reset_global:
                     sess.run(self.train_model.reset_global_step)
@@ -117,6 +114,7 @@ class Runner(object):
                             path_join(self.config.save_path, 'latest.ckpt')))
                         print('best miss rate:%f\tbest false rate %f' % (
                             best_miss, best_false))
+                    sys.exit(0)
 
                 signal.signal(signal.SIGINT, handler_stop_signals)
                 signal.signal(signal.SIGTERM, handler_stop_signals)
@@ -138,45 +136,30 @@ class Runner(object):
                         print(i.name)
                     while self.epoch < self.config.max_epoch:
 
-                        if not self.config.max_pooling_loss:
-
-                            _, _, _, l, lr, step, grad = sess.run(
-                                [self.train_model.train_op,
-                                 self.train_model.stage_op,
-                                 self.train_model.input_filequeue_enqueue_op,
-                                 self.train_model.loss,
-                                 self.train_model.learning_rate,
-                                 self.train_model.global_step,
-                                 self.train_model.grads
-                                 ])
-                            epoch = sess.run([self.data.epoch])[0]
-                            # print(grad[2])
-
-                        else:
-                            _, _, _, l, xent_bg, xent_max, lr, step = sess.run(
-                                [self.train_model.train_op,
-                                 self.train_model.stage_op,
-                                 self.train_model.input_filequeue_enqueue_op,
-                                 self.train_model.loss,
-                                 self.train_model.xent_background,
-                                 self.train_model.xent_max_frame,
-                                 self.train_model.learning_rate,
-                                 self.train_model.global_step])
-                            epoch = sess.run([self.data.epoch])[0]
-                            accu_bg_loss += xent_bg
-                            accu_key_loss += xent_max
-                            # print(xent_bg, xent_max)
-
-                        accu_loss += l
+                        # _, _, x, lab, step = sess.run(
+                        #     [self.train_model.stage_op,
+                        #      self.train_model.input_filequeue_enqueue_op,
+                        #      self.train_model.ctc_input,
+                        #      self.train_model.label_batch,
+                        #      self.train_model.global_step])
+                        # print(x.shape)
+                        # print(lab)
+                        _, _, _, l, lr, step, grad = sess.run(
+                            [self.train_model.train_op,
+                             self.train_model.stage_op,
+                             self.train_model.input_filequeue_enqueue_op,
+                             self.train_model.loss,
+                             self.train_model.learning_rate,
+                             self.train_model.global_step,
+                             self.train_model.grads
+                             ])
+                        epoch = sess.run([self.data.epoch])[0]
+                        # accu_loss += l
 
                         if epoch > self.epoch:
                             self.epoch += 1
                             print('accumulated loss', accu_loss)
                             accu_loss = 0
-                            if config.max_pooling_loss:
-                                print(accu_bg_loss, accu_key_loss)
-                                accu_bg_loss = 0
-                                accu_key_loss = 0
                         if step % config.valid_step == config.valid_step - 1:
                             print('epoch time ', (time.time() - last_time) / 60)
                             last_time = time.time()
@@ -186,43 +169,27 @@ class Runner(object):
                             target_count = 0
                             valid_batch = self.data.valid_file_size * config.tfrecord_size // config.batch_size
                             for i in range(valid_batch):
-                                logits, seqLen, correctness, _, _ = sess.run(
-                                    [self.valid_model.softmax,
-                                     self.valid_model.seqLengths,
+                                ctc_output, correctness, labels, _, _ = sess.run(
+                                    [self.valid_model.dense_output,
                                      self.valid_model.correctness,
+                                     self.valid_model.labels,
                                      self.valid_model.stage_op,
                                      self.valid_model.input_filequeue_enqueue_op])
                                 np.set_printoptions(precision=4,
                                                     threshold=np.inf,
                                                     suppress=True)
-                                for j, logit in enumerate(logits):
-                                    logit[seqLen[j]:] = 0
-                                if i == 0:
-                                    with open('logits%d.txt' % step, 'w') as f:
-                                        f.write(str(logits[0][:seqLen[0]]))
-                                # print(logits.sum())
 
-                                moving_avg = [moving_average(record,
-                                                             self.config.smoothing_window,
-                                                             padding=True)
-                                              for record in logits]
-
-                                prediction = [
-                                    predict(avg, self.config.trigger_threshold,
-                                            self.config.lockout)
-                                    for avg in moving_avg]
-                                # print(prediction[0].shape)
-
-                                result = [
-                                    decode(p, self.config.word_interval,
-                                           self.golden)
-                                    for p in prediction]
+                                result = [ctc_predict(seq) for seq in
+                                          ctc_output]
                                 miss, target, false_accept = evaluate(
                                     result, correctness.tolist())
 
                                 miss_count += miss
                                 target_count += target
                                 false_count += false_accept
+
+                                wer = self.wer_cal.cal_batch_wer(labels,
+                                                                 ctc_output)
                                 # print(miss_count, false_count)
 
                             miss_rate = miss_count / target_count
@@ -231,8 +198,6 @@ class Runner(object):
                             print('--------------------------------')
                             print('epoch %d' % self.epoch)
                             print('training loss:' + str(l))
-                            if config.max_pooling_loss:
-                                print(xent_bg, xent_max)
                             print('learning rate:', lr, 'global step', step)
                             print('miss rate:' + str(miss_rate))
                             print('flase_accept_rate:' + str(false_accept_rate))
@@ -286,51 +251,28 @@ class Runner(object):
                 total_count = 0
 
                 iter = 0
+
                 for i in range(self.data.valid_file_size):
                     # if i > 7:
                     #     break
                     ind = 14
-                    logits, seqLen, correctness, _, _ = sess.run(
-                        [self.valid_model.softmax,
-                         self.valid_model.seqLengths,
+                    ctc_output, correctness, _, _ = sess.run(
+                        [self.valid_model.dense_output,
                          self.valid_model.correctness,
                          self.valid_model.stage_op,
                          self.valid_model.input_filequeue_enqueue_op])
-
-                    np.set_printoptions(precision=4, threshold=np.inf,
+                    np.set_printoptions(precision=4,
+                                        threshold=np.inf,
                                         suppress=True)
-                    total_count += len(logits)
-                    for j, logit in enumerate(logits):
-                        logit[seqLen[j]:] = 0
 
-                    # print(len(logits), len(labels), len(seqLen))
-                    with open('logits.txt', 'w') as f:
-                        f.write(str(logits[ind]))
-                    moving_avg = [
-                        moving_average(record,
-                                       self.config.smoothing_window,
-                                       padding=True)
-                        for record in logits]
-                    prediction = [
-                        predict(avg, self.config.trigger_threshold,
-                                self.config.lockout)
-                        for avg in moving_avg]
-
-                    with open('trigger.txt', 'w') as f:
-                        f.write(str(prediction[ind]))
-                    result = [decode(p, self.config.word_interval, self.golden)
-                              for p in
-                              prediction]
-                    miss, target, false_accept = evaluate(result,
-                                                          correctness.tolist())
+                    result = [ctc_predict(seq) for seq in
+                              ctc_output]
+                    miss, target, false_accept = evaluate(
+                        result, correctness.tolist())
 
                     miss_count += miss
                     target_count += target
                     false_count += false_accept
-
-                    print(result[ind], correctness[ind])
-                    with open('moving_avg.txt', 'w') as f:
-                        f.write(str(moving_avg[ind]))
 
                 # miss_rate = miss_count / target_count
                 # false_accept_rate = false_count / total_count
@@ -377,6 +319,16 @@ class Runner(object):
                 print("!!!!Import graph meet error: ", e)
                 exit()
             print('graph saved in %s' % graph_path)
+
+
+def ctc_predict(seq):
+    text = ''
+    for i in seq:
+        if i < 0:
+            break
+        if i > 0:
+            text += str(i)
+    return 1 if '1233' in text else 0
 
 
 if __name__ == '__main__':

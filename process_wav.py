@@ -30,6 +30,8 @@ global_len = []
 temp_list = []
 error_list = []
 
+label_dict = config.label_dict
+
 
 def time2frame(second, sr=config.samplerate, n_fft=config.fft_size,
                step_size=config.step_size):
@@ -45,39 +47,16 @@ def time2point(second, sr=config.samplerate):
     return int(second * sr)
 
 
-def convert_label(frame_label):
-    lele_label = []
-    whole_label = []
-    for i in frame_label:
-        if i[0] == 2:
-            lele_label.append([1] + i[1:3])
-    if len(frame_label) == 2 and frame_label[0][0] == 1:
-        whole_label.append([1, frame_label[0][1], frame_label[1][2]])
-    return frame_label, lele_label, whole_label
+def convert_label(text):
+    assert len(text) > 0
+    label_values = [0]
+    for c in text:
+        label_values.append(label_dict.get(c, 4))
+        label_values.append(0)
+    label_shape = len(label_values)
+    label_indices = range(len(label_values))
 
-
-def adjust(y, start, end):
-    start = max(time2point(start), 0)
-    end = min(len(y), time2point(end))
-    y = np.abs(y)
-    window_size = config.step_size
-    total_max = np.percentile(y, 99)
-    total_mean = y.mean()
-    threshold_max = total_max / 3.5
-    threshold_mean = (np.percentile(y, 50) + total_mean) / 2
-    while start < end:
-        if y[start:start + window_size].max() > threshold_max:
-            break
-        start += window_size
-    if start >= end:
-        return (None, None)
-    while end > start:
-        if y[end - window_size: end].max() > threshold_max:
-            break
-        end -= window_size
-    if start >= end:
-        return (None, None)
-    return point2frame(start), point2frame(end)
+    return label_values, label_indices, label_shape
 
 
 def dense_to_ont_hot(labels_dense, num_classes):
@@ -94,78 +73,59 @@ def process_wave(f):
         mel_spectrogram = np.transpose(
             librosa.feature.melspectrogram(y, sr=sr, n_fft=config.fft_size,
                                            hop_length=config.step_size,
-                                           power=1.,
-                                           fmin=300,
-                                           fmax=8000,
+                                           power=config.power,
+                                           fmin=config.fmin,
+                                           fmax=config.fmax,
                                            n_mels=config.freq_size))
     elif config.spectrogram == 'mfcc':
         mel_spectrogram = np.transpose(
             librosa.feature.mfcc(y, sr=sr, n_mfcc=config.freq_size,
                                  n_fft=config.fft_size,
                                  hop_length=config.step_size,
-                                 power=2.,
-                                 fmin=300, fmax=8000,
+                                 power=config.power,
+                                 fmin=config.fmin,
+                                 fmax=config.fmax,
                                  n_mels=config.freq_size))
     else:
         raise (Exception('spectrogram %s not defined' % config.spectrogram))
     return mel_spectrogram, y
 
 
-def make_record(f, time_label):
+def make_record(f, text):
     # print(f)
-    # print(time_label)
+    # print(text)
     spectrogram, wave = process_wave(f)
     seq_len = spectrogram.shape[0]
-    labels = []  # nihaolele   lele  whole
-    for i in range(3):
-        labels.append(np.zeros(seq_len, dtype=np.int32))
-    if len(time_label) > 0:
-        new_label = []
-        for t in time_label:
-            start_frame, end_frame = adjust(wave, t[1], t[2])
-            if start_frame is None:
-                print('can not process this record')
-                print(f)
-                return None, None, None
-            new_label.append([t[0], start_frame, end_frame])
-        frame_labels = convert_label(new_label)
-        assert len(frame_labels) == 3
-        for i in range(3):
-            for t in frame_labels[i]:
-                labels[i][t[1]:t[2]] = t[0]
-
-    one_hots = [dense_to_ont_hot(label, num) for label, num in
-                zip(labels, [3, 2, 2])]
-    return spectrogram, one_hots, seq_len
+    label_values, label_indices, label_shape = convert_label(text)
+    return spectrogram, seq_len, label_values, label_indices, label_shape
 
 
-def make_trainning_example(spectrogram, one_hots, seq_len):
+def make_trainning_example(spectrogram, seq_len, label_values, label_indices,
+                           label_shape):
     spectrogram = spectrogram.tolist()
-    one_hots = [one_hot.tolist() for one_hot in one_hots]
     ex = tf.train.SequenceExample()
 
     ex.context.feature["seq_len"].int64_list.value.append(seq_len)
+    ex.context.feature["label_values"].int64_list.value.extend(label_values)
+    ex.context.feature["label_indices"].int64_list.value.extend(label_indices)
+    ex.context.feature["label_shape"].int64_list.value.append(label_shape)
 
     fl_audio = ex.feature_lists.feature_list["audio"]
-    fl_labels = [ex.feature_lists.feature_list[prefix + "_label"] for prefix in
-                 config.label_list]
-    assert len(fl_labels) == len(one_hots)
+
+    if label_shape > seq_len:
+        raise Exception('invalid label!!!!')
+
     for frame in spectrogram:
         fl_audio.feature.add().float_list.value.extend(frame)
-    for fl_label, one_hot in zip(fl_labels, one_hots):
-        for frame_label in one_hot:
-            fl_label.feature.add().float_list.value.extend(frame_label)
-
     return ex
 
 
-def make_valid_example(spectrogram, seq_len, correctness, name):
+def make_valid_example(spectrogram, seq_len, correctness, label):
     spectrogram = spectrogram.tolist()
     ex = tf.train.SequenceExample()
 
     ex.context.feature["seq_len"].int64_list.value.append(seq_len)
-    ex.context.feature['name'].bytes_list.value.append(
-        name.encode(encoding="utf-8"))
+    ex.context.feature['label'].bytes_list.value.extend(label)
     ex.context.feature["correctness"].int64_list.value.append(correctness)
 
     fl_audio = ex.feature_lists.feature_list["audio"]
@@ -195,20 +155,24 @@ def generate_valid_data(pkl_path):
     print('read pkl from %s' % f)
     audio_list = [i[0] for i in wav_list]
     correctness_list = [i[1] for i in wav_list]
+    label_list = [i[2] for i in wav_list]
     assert len(audio_list) == len(correctness_list)
     tuple_list = []
     counter = 0
     record_count = 0
-    for audio_name, correctness in zip(audio_list, correctness_list):
+    for audio_name, correctness, label in zip(audio_list, correctness_list,
+                                              label_list):
         spec, _ = process_wave(path_join(wave_valid_dir, audio_name))
-        seq_len = seq_len = spec.shape[0]
-        tuple_list.append((spec, seq_len, correctness, audio_name))
+        spec, seq_len, label_values, label_indices, label_shape = make_record(
+            path_join(wave_train_dir, audio_name),
+            label)
+        tuple_list.append((spec, seq_len, correctness, label_values))
         counter += 1
         if counter == config.tfrecord_size:
             tuple_list = batch_padding_valid(tuple_list)
             fname = 'valid' + increment_id(record_count, 5) + '.tfrecords'
-            ex_list = [make_valid_example(spec, seq_len, correctness, name) for
-                       spec, seq_len, correctness, name in tuple_list]
+            ex_list = [make_valid_example(spec, seq_len, correctness, label_values) for
+                       spec, seq_len, correctness, label_values in tuple_list]
             writer = tf.python_io.TFRecordWriter(
                 path_join(save_valid_dir, fname))
             for ex in ex_list:
@@ -223,19 +187,15 @@ def generate_valid_data(pkl_path):
 
 def batch_padding_trainning(tup_list):
     new_list = []
-    max_len = max([t[2] for t in tup_list])
+    max_len = max([t[1] for t in tup_list])
 
     for t in tup_list:
-        assert (len(t[0]) == len(t[1][0]))
-        assert (len(t[0]) == t[2])
+        assert (len(t[0]) == t[1])
         paded_wave = np.pad(t[0], pad_width=(
             (0, max_len - t[0].shape[0]), (0, 0)),
                             mode='constant', constant_values=0)
-        paded_labels = [
-            np.pad(l, pad_width=((0, max_len - l.shape[0]), (0, 0)),
-                   mode='constant', constant_values=0) for l in t[1]]
-        new_list.append((paded_wave, paded_labels, t[2]))
 
+        new_list.append((paded_wave, t[1], t[2], t[3], t[4]))
     return new_list
 
 
@@ -257,23 +217,26 @@ def generate_trainning_data(path):
         wav_list = pickle.load(f)
     print('read pkl from %s' % f)
     audio_list = [i[0] for i in wav_list]
-    time_list = [i[1] for i in wav_list]
-    assert len(audio_list) == len(time_list)
+    text_list = [i[1] for i in wav_list]
+    assert len(audio_list) == len(text_list)
     tuple_list = []
     counter = 0
     record_count = 0
     for i, audio_name in enumerate(audio_list):
-        spec, labels, seq_len = make_record(
+        spec, seq_len, label_values, label_indices, label_shape = make_record(
             path_join(wave_train_dir, audio_name),
-            time_list[i])
+            text_list[i])
         if spec is not None:
             counter += 1
-            tuple_list.append((spec, labels, seq_len))
+            tuple_list.append(
+                (spec, seq_len, label_values, label_indices, label_shape))
         if counter == config.tfrecord_size:
             tuple_list = batch_padding_trainning(tuple_list)
             fname = 'data' + increment_id(record_count, 5) + '.tfrecords'
-            ex_list = [make_trainning_example(spec, labels, seq_len) for
-                       spec, labels, seq_len in tuple_list]
+            ex_list = [make_trainning_example(spec, seq_len, label_values,
+                                              label_indices, label_shape) for
+                       spec, seq_len, label_values, label_indices, label_shape
+                       in tuple_list]
             writer = tf.python_io.TFRecordWriter(
                 path_join(save_train_dir, fname))
             for ex in ex_list:
@@ -302,51 +265,6 @@ def sort_wave(pkl_path):
         pickle.dump(sorted_data, f)
 
 
-def filter_wave(pkl_path):
-    with open(pkl_path, "rb") as f:
-        training_data = pickle.load(f)
-    print('number before filter:', len(training_data))
-    filter_out = []
-    for i in training_data:
-        if len(i[1]) > 0:
-            drop = False
-            for t in i[1]:
-                if (t[2] - t[1] > 3):
-                    drop = True
-                    break
-            if not drop:
-                filter_out.append(i)
-        else:
-            filter_out.append(i)
-    with open(pkl_path + '.filtered', "wb") as f:
-        pickle.dump(filter_out, f)
-    print('number after filter:', len(filter_out))
-
-
-def temp(path):
-    with open(path, 'rb') as f:
-        wav_list = pickle.load(f)
-    audio_list = [i[0] for i in wav_list]
-    time_list = [i[1] for i in wav_list]
-    assert len(audio_list) == len(time_list)
-    tuple_list = []
-    counter = 0
-    for i, audio_name in enumerate(audio_list):
-        spec, labels, seq_len = make_record(
-            path_join(wave_train_dir, audio_name),
-            time_list[i])
-        if spec is not None:
-            counter += 1
-            temp_list.append((audio_name, time_list[i]))
-        else:
-            print('error')
-            error_list.append((audio_name, time_list[i]))
-    with open('labelxxx.pkl', 'wb') as f:
-        pickle.dump(temp_list, f)
-    with open('error.pkl', 'wb') as f:
-        pickle.dump(error_list, f)
-
-
 def shuffle(pkl_path):
     import random
     new_list = []
@@ -373,13 +291,12 @@ def shuffle(pkl_path):
         while not ok and again < 100:
             count = 0
             random.shuffle(temp)
-            # print(temp[32:64])
             c = 0
             for j in range(batch // 32):
                 subok = False
                 small_batch = temp[j * 32:(j + 1) * 32]
                 for record in small_batch:
-                    if len(record[1]) > 0:
+                    if '你好' in record[1] or '乐乐' in record[1]:
                         subok = True
                         break
                 if subok:
@@ -404,13 +321,12 @@ if __name__ == '__main__':
     check_dir(save_train_dir)
     check_dir(save_valid_dir)
 
-    base_pkl = 'label_5x.pkl'
-    # sort_wave(wave_train_dir + base_pkl)
-    # filter_wave(wave_train_dir + base_pkl + '.sorted')
-    # shuffle(wave_train_dir + base_pkl + '.sorted.filtered')
+    base_pkl = 'ctc_label.pkl'
+    sort_wave(wave_train_dir + base_pkl)
+    shuffle(wave_train_dir + base_pkl + '.sorted')
     generate_trainning_data(
-        wave_train_dir + base_pkl + '.sorted.filtered.shuffled')
+        wave_train_dir + base_pkl + '.sorted.shuffled')
 
-    # sort_wave(wave_valid_dir + "valid_1024.pkl")
-    generate_valid_data(wave_valid_dir + "valid_1024.pkl.sorted")
+    sort_wave(wave_valid_dir + "ctc_valid.pkl")
+    generate_valid_data(wave_valid_dir + "ctc_valid.pkl.sorted")
     # make_example(wave_train_dir+'azure_228965.wav',[[1, 4.12, 8.88]])
