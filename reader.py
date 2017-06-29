@@ -80,7 +80,8 @@ class DataSet(object):
             label_indices = context['label_indices']
             label_shape = context['label_shape']
 
-            label_indices = tf.sparse_tensor_to_dense(label_indices)
+            label_indices = tf.sparse_tensor_to_dense(
+                tf.sparse_reshape(label_indices, [-1, 1]))
             label_values = tf.sparse_tensor_to_dense(label_values)
 
             sparse_label = tf.SparseTensor(label_indices, label_values,
