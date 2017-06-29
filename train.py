@@ -42,6 +42,9 @@ class Runner(object):
         self.config = config
         self.epoch = 0
         self.wer_cal = WERCalculator([0, -1])
+        self.valid_set = []
+        with open('ctc_valid.pkl.sorted', 'rb') as f:
+            self.valid_set = pickle.load(f)
 
     def run(self):
 
@@ -167,6 +170,7 @@ class Runner(object):
                             miss_count = 0
                             false_count = 0
                             target_count = 0
+                            wer = 0
                             valid_batch = self.data.valid_file_size * config.tfrecord_size // config.batch_size
                             for i in range(valid_batch):
                                 ctc_output, correctness, labels, _, _ = sess.run(
@@ -179,6 +183,8 @@ class Runner(object):
                                                     threshold=np.inf,
                                                     suppress=True)
 
+                                print(labels[0])
+                                print(self.valid_set[i * config.batch_size][2])
                                 result = [ctc_predict(seq) for seq in
                                           ctc_output]
                                 miss, target, false_accept = evaluate(
@@ -188,8 +194,8 @@ class Runner(object):
                                 target_count += target
                                 false_count += false_accept
 
-                                wer = self.wer_cal.cal_batch_wer(labels,
-                                                                 ctc_output)
+                                wer += self.wer_cal.cal_batch_wer(labels,
+                                                                  ctc_output).sum()
                                 # print(miss_count, false_count)
 
                             miss_rate = miss_count / target_count
@@ -202,6 +208,7 @@ class Runner(object):
                             print('miss rate:' + str(miss_rate))
                             print('flase_accept_rate:' + str(false_accept_rate))
                             print(miss_count, '/', target_count)
+                            print('wer', wer / self.data.validation_size)
 
                             if miss_rate + false_accept_rate < best_miss + best_false:
                                 best_miss = miss_rate

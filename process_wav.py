@@ -125,7 +125,7 @@ def make_valid_example(spectrogram, seq_len, correctness, label):
     ex = tf.train.SequenceExample()
 
     ex.context.feature["seq_len"].int64_list.value.append(seq_len)
-    ex.context.feature['label'].bytes_list.value.extend(label)
+    ex.context.feature['label'].int64_list.value.extend(label)
     ex.context.feature["correctness"].int64_list.value.append(correctness)
 
     fl_audio = ex.feature_lists.feature_list["audio"]
@@ -162,9 +162,8 @@ def generate_valid_data(pkl_path):
     record_count = 0
     for audio_name, correctness, label in zip(audio_list, correctness_list,
                                               label_list):
-        spec, _ = process_wave(path_join(wave_valid_dir, audio_name))
         spec, seq_len, label_values, label_indices, label_shape = make_record(
-            path_join(wave_train_dir, audio_name),
+            path_join(wave_valid_dir, audio_name),
             label)
         tuple_list.append((spec, seq_len, correctness, label_values))
         counter += 1
@@ -321,12 +320,12 @@ if __name__ == '__main__':
     check_dir(save_train_dir)
     check_dir(save_valid_dir)
 
-    base_pkl = 'ctc_label.pkl'
-    sort_wave(wave_train_dir + base_pkl)
-    shuffle(wave_train_dir + base_pkl + '.sorted')
-    generate_trainning_data(
-        wave_train_dir + base_pkl + '.sorted.shuffled')
+    # base_pkl = 'ctc_label.pkl'
+    # sort_wave(wave_train_dir + base_pkl)
+    # shuffle(wave_train_dir + base_pkl + '.sorted')
+    # generate_trainning_data(
+    #     wave_train_dir + base_pkl + '.sorted.shuffled')
 
-    sort_wave(wave_valid_dir + "ctc_valid.pkl")
+    # sort_wave(wave_valid_dir + "ctc_valid.pkl")
     generate_valid_data(wave_valid_dir + "ctc_valid.pkl.sorted")
     # make_example(wave_train_dir+'azure_228965.wav',[[1, 4.12, 8.88]])
