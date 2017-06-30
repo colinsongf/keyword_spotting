@@ -260,22 +260,28 @@ class Runner(object):
                 miss_count = 0
                 false_count = 0
                 target_count = 0
-                total_count = 0
 
-                iter = 0
+                valid_batch = self.data.valid_file_size * config.tfrecord_size // config.batch_size
 
-                for i in range(self.data.valid_file_size):
+                for i in range(valid_batch):
                     # if i > 7:
                     #     break
                     ind = 14
-                    ctc_output, correctness, _, _ = sess.run(
+                    ctc_output, correctness, labels, names, _, _ = sess.run(
                         [self.valid_model.dense_output,
                          self.valid_model.correctness,
+                         self.valid_model.labels,
+                         self.valid_model.names,
                          self.valid_model.stage_op,
                          self.valid_model.input_filequeue_enqueue_op])
                     np.set_printoptions(precision=4,
                                         threshold=np.inf,
                                         suppress=True)
+                    for output, lab, name in zip(ctc_output, labels, names):
+                        print('-' * 20)
+                        print(name.decode())
+                        print('output', output.tolist())
+                        print('golden', lab.tolist())
 
                     result = [ctc_predict(seq) for seq in
                               ctc_output]
@@ -291,7 +297,7 @@ class Runner(object):
                 print('--------------------------------')
                 print('miss rate: %d/%d' % (miss_count, target_count))
                 print('flase_accept_rate: %d/%d' % (
-                    false_count, total_count - target_count))
+                    false_count, self.data.validation_size - target_count))
 
     def build_graph(self):
         config_path = path_join(self.config.graph_path, 'config.pkl')
@@ -354,7 +360,8 @@ if __name__ == '__main__':
             else:
                 setattr(config, key, flags[key])
     if not config.ktq:
-        os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
+        os.system('export CUDA_VISIBLE_DEVICES "%s"' % ','.join(config.gpu))
+        # os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
         # pass
     print(flags)
     runner = Runner(config)
