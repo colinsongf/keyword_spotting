@@ -149,11 +149,13 @@ class DRNN(object):
             self.learning_rate = tf.train.exponential_decay(
                 initial_learning_rate, self.global_step, self.config.decay_step,
                 self.config.lr_decay, name='lr')
-
-            self.warmup = 20000
-            self.sqrtstep = tf.sqrt(tf.cast(self.global_step, tf.float32))
-            self.learning_rate = 0.2 * tf.minimum(
-                1 / self.sqrtstep, tf.div(self.sqrtstep, self.warmup))
+            if config.warmup:
+                self.warmup_lr = tf.train.polynomial_decay(5e-3, self.global_step,
+                                                           40000, 1.35e-3, 0.5)
+                self.post_lr = tf.train.exponential_decay(
+                    1.5e-3, self.global_step, self.config.decay_step,
+                    self.config.lr_decay, name='lr')
+                self.learning_rate = tf.minimum(self.warmup_lr, self.post_lr)
 
             if config.optimizer == 'adam':
                 self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
