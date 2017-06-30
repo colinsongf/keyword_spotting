@@ -26,16 +26,8 @@ def get_args():
     parser.add_argument('-ktq', '--ktq',
                         help='whether run in ktq', type=int,
                         default=None)
-    parser.add_argument('-max', '--max_pooling_loss', help='1: maxpooling, ' +
-                                                           '0: cross entropy,',
-                        type=int,
-                        default=None)
     parser.add_argument('-clip', '--max_grad_norm', help='max_grad_norm clip',
                         type=float,
-                        default=None)
-    parser.add_argument('-st', '--max_pooling_standardize',
-                        help='whether use maxpooling standardize',
-                        type=int,
                         default=None)
     parser.add_argument('-epoch', '--max_epoch',
                         help='max_epoch',
@@ -56,9 +48,6 @@ def get_args():
                         default=None)
     parser.add_argument('-g', '--gpu', help='visible GPU',
                         default=None)
-    parser.add_argument('-p', '--use_project',
-                        help='whether to use projection in LSTM, 1 or 0',
-                        type=int, default=None)
     parser.add_argument('-layer', '--num_layers',
                         help='number of RNN layer',
                         type=int, default=None)
@@ -76,10 +65,6 @@ def get_args():
     parser.add_argument('--decay_step', help='decay_step',
                         type=int, default=None)
     parser.add_argument('-decay', '--lr_decay', help='lr_decay',
-                        type=float, default=None)
-    parser.add_argument('-label', '--label_id', help='label id',
-                        type=int, default=None)
-    parser.add_argument('-thres', '--threshold', help='threshold for trigger',
                         type=float, default=None)
     parser.add_argument('--train_path', help='train data path', default=None)
     parser.add_argument('--valid_path', help='valid data path', default=None)
