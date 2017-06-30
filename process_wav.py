@@ -47,10 +47,10 @@ def time2point(second, sr=config.samplerate):
     return int(second * sr)
 
 
-def convert_label(text):
-    assert len(text) > 0
+def convert_label(label):
+    assert len(label) > 0
     label_values = [0]
-    for c in text:
+    for c in label:
         label_values.append(label_dict.get(c, 4))
         label_values.append(0)
     label_shape = len(label_values)
@@ -91,12 +91,13 @@ def process_wave(f):
     return mel_spectrogram, y
 
 
-def make_record(f, text):
+def make_record(f, label):
     # print(f)
     # print(text)
     spectrogram, wave = process_wave(f)
     seq_len = spectrogram.shape[0]
-    label_values, label_indices, label_shape = convert_label(text)
+    label_values, label_indices, label_shape = convert_label(label)
+
     return spectrogram, seq_len, label_values, label_indices, label_shape
 
 
@@ -225,7 +226,8 @@ def generate_trainning_data(path):
         wav_list = pickle.load(f)
     print('read pkl from %s' % f)
     audio_list = [i[0] for i in wav_list]
-    text_list = [i[1] for i in wav_list]
+    label_list = [i[1] for i in wav_list]
+    text_list = [i[2] for i in wav_list]
     assert len(audio_list) == len(text_list)
     tuple_list = []
     counter = 0
@@ -233,7 +235,9 @@ def generate_trainning_data(path):
     for i, audio_name in enumerate(audio_list):
         spec, seq_len, label_values, label_indices, label_shape = make_record(
             path_join(wave_train_dir, audio_name),
-            text_list[i])
+            label_list[i])
+        # print(text_list[i])
+        # print(label_values)
         if spec is not None:
             counter += 1
             tuple_list.append(
@@ -304,7 +308,7 @@ def shuffle(pkl_path):
                 subok = False
                 small_batch = temp[j * 32:(j + 1) * 32]
                 for record in small_batch:
-                    if '你好' in record[1] or '乐乐' in record[1]:
+                    if '你好' in record[2] or '乐乐' in record[2]:
                         subok = True
                         break
                 if subok:
@@ -329,12 +333,12 @@ if __name__ == '__main__':
     check_dir(save_train_dir)
     check_dir(save_valid_dir)
 
-    base_pkl = 'ctc_label.pkl'
+    base_pkl = 'ctc_label_pinyin.pkl'
     # sort_wave(wave_train_dir + base_pkl)
     # shuffle(wave_train_dir + base_pkl + '.sorted')
-    # generate_trainning_data(
-    #     wave_train_dir + base_pkl + '.sorted.shuffled')
+    generate_trainning_data(
+        wave_train_dir + base_pkl + '.sorted.shuffled')
 
-    # sort_wave(wave_valid_dir + "ctc_valid.pkl")
-    generate_valid_data(wave_valid_dir + "ctc_valid.pkl.sorted")
+    # sort_wave(wave_valid_dir + "ctc_valid_pinyin.pkl")
+    generate_valid_data(wave_valid_dir + "ctc_valid_pinyin.pkl.sorted")
     # make_example(wave_train_dir+'azure_228965.wav',[[1, 4.12, 8.88]])

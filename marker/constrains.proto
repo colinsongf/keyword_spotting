@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package constrains;
+// ---------------grpc service---------------
+service ContactProcess {
+    rpc ProcessNames(ContactInput) returns (ContactOutput) {}
+}
+
+service ACAPatternProcess {
+    rpc ProcessPatterns(ACAPatternInput) returns (ACAPatternOutput) {}
+}
+
+// ---------------contact message---------------
+message ContactInput {
+    repeated string NameRaw = 1;
+}
+
+message ContactOutput {
+    repeated ContactItem NameList = 1;
+}
+
+message ContactItem {
+    string Pinyin = 1;
+    string Chinese = 2;
+}
+
+// // ---------------aca pattern message---------------
+message ACAPatternInput {
+    string OldUserJson = 1;
+    repeated string Phrases = 2;
+}
+
+message ACAPatternOutput {
+    string UserJson = 1;
+}

@@ -26,19 +26,19 @@ class Config(object):
         self.use_white_noise = False
         self.optimizer = 'adam'  # adam sgd nesterov
         self.spectrogram = 'mel'  # mfcc,mel
-        self.label_dict = {'你': 1, '好': 2, '乐': 3}  # 0 for space 4 for other
+        self.label_dict = {'ni3': 1, 'hao3': 2, 'le4': 3}  # 0 for space 4 for other
 
         self.reset_global = 0
 
-        self.model_path = './params/mel_all/'
-        self.save_path = './params/mel_all/'
+        self.model_path = './params/ctc1/'
+        self.save_path = './params/ctc1/'
         self.graph_path = './graph/mel/'
         self.graph_name = 'graph.pb'
         self.train_path = './data/mel/train'
         self.valid_path = './data/mel/valid'
 
-        self.train_path = '/ssd/liuziqi/ctc/train/'
-        self.valid_path = '/ssd/liuziqi/ctc/valid/'
+        self.train_path = '/ssd/liuziqi/ctc_pinyin/train/'
+        self.valid_path = '/ssd/liuziqi/ctc_pinyin/valid/'
         self.model_name = 'best.ckpt'
         self.rawdata_path = './rawdata/'
         self.rawdata_path = '/ssd/keyword/'
@@ -55,7 +55,7 @@ class Config(object):
         self.cell_clip = 3.
         self.num_layers = 2
         self.init_scale = 0.1
-        self.learning_rate = 5e-3
+        self.learning_rate = 1e-3
         self.max_grad_norm = -1
         self.freq_size = 60
         self.feed_forward_inner_size = 512
