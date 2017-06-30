@@ -120,12 +120,15 @@ def make_trainning_example(spectrogram, seq_len, label_values, label_indices,
     return ex
 
 
-def make_valid_example(spectrogram, seq_len, correctness, label):
+def make_valid_example(spectrogram, seq_len, correctness, label, name):
     spectrogram = spectrogram.tolist()
     ex = tf.train.SequenceExample()
+    print(name)
 
     ex.context.feature["seq_len"].int64_list.value.append(seq_len)
     ex.context.feature['label'].int64_list.value.extend(label)
+    ex.context.feature['name'].bytes_list.value.append(
+        name.encode(encoding="utf-8"))
     ex.context.feature["correctness"].int64_list.value.append(correctness)
 
     fl_audio = ex.feature_lists.feature_list["audio"]
@@ -165,13 +168,19 @@ def generate_valid_data(pkl_path):
         spec, seq_len, label_values, label_indices, label_shape = make_record(
             path_join(wave_valid_dir, audio_name),
             label)
-        tuple_list.append((spec, seq_len, correctness, label_values))
+        # print(label_values)
+        # print(audio_name)
+        tuple_list.append(
+            (spec, seq_len, correctness, label_values, audio_name))
         counter += 1
         if counter == config.tfrecord_size:
             tuple_list = batch_padding_valid(tuple_list)
             fname = 'valid' + increment_id(record_count, 5) + '.tfrecords'
-            ex_list = [make_valid_example(spec, seq_len, correctness, label_values) for
-                       spec, seq_len, correctness, label_values in tuple_list]
+            ex_list = [
+                make_valid_example(spec, seq_len, correctness, label_values,
+                                   audio_name) for
+                spec, seq_len, correctness, label_values, audio_name in
+                tuple_list]
             writer = tf.python_io.TFRecordWriter(
                 path_join(save_valid_dir, fname))
             for ex in ex_list:
@@ -206,7 +215,7 @@ def batch_padding_valid(tup_list):
         paded_wave = np.pad(t[0], pad_width=(
             (0, max_len - t[0].shape[0]), (0, 0)),
                             mode='constant', constant_values=0)
-        new_list.append((paded_wave, t[1], t[2], t[3]))
+        new_list.append((paded_wave, t[1], t[2], t[3], t[4]))
 
     return new_list
 
@@ -323,8 +332,8 @@ if __name__ == '__main__':
     base_pkl = 'ctc_label.pkl'
     # sort_wave(wave_train_dir + base_pkl)
     # shuffle(wave_train_dir + base_pkl + '.sorted')
-    generate_trainning_data(
-        wave_train_dir + base_pkl + '.sorted.shuffled')
+    # generate_trainning_data(
+    #     wave_train_dir + base_pkl + '.sorted.shuffled')
 
     # sort_wave(wave_valid_dir + "ctc_valid.pkl")
     generate_valid_data(wave_valid_dir + "ctc_valid.pkl.sorted")

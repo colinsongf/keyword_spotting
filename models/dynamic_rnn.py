@@ -122,7 +122,7 @@ class DRNN(object):
             self.build_graph(config, is_train)
         else:
             stager, self.stage_op, self.input_filequeue_enqueue_op = input
-            self.inputX, self.seqLengths, self.correctness, self.labels = stager.get()
+            self.inputX, self.seqLengths, self.correctness, self.labels, self.names = stager.get()
             self.build_graph(config, is_train)
 
     @describe

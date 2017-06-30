@@ -157,7 +157,7 @@ class Runner(object):
                              self.train_model.grads
                              ])
                         epoch = sess.run([self.data.epoch])[0]
-                        # accu_loss += l
+                        accu_loss += l
 
                         if epoch > self.epoch:
                             self.epoch += 1
@@ -173,18 +173,23 @@ class Runner(object):
                             wer = 0
                             valid_batch = self.data.valid_file_size * config.tfrecord_size // config.batch_size
                             for i in range(valid_batch):
-                                ctc_output, correctness, labels, _, _ = sess.run(
+                                ctc_output, correctness, labels, names, _, _ = sess.run(
                                     [self.valid_model.dense_output,
                                      self.valid_model.correctness,
                                      self.valid_model.labels,
+                                     self.valid_model.names,
                                      self.valid_model.stage_op,
                                      self.valid_model.input_filequeue_enqueue_op])
                                 np.set_printoptions(precision=4,
                                                     threshold=np.inf,
                                                     suppress=True)
-
-                                print(labels[0])
-                                print(self.valid_set[i * config.batch_size][2])
+                                # print('-----------------')
+                                #
+                                # print(labels[0])
+                                # print(names[0].decode())
+                                # print(self.valid_set[i * config.batch_size])
+                                # for i in names:
+                                #     print(i.decode())
                                 result = [ctc_predict(seq) for seq in
                                           ctc_output]
                                 miss, target, false_accept = evaluate(

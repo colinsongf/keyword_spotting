@@ -36,6 +36,7 @@ class DataSet(object):
             print('file size', self.train_file_size)
 
         self.valid_filename = glob(path_join(valid_dir, '*.tfrecords'))
+        self.valid_filename = sorted(self.valid_filename)
         self.valid_file_size = len(self.valid_filename)
         if self.valid_file_size == 0:
             raise Exception('valid tfrecords not found')
@@ -104,6 +105,7 @@ class DataSet(object):
                                                       self.config.batch_size)
         context_features = {
             "seq_len": tf.FixedLenFeature([1], dtype=tf.int64),
+            "name": tf.FixedLenFeature([], dtype=tf.string),
             "correctness": tf.FixedLenFeature([1], dtype=tf.int64),
             "label": tf.VarLenFeature(dtype=tf.int64)
         }
@@ -115,6 +117,7 @@ class DataSet(object):
         len_list = []
         correct_list = []
         label_list = []
+        name_list = []
 
         for i in range(self.config.batch_size):
             context, sequence = tf.parse_single_sequence_example(
@@ -126,10 +129,12 @@ class DataSet(object):
             seq_len = context['seq_len']
             correct = context['correctness']
             label = context['label']
+            name = context['name']
             sparse_label = tf.sparse_reshape(label, [1, -1])
             label_list.append(sparse_label)
             audio_list.append(audio)
             len_list.append(seq_len)
+            name_list.append(name)
             correct_list.append(correct)
 
         label_tensor = tf.sparse_tensor_to_dense(
@@ -138,9 +143,10 @@ class DataSet(object):
             tf.reshape(tf.stack(len_list), (-1,), name='seq_lengths'), tf.int32)
         correctness = tf.reshape(tf.stack(correct_list), (-1,),
                                  name='correctness')
+        name_tensor = tf.stack(name_list)
 
         return tf.stack(audio_list,
-                        name='input_audio'), seq_lengths, correctness, label_tensor
+                        name='input_audio'), seq_lengths, correctness, label_tensor, name_tensor
 
     def string_input_queue(self, string_tensor, shuffle=True,
                            name=None, seed=None, capacity=16384):
@@ -158,7 +164,7 @@ class DataSet(object):
                           lambda: tf.no_op())
             return q, enq
 
-    def batch_input_queue(self, shuffle=False):
+    def batch_input_queue(self, shuffle=True):
         with tf.device('/cpu:0'):
             self.train_filename_queue, self.train_filequeue_enqueue_op = self.string_input_queue(
                 self.train_filename, shuffle=shuffle, capacity=16384)
@@ -182,16 +188,16 @@ class DataSet(object):
             self.valid_filename_queue, self.valid_filequeue_enqueue_op = self.string_input_queue(
                 self.valid_filename, shuffle=False, capacity=16384)
 
-            audio, seq_len, correctness, labels = self.valid_filequeue_reader(
+            audio, seq_len, correctness, labels, names = self.valid_filequeue_reader(
                 self.valid_filename_queue)
 
             stager = data_flow_ops.StagingArea(
-                [tf.float32, tf.int32, tf.int64, tf.int64],
+                [tf.float32, tf.int32, tf.int64, tf.int64, tf.string],
                 shapes=[(self.config.batch_size, None, self.config.freq_size),
                         (self.config.batch_size), (self.config.batch_size),
-                        (self.config.batch_size, None)])
+                        (self.config.batch_size, None), (None,)])
 
-            stage_op = stager.put((audio, seq_len, correctness, labels))
+            stage_op = stager.put((audio, seq_len, correctness, labels, names))
 
             return stager, stage_op, self.valid_filequeue_enqueue_op
 
