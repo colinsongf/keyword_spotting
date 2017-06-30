@@ -42,9 +42,6 @@ class Runner(object):
         self.config = config
         self.epoch = 0
         self.wer_cal = WERCalculator([0, -1])
-        self.valid_set = []
-        with open('ctc_valid.pkl.sorted', 'rb') as f:
-            self.valid_set = pickle.load(f)
 
     def run(self):
 
