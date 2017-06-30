@@ -20,13 +20,17 @@ import sys
 import time
 import pickle
 import signal
+from config.config import get_config
+
+config = get_config()
+if not config.ktq:
+    os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
 
 import numpy as np
 import tensorflow as tf
 from glob import glob
 from tensorflow.python.framework import graph_util
 
-from config.config import get_config
 from models.dynamic_rnn import DRNN, DeployModel
 from reader import read_dataset
 from utils.common import check_dir, path_join
@@ -347,7 +351,6 @@ def ctc_predict(seq):
 
 
 if __name__ == '__main__':
-    config = get_config()
 
     flags = get_args()
     for key in flags:
@@ -356,10 +359,7 @@ if __name__ == '__main__':
                 print("WARNING: Invalid override with attribute %s" % (key))
             else:
                 setattr(config, key, flags[key])
-    if not config.ktq:
-        os.system('export CUDA_VISIBLE_DEVICES "%s"' % ','.join(config.gpu))
-        # os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
-        # pass
+
     print(flags)
     runner = Runner(config)
     if config.mode == 'build':
