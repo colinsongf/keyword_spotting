@@ -37,6 +37,10 @@ def get_args():
                         help='reset global step',
                         type=int,
                         default=None)
+    parser.add_argument('-warm', '--warmup',
+                        help='lr warmup',
+                        type=int,
+                        default=None)
     parser.add_argument('-m', '--model_path',
                         help='The  model path for restoring',
                         default=None)
