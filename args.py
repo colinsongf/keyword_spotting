@@ -66,6 +66,8 @@ def get_args():
                         type=int, default=None)
     parser.add_argument('-decay', '--lr_decay', help='lr_decay',
                         type=float, default=None)
+    parser.add_argument('-keep', '--keep_prob', help='keep_pro',
+                        type=float, default=None)
     parser.add_argument('--train_path', help='train data path', default=None)
     parser.add_argument('--valid_path', help='valid data path', default=None)
     parser.add_argument('--feature_num', help='data path', type=int,
