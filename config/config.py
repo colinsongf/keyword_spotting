@@ -34,7 +34,7 @@ class Config(object):
 
         self.train_path = '/ssd/liuziqi/ctc_pinyin/train/'
         self.valid_path = '/ssd/liuziqi/ctc_pinyin/valid/'
-        self.model_name = 'best.ckpt'
+        self.model_name = 'latest.ckpt'
         self.rawdata_path = './rawdata/'
         self.rawdata_path = '/ssd/keyword/'
         # self.data_path = './test/data/azure_garbage/'
