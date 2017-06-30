@@ -150,11 +150,11 @@ class DRNN(object):
                 initial_learning_rate, self.global_step, self.config.decay_step,
                 self.config.lr_decay, name='lr')
 
-            # self.warmup = 250000
-            # self.learning_rate = tf.sqrt(
-            #     tf.cast(config.model_size, tf.float32)) * tf.minimum(
-            #     1 / tf.sqrt(tf.cast(self.global_step, tf.float32)),
-            #     tf.div(tf.cast(self.global_step, tf.float32), self.warmup))
+            self.warmup = 20000
+            self.sqrtstep = tf.sqrt(tf.cast(self.global_step, tf.float32))
+            self.learning_rate = 0.2 * tf.minimum(
+                1 / self.sqrtstep, tf.div(self.sqrtstep, self.warmup))
+
             if config.optimizer == 'adam':
                 self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
             elif config.optimizer == 'nesterov':
