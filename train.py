@@ -31,7 +31,7 @@ import tensorflow as tf
 from glob import glob
 from tensorflow.python.framework import graph_util
 
-from models.dynamic_rnn import DRNN, DeployModel
+from models.attention_ctc import DRNN, DeployModel
 from reader import read_dataset
 from utils.common import check_dir, path_join
 from utils.prediction import evaluate
@@ -134,7 +134,9 @@ class Runner(object):
                     sess.run([self.train_model.stage_op,
                               self.train_model.input_filequeue_enqueue_op,
                               self.valid_model.stage_op,
-                              self.valid_model.input_filequeue_enqueue_op])
+                              self.valid_model.input_filequeue_enqueue_op,
+                              self.data.noise_stage_op,
+                              self.data.noise_filequeue_enqueue_op])
                     va = tf.trainable_variables()
                     for i in va:
                         print(i.name)
@@ -148,10 +150,12 @@ class Runner(object):
                         #      self.train_model.global_step])
                         # print(x.shape)
                         # print(lab)
-                        _, _, _, l, lr, step, grad = sess.run(
+                        _, _, _, _, _, l, lr, step, grad = sess.run(
                             [self.train_model.train_op,
                              self.train_model.stage_op,
                              self.train_model.input_filequeue_enqueue_op,
+                             self.data.noise_stage_op,
+                             self.data.noise_filequeue_enqueue_op,
                              self.train_model.loss,
                              self.train_model.learning_rate,
                              self.train_model.global_step,

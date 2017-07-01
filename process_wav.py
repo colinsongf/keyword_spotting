@@ -14,7 +14,6 @@
 import librosa
 import numpy as np
 from config.config import get_config
-import os
 import pickle
 import tensorflow as tf
 from utils.common import check_dir, path_join, increment_id
@@ -23,9 +22,12 @@ config = get_config()
 
 wave_train_dir = config.rawdata_path + 'train/'
 wave_valid_dir = config.rawdata_path + 'valid/'
+wave_noise_dir = config.rawdata_path + 'noise/'
 
 save_train_dir = config.train_path
 save_valid_dir = config.valid_path
+save_noise_dir = config.noise_path
+
 global_len = []
 temp_list = []
 error_list = []
@@ -66,35 +68,33 @@ def dense_to_ont_hot(labels_dense, num_classes):
     return labels_one_hot
 
 
-def process_wave(f):
+def process_stft(f):
+    y, sr = librosa.load(f, sr=config.samplerate)
+    linearspec = np.transpose(np.abs(
+        librosa.core.stft(y, config.fft_size,
+                          config.step_size)))
+
+    return linearspec, y
+
+
+def process_mel(f):
     y, sr = librosa.load(f, sr=config.samplerate)
 
-    if config.spectrogram == 'mel':
-        mel_spectrogram = np.transpose(
-            librosa.feature.melspectrogram(y, sr=sr, n_fft=config.fft_size,
-                                           hop_length=config.step_size,
-                                           power=config.power,
-                                           fmin=config.fmin,
-                                           fmax=config.fmax,
-                                           n_mels=config.freq_size))
-    elif config.spectrogram == 'mfcc':
-        mel_spectrogram = np.transpose(
-            librosa.feature.mfcc(y, sr=sr, n_mfcc=config.freq_size,
-                                 n_fft=config.fft_size,
-                                 hop_length=config.step_size,
-                                 power=config.power,
-                                 fmin=config.fmin,
-                                 fmax=config.fmax,
-                                 n_mels=config.freq_size))
-    else:
-        raise (Exception('spectrogram %s not defined' % config.spectrogram))
+    mel_spectrogram = np.transpose(
+        librosa.feature.melspectrogram(y, sr=sr, n_fft=config.fft_size,
+                                       hop_length=config.step_size,
+                                       power=2.,
+                                       fmin=300,
+                                       fmax=8000,
+                                       n_mels=config.num_features))
+
     return mel_spectrogram, y
 
 
 def make_record(f, label):
     # print(f)
     # print(text)
-    spectrogram, wave = process_wave(f)
+    spectrogram, wave = process_stft(f)
     seq_len = spectrogram.shape[0]
     label_values, label_indices, label_shape = convert_label(label)
 
@@ -121,6 +121,19 @@ def make_trainning_example(spectrogram, seq_len, label_values, label_indices,
     return ex
 
 
+def make_noise_example(spectrogram):
+    spectrogram = spectrogram.tolist()
+    ex = tf.train.SequenceExample()
+    ex.context.feature["seq_len"].int64_list.value.append(
+        config.max_sequence_length)
+    fl_audio = ex.feature_lists.feature_list["audio"]
+
+    for frame in spectrogram:
+        fl_audio.feature.add().float_list.value.extend(frame)
+
+    return ex
+
+
 def make_valid_example(spectrogram, seq_len, correctness, label, name):
     spectrogram = spectrogram.tolist()
     ex = tf.train.SequenceExample()
@@ -137,61 +150,6 @@ def make_valid_example(spectrogram, seq_len, correctness, label, name):
         fl_audio.feature.add().float_list.value.extend(frame)
 
     return ex
-
-
-def process_valid_data(f, fname, correctness):
-    # print(f)
-
-    mel_spectrogram, y = process_wave(f)
-
-    data = np.stack([mel_spectrogram] * 1)
-    # print('data shape is ', data.shape)
-
-    seqLengths = np.asarray([mel_spectrogram.shape[0]] * 1, dtype=np.int32)
-    # print(seqLengths.shape)
-
-    return data, seqLengths, fname, correctness
-
-
-def generate_valid_data(pkl_path):
-    with open(pkl_path, 'rb') as f:
-        wav_list = pickle.load(f)
-    print('read pkl from %s' % f)
-    audio_list = [i[0] for i in wav_list]
-    correctness_list = [i[1] for i in wav_list]
-    label_list = [i[2] for i in wav_list]
-    assert len(audio_list) == len(correctness_list)
-    tuple_list = []
-    counter = 0
-    record_count = 0
-    for audio_name, correctness, label in zip(audio_list, correctness_list,
-                                              label_list):
-        spec, seq_len, label_values, label_indices, label_shape = make_record(
-            path_join(wave_valid_dir, audio_name),
-            label)
-        # print(label_values)
-        # print(audio_name)
-        tuple_list.append(
-            (spec, seq_len, correctness, label_values, audio_name))
-        counter += 1
-        if counter == config.tfrecord_size:
-            tuple_list = batch_padding_valid(tuple_list)
-            fname = 'valid' + increment_id(record_count, 5) + '.tfrecords'
-            ex_list = [
-                make_valid_example(spec, seq_len, correctness, label_values,
-                                   audio_name) for
-                spec, seq_len, correctness, label_values, audio_name in
-                tuple_list]
-            writer = tf.python_io.TFRecordWriter(
-                path_join(save_valid_dir, fname))
-            for ex in ex_list:
-                writer.write(ex.SerializeToString())
-            writer.close()
-            record_count += 1
-            counter = 0
-            tuple_list.clear()
-            print(fname, 'created')
-    print('save in %s' % save_valid_dir)
 
 
 def batch_padding_trainning(tup_list):
@@ -219,6 +177,46 @@ def batch_padding_valid(tup_list):
         new_list.append((paded_wave, t[1], t[2], t[3], t[4]))
 
     return new_list
+
+
+def generate_valid_data(pkl_path):
+    with open(pkl_path, 'rb') as f:
+        wav_list = pickle.load(f)
+    print('read pkl from %s' % f)
+    audio_list = [i[0] for i in wav_list]
+    correctness_list = [i[1] for i in wav_list]
+    label_list = [i[2] for i in wav_list]
+    assert len(audio_list) == len(correctness_list)
+    tuple_list = []
+    counter = 0
+    record_count = 0
+    for audio_name, correctness, label in zip(audio_list, correctness_list,
+                                              label_list):
+        spectrogram, wave = process_stft(path_join(wave_valid_dir, audio_name))
+        seq_len = spectrogram.shape[0]
+        label_values, _, _ = convert_label(label)
+
+        tuple_list.append(
+            (spectrogram, seq_len, correctness, label_values, audio_name))
+        counter += 1
+        if counter == config.tfrecord_size:
+            tuple_list = batch_padding_valid(tuple_list)
+            fname = 'valid' + increment_id(record_count, 5) + '.tfrecords'
+            ex_list = [
+                make_valid_example(spec, seq_len, correctness, label_values,
+                                   audio_name) for
+                spec, seq_len, correctness, label_values, audio_name in
+                tuple_list]
+            writer = tf.python_io.TFRecordWriter(
+                path_join(save_valid_dir, fname))
+            for ex in ex_list:
+                writer.write(ex.SerializeToString())
+            writer.close()
+            record_count += 1
+            counter = 0
+            tuple_list.clear()
+            print(fname, 'created')
+    print('save in %s' % save_valid_dir)
 
 
 def generate_trainning_data(path):
@@ -259,6 +257,44 @@ def generate_trainning_data(path):
             tuple_list.clear()
             print(fname, 'created')
     print('save in %s' % save_train_dir)
+
+
+def generate_noise_data(path):
+    with open(path, 'rb') as f:
+        audio_list = pickle.load(f)
+        print('read pkl from ', f)
+    spec_list = []
+    counter = 0
+    record_count = 0
+    for i, audio_name in enumerate(audio_list):
+        spec, y = process_stft(path_join(wave_noise_dir, audio_name))
+        spec_list.append(spec)
+        counter += 1
+        if counter == config.tfrecord_size:
+            spec_list = [
+                expand_spectrogram(s, config.max_sequence_length) for s in
+                spec_list]
+
+            fname = 'noise' + increment_id(record_count, 5) + '.tfrecords'
+            ex_list = [make_noise_example(spec) for spec in spec_list]
+            writer = tf.python_io.TFRecordWriter(
+                path_join(save_noise_dir, fname))
+            for ex in ex_list:
+                writer.write(ex.SerializeToString())
+            writer.close()
+            record_count += 1
+            counter = 0
+            spec_list.clear()
+            print(fname, 'created')
+    print('save in %s' % save_noise_dir)
+
+
+def expand_spectrogram(spec, target_len):
+    times = target_len // spec.shape[0]
+    expand_spec = spec
+    for i in range(times):
+        expand_spec = np.concatenate((expand_spec, spec), 0)
+    return expand_spec[:target_len]
 
 
 def sort_wave(pkl_path):
@@ -332,6 +368,7 @@ def shuffle(pkl_path):
 if __name__ == '__main__':
     check_dir(save_train_dir)
     check_dir(save_valid_dir)
+    check_dir(save_noise_dir)
 
     base_pkl = 'ctc_label_pinyin.pkl'
     # sort_wave(wave_train_dir + base_pkl)
@@ -341,4 +378,5 @@ if __name__ == '__main__':
 
     # sort_wave(wave_valid_dir + "ctc_valid_pinyin.pkl")
     generate_valid_data(wave_valid_dir + "ctc_valid_pinyin.pkl.sorted")
-    # make_example(wave_train_dir+'azure_228965.wav',[[1, 4.12, 8.88]])
+
+    generate_noise_data(wave_noise_dir + 'noise.pkl')

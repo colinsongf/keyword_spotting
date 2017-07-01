@@ -5,7 +5,7 @@
 @author: ZiqiLiu
 
 
-@file: dynamic_rnn.py
+@file: attention_ctc.py
 
 @time: 2017/5/18 上午11:04
 
