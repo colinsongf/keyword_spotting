@@ -71,9 +71,7 @@ class Config(object):
         self.bg_noise_prob = 0.5
 
         # model params
-        self.cell_clip = 3.
         self.num_layers = 2
-        self.init_scale = 0.1
         self.max_grad_norm = -1
         self.freq_size = 60
         self.feed_forward_inner_size = 512

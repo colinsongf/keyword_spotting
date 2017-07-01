@@ -74,7 +74,16 @@ def get_args():
                         type=float, default=None)
     parser.add_argument('--train_path', help='train data path', default=None)
     parser.add_argument('--valid_path', help='valid data path', default=None)
-    parser.add_argument('--feature_num', help='data path', type=int,
+    parser.add_argument('--noise_path', help='noise data path', default=None)
+    parser.add_argument('--freq_size', help='mel feature num', type=int,
+                        default=None)
+    parser.add_argument('--fmin', help='min freq for mel filter', type=int,
+                        default=None)
+    parser.add_argument('--fmax', help='max freq for mel filter', type=int,
+                        default=None)
+    parser.add_argument('-relu', '--use_relu', help='use relu in fc layer',
+                        default=None)
+    parser.add_argument('--power', help='mel filter power:1 or 2', type=int,
                         default=None)
     parser.add_argument('-batch', '--batch_size', help='batch size', type=int,
                         default=None)
