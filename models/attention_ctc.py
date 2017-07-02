@@ -71,6 +71,16 @@ def feed_forward(inputs, config, scope_name='feed_forward'):
 def inference(inputs, seqLengths, config):
     # positional encoding
     max_length = tf.shape(inputs)[1]
+    if config.combine_frame > 1:
+        padding = tf.zeros([1, 1, config.freq_size])
+        padding = tf.tile(padding,
+                          [config.batch_size, 4 - tf.mod(max_length, 4), 1])
+        inputs = tf.concat([inputs, padding], 1)
+        inputs = tf.reshape(inputs, [config.batch_size, -1,
+                                     config.freq_size * config.combine_frame])
+        seqLengths = seqLengths // config.combine_frame + 1
+        max_length = max_length // 4 + 1
+
     inputs = tf.layers.conv2d(
         tf.expand_dims(inputs, 2), config.model_size, (1, 1),
         name='input_linear_trans')  # [B, T, 1, F]
@@ -105,7 +115,7 @@ def inference(inputs, seqLengths, config):
     outputs = tf.squeeze(outputs, 2)  # [B, T, F]
     if config.use_relu:
         outputs = tf.nn.relu(outputs)
-    return outputs
+    return outputs, seqLengths
 
 
 class Attention(object):
@@ -128,14 +138,16 @@ class Attention(object):
     @describe
     def build_graph(self, config, is_train):
 
-        self.nn_outputs = inference(self.inputX, self.seqLengths, config)
+        self.nn_outputs, self.new_seqLengths = inference(self.inputX,
+                                                         self.seqLengths,
+                                                         config)
         self.ctc_input = tf.transpose(self.nn_outputs, perm=[1, 0, 2])
 
         if is_train:
             self.label_dense = tf.sparse_tensor_to_dense(self.label_batch)
             self.ctc_loss = tf.nn.ctc_loss(inputs=self.ctc_input,
                                            labels=self.label_batch,
-                                           sequence_length=self.seqLengths,
+                                           sequence_length=self.new_seqLengths,
                                            ctc_merge_repeated=True,
                                            preprocess_collapse_repeated=False,
                                            time_major=True)
@@ -150,7 +162,8 @@ class Attention(object):
                 initial_learning_rate, self.global_step, self.config.decay_step,
                 self.config.lr_decay, name='lr')
             if config.warmup:
-                self.warmup_lr = tf.train.polynomial_decay(5e-3, self.global_step,
+                self.warmup_lr = tf.train.polynomial_decay(5e-3,
+                                                           self.global_step,
                                                            40000, 1.35e-3, 0.5)
                 self.post_lr = tf.train.exponential_decay(
                     1.5e-3, self.global_step, self.config.decay_step,
@@ -181,7 +194,7 @@ class Attention(object):
             self.softmax = tf.nn.softmax(self.ctc_input)
             self.ctc_decode_input = tf.log(self.softmax)
             self.ctc_decode_result, self.ctc_decode_log_prob = tf.nn.ctc_beam_search_decoder(
-                self.ctc_decode_input, self.seqLengths,
+                self.ctc_decode_input, self.new_seqLengths,
                 beam_width=config.beam_size, top_paths=1)
             self.dense_output = tf.sparse_tensor_to_dense(
                 self.ctc_decode_result[0], default_value=-1)

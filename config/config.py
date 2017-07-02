@@ -71,6 +71,7 @@ class Config(object):
         self.bg_noise_prob = 0.5
 
         # model params
+        self.combine_frame = 1
         self.num_layers = 2
         self.max_grad_norm = -1
         self.freq_size = 60
