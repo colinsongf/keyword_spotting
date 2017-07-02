@@ -108,7 +108,7 @@ def inference(inputs, seqLengths, config):
     return outputs
 
 
-class DRNN(object):
+class Attention(object):
     def __init__(self, config, input, is_train):
         self.config = config
         if is_train:

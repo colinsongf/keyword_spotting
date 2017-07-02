@@ -288,16 +288,20 @@ class DataSet(object):
             self.valid_filename_queue, self.valid_filequeue_enqueue_op = self.string_input_queue(
                 self.valid_filename, shuffle=False, capacity=16384)
 
-            audio, seq_len, correctness, labels, names = self.valid_filequeue_reader(
+            linearspec, seq_len, correctness, labels, names = self.valid_filequeue_reader(
                 self.valid_filename_queue)
+            if self.config.power == 2:
+                linearspec = tf.square(linearspec)
+            melspec = tf.matmul(linearspec, self.mel_basis)
 
             stager = data_flow_ops.StagingArea(
                 [tf.float32, tf.int32, tf.int64, tf.int64, tf.string],
-                shapes=[(self.config.batch_size, None, self.last_dim),
+                shapes=[(self.config.batch_size, None, self.config.freq_size),
                         (self.config.batch_size), (self.config.batch_size),
                         (self.config.batch_size, None), (None,)])
 
-            stage_op = stager.put((audio, seq_len, correctness, labels, names))
+            stage_op = stager.put(
+                (melspec, seq_len, correctness, labels, names))
 
             return stager, stage_op, self.valid_filequeue_enqueue_op
 

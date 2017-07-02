@@ -31,7 +31,7 @@ import tensorflow as tf
 from glob import glob
 from tensorflow.python.framework import graph_util
 
-from models.attention_ctc import DRNN, DeployModel
+from models.attention_ctc import Attention, DeployModel
 from reader import read_dataset
 from utils.common import check_dir, path_join
 from utils.prediction import evaluate
@@ -57,20 +57,20 @@ class Runner(object):
             if config.mode == 'train':
                 print('building training model....')
                 with tf.variable_scope("model"):
-                    self.train_model = DRNN(self.config,
-                                            self.data.batch_input_queue(),
-                                            is_train=True)
+                    self.train_model = Attention(self.config,
+                                                 self.data.batch_input_queue(),
+                                                 is_train=True)
                     self.train_model.config.show()
                 print('building valid model....')
                 with tf.variable_scope("model", reuse=True):
-                    self.valid_model = DRNN(self.config,
-                                            self.data.valid_queue(),
-                                            is_train=False)
+                    self.valid_model = Attention(self.config,
+                                                 self.data.valid_queue(),
+                                                 is_train=False)
             else:
                 with tf.variable_scope("model", reuse=False):
-                    self.valid_model = DRNN(self.config,
-                                            self.data.valid_queue(),
-                                            is_train=False)
+                    self.valid_model = Attention(self.config,
+                                                 self.data.valid_queue(),
+                                                 is_train=False)
             saver = tf.train.Saver()
 
             # restore from stored models
