@@ -21,8 +21,16 @@ import time
 import pickle
 import signal
 from config.config import get_config
+from args import get_args
 
 config = get_config()
+flags = get_args()
+for key in flags:
+    if flags[key] is not None:
+        if not hasattr(config, key):
+            print("WARNING: Invalid override with attribute %s" % (key))
+        else:
+            setattr(config, key, flags[key])
 if not config.ktq:
     os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
 
@@ -35,7 +43,7 @@ from models.attention_ctc import Attention, DeployModel
 from reader import read_dataset
 from utils.common import check_dir, path_join
 from utils.prediction import evaluate
-from args import get_args
+
 from utils.wer import WERCalculator
 
 DEBUG = False
@@ -355,14 +363,6 @@ def ctc_predict(seq):
 
 
 if __name__ == '__main__':
-
-    flags = get_args()
-    for key in flags:
-        if flags[key] is not None:
-            if not hasattr(config, key):
-                print("WARNING: Invalid override with attribute %s" % (key))
-            else:
-                setattr(config, key, flags[key])
 
     print(flags)
     runner = Runner(config)
