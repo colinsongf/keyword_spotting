@@ -23,7 +23,7 @@ from utils.common import describe
 from positional_encoding import positional_encoding_op
 
 
-def self_attention(inputs, config, scope_name='self_attention'):
+def self_attention(inputs, config, is_training, scope_name='self_attention'):
     # inputs - [batch_size, time_steps, model_size]
     # return - [batch_size, time_steps, model_size]
     assert (config.model_size % config.multi_head_num == 0)
@@ -47,7 +47,8 @@ def self_attention(inputs, config, scope_name='self_attention'):
 
         a = tf.matmul(q_, tf.transpose(k_, [0, 2, 1]))  # (h * B, T, T)
         a = tf.nn.softmax(a / math.sqrt(head_size))
-        a = tf.nn.dropout(a, config.keep_prob)
+        if is_training:
+            a = tf.nn.dropout(a, config.keep_prob)
         a = tf.matmul(a, v_)  # [h * B, T, N / h]
 
         outputs = tf.concat(tf.split(a, config.multi_head_num, axis=0),
@@ -68,7 +69,7 @@ def feed_forward(inputs, config, scope_name='feed_forward'):
     return tf.squeeze(outputs, 2)
 
 
-def inference(inputs, seqLengths, config):
+def inference(inputs, seqLengths, config, is_training):
     # positional encoding
     max_length = tf.shape(inputs)[1]
     if config.combine_frame > 1:
@@ -94,16 +95,19 @@ def inference(inputs, seqLengths, config):
     for j in range(config.num_layers):
         with tf.variable_scope('layer_%d' % j):
             # self attention sub-layer
-            attention_outputs = self_attention(layer_inputs, config)
-            attention_outputs = tf.nn.dropout(
-                attention_outputs, config.keep_prob)
+            attention_outputs = self_attention(layer_inputs, config,
+                                               is_training)
+            if is_training:
+                attention_outputs = tf.nn.dropout(
+                    attention_outputs, config.keep_prob)
             # add and norm
             feed_forward_inputs = tf.contrib.layers.layer_norm(
                 attention_outputs + layer_inputs)
             # feed forward sub-layer
             feed_forward_outputs = feed_forward(feed_forward_inputs, config)
-            feed_forward_outputs = tf.nn.dropout(
-                feed_forward_outputs, config.keep_prob)
+            if is_training:
+                feed_forward_outputs = tf.nn.dropout(
+                    feed_forward_outputs, config.keep_prob)
             # add and norm
             layer_outputs = tf.contrib.layers.layer_norm(
                 feed_forward_outputs + feed_forward_inputs)
@@ -140,7 +144,7 @@ class Attention(object):
 
         self.nn_outputs, self.new_seqLengths = inference(self.inputX,
                                                          self.seqLengths,
-                                                         config)
+                                                         config, is_train)
         self.ctc_input = tf.transpose(self.nn_outputs, perm=[1, 0, 2])
 
         if is_train:
@@ -210,6 +214,10 @@ class DeployModel(object):
         """
 
         # input place holder
+        config.use_bg_noise = False
+        config.use_white_noise = False
+        config.keep_prob = 1
+
         with tf.device('/cpu:0'):
             self.inputX = tf.placeholder(dtype=tf.float32,
                                          shape=[None, config.num_features],
@@ -219,7 +227,8 @@ class DeployModel(object):
 
             self.seqLength = tf.placeholder(dtype=tf.int32, shape=[1],
                                             name='seqLength')
-            attention_output = inference(inputX, self.seqLength, config)
+            attention_output = inference(inputX, self.seqLength, config,
+                                         is_training=False)
 
             with tf.name_scope('fc-layer'):
                 if config.use_project:
