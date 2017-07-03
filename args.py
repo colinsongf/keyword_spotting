@@ -89,8 +89,10 @@ def get_args():
                         default=None)
     parser.add_argument('-bg', '--use_bg_noise', help='use_bg_noise', type=int,
                         default=None)
-    parser.add_argument('-wh', '--use_white_noise', help='use_white_noise', type=int,
-                        default=None)
+    parser.add_argument('-wh', '--use_white_noise', help='use_white_noise',
+                        type=int, default=None)
+    parser.add_argument('-combine', '--combine_frame', help='combine frames',
+                        type=int, default=None)
 
     flags = parser.parse_args().__dict__
     return flags

@@ -30,9 +30,9 @@ class Config(object):
         self.graph_path = './graph/mel/'
         self.graph_name = 'graph.pb'
 
-        self.train_path = '/ssd/liuziqi/ctc_pinyin/train/'
-        self.valid_path = '/ssd/liuziqi/ctc_pinyin/valid/'
-        self.noise_path = '/ssd/liuziqi/ctc_pinyin/noise/'
+        self.train_path = '/ssd/liuziqi/ctc_24w/train/'
+        self.valid_path = '/ssd/liuziqi/ctc_24w/valid/'
+        self.noise_path = '/ssd/liuziqi/ctc_24w/noise/'
         self.model_name = 'latest.ckpt'
         self.rawdata_path = './rawdata/'
         self.rawdata_path = '/ssd/keyword/'

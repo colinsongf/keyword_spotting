@@ -79,5 +79,5 @@ except KeyboardInterrupt:
         else:
             current = i[0]
             new_list.append(i)
-    with open('./download/list.pkl', 'wb') as f:
+    with open('./download/new_list.pkl', 'wb') as f:
         pickle.dump(new_list, f)

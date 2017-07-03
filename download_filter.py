@@ -14,13 +14,14 @@
 import pickle
 import librosa
 import os
+from tqdm import tqdm
 
 with open('./download/list.pkl', 'rb') as f:
     wave_list = pickle.load(f)
 new_list = []
 
 max_len = 16000 * 12
-for i in wave_list:
+for i in tqdm(wave_list):
     y, sr = librosa.load('./download/' + i[0], sr=16000)
     if len(y) > max_len:
         os.system('rm ./download/%s' % i[0])
