@@ -75,12 +75,14 @@ def inference(inputs, seqLengths, config, is_training):
     if config.combine_frame > 1:
         padding = tf.zeros([1, 1, config.freq_size])
         padding = tf.tile(padding,
-                          [config.batch_size, 4 - tf.mod(max_length, 4), 1])
+                          [config.batch_size,
+                           config.combine_frame - tf.mod(max_length,
+                                                    config.combine_frame), 1])
         inputs = tf.concat([inputs, padding], 1)
         inputs = tf.reshape(inputs, [config.batch_size, -1,
                                      config.freq_size * config.combine_frame])
         seqLengths = seqLengths // config.combine_frame + 1
-        max_length = max_length // 4 + 1
+        max_length = max_length // config.combine_frame + 1
 
     inputs = tf.layers.conv2d(
         tf.expand_dims(inputs, 2), config.model_size, (1, 1),
