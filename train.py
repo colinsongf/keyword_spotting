@@ -42,7 +42,7 @@ from tensorflow.python.framework import graph_util
 from models.attention_ctc import Attention, DeployModel
 from reader import read_dataset
 from utils.common import check_dir, path_join
-from utils.prediction import evaluate
+from utils.prediction import evaluate, ctc_predict
 
 from utils.wer import WERCalculator
 
@@ -280,8 +280,9 @@ class Runner(object):
                     # if i > 7:
                     #     break
                     ind = 14
-                    ctc_output, correctness, labels, names, _, _ = sess.run(
+                    ctc_output, ctc_input, correctness, labels, names, _, _ = sess.run(
                         [self.valid_model.dense_output,
+                         self.valid_model.nn_outputs,
                          self.valid_model.correctness,
                          self.valid_model.labels,
                          self.valid_model.names,
@@ -290,16 +291,24 @@ class Runner(object):
                     np.set_printoptions(precision=4,
                                         threshold=np.inf,
                                         suppress=True)
-                    for output, lab, name in zip(ctc_output, labels, names):
-                        print('-' * 20)
-                        print(name.decode())
-                        print('output', output.tolist())
-                        print('golden', lab.tolist())
-
+                    # for output, lab, name in zip(ctc_output, labels, names):
+                    #     print('-' * 20)
+                    #     print(name.decode())
+                    #     print('output', output.tolist())
+                    #     print('golden', lab.tolist())
+                    correctness = correctness.tolist()
                     result = [ctc_predict(seq) for seq in
                               ctc_output]
+                    for k, r in enumerate(result):
+                        if r != correctness[k]:
+                            print(names[k].decode())
+                            print(ctc_output[k])
+                            print(labels[k])
+                            with open('logits.txt', 'w') as f:
+                                f.write(str(ctc_input[k]))
+
                     miss, target, false_accept = evaluate(
-                        result, correctness.tolist())
+                        result, correctness)
 
                     miss_count += miss
                     target_count += target
@@ -313,6 +322,7 @@ class Runner(object):
                     false_count, self.data.validation_size - target_count))
 
     def build_graph(self):
+        check_dir(self.config.graph_path)
         config_path = path_join(self.config.graph_path, 'config.pkl')
         graph_path = path_join(self.config.graph_path, self.config.graph_name)
         import pickle
@@ -336,8 +346,7 @@ class Runner(object):
 
             frozen_graph_def = graph_util.convert_variables_to_constants(
                 session, session.graph.as_graph_def(),
-                ['model/inputX', 'model/softmax', 'model/seqLength',
-                 'model/fuck'])
+                ['model/inputX', 'model/seqLength','model/dense_output'])
             tf.train.write_graph(
                 frozen_graph_def,
                 os.path.dirname(graph_path),
@@ -352,20 +361,11 @@ class Runner(object):
             print('graph saved in %s' % graph_path)
 
 
-def ctc_predict(seq):
-    text = ''
-    for i in seq:
-        if i < 0:
-            break
-        if i > 0:
-            text += str(i)
-    return 1 if '1233' in text else 0
-
-
 if __name__ == '__main__':
 
     print(flags)
     runner = Runner(config)
     if config.mode == 'build':
         runner.build_graph()
-    runner.run()
+    else:
+        runner.run()

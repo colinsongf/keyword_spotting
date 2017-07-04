@@ -69,17 +69,20 @@ def feed_forward(inputs, config, scope_name='feed_forward'):
     return tf.squeeze(outputs, 2)
 
 
-def inference(inputs, seqLengths, config, is_training):
+def inference(inputs, seqLengths, config, is_training, batch_size=None):
+    if not batch_size:
+        batch_size = config.batch_size
     # positional encoding
     max_length = tf.shape(inputs)[1]
     if config.combine_frame > 1:
         padding = tf.zeros([1, 1, config.freq_size])
         padding = tf.tile(padding,
-                          [config.batch_size,
+                          [batch_size,
                            config.combine_frame - tf.mod(max_length,
-                                                    config.combine_frame), 1])
+                                                         config.combine_frame),
+                           1])
         inputs = tf.concat([inputs, padding], 1)
-        inputs = tf.reshape(inputs, [config.batch_size, -1,
+        inputs = tf.reshape(inputs, [batch_size, -1,
                                      config.freq_size * config.combine_frame])
         seqLengths = seqLengths // config.combine_frame + 1
         max_length = max_length // config.combine_frame + 1
@@ -203,7 +206,8 @@ class Attention(object):
                 self.ctc_decode_input, self.new_seqLengths,
                 beam_width=config.beam_size, top_paths=1)
             self.dense_output = tf.sparse_tensor_to_dense(
-                self.ctc_decode_result[0], default_value=-1)
+                self.ctc_decode_result[0], default_value=-1,
+                name='dense_output')
 
 
 class DeployModel(object):
@@ -222,38 +226,27 @@ class DeployModel(object):
 
         with tf.device('/cpu:0'):
             self.inputX = tf.placeholder(dtype=tf.float32,
-                                         shape=[None, config.num_features],
+                                         shape=[None, config.freq_size],
                                          name='inputX')
-            inputX = tf.expand_dims(self.inputX, 0, name='reshape_inputX')
-            self.fuck = tf.identity(inputX, name='fuck')
+            self.inputX = tf.expand_dims(self.inputX, 0, name='reshape_inputX')
+            self.fuck = tf.identity(self.inputX, name='fuck')
 
-            self.seqLength = tf.placeholder(dtype=tf.int32, shape=[1],
-                                            name='seqLength')
-            attention_output = inference(inputX, self.seqLength, config,
-                                         is_training=False)
-
-            with tf.name_scope('fc-layer'):
-                if config.use_project:
-                    weightsClasses = tf.get_variable(name='weightsClasses',
-                                                     initializer=tf.truncated_normal(
-                                                         [config.num_proj,
-                                                          config.num_classes]))
-                    flatten_outputs = tf.reshape(attention_output,
-                                                 (-1, config.num_proj))
-                else:
-                    weightsClasses = tf.get_variable(name='weightsClasses',
-                                                     initializer=tf.truncated_normal(
-                                                         [config.hidden_size,
-                                                          config.num_classes]))
-                    flatten_outputs = tf.reshape(attention_output,
-                                                 (-1, config.hidden_size))
-                biasesClasses = tf.get_variable(name='biasesClasses',
-                                                initializer=tf.truncated_normal(
-                                                    [config.num_classes]))
-
-            flatten_logits = tf.matmul(flatten_outputs,
-                                       weightsClasses) + biasesClasses
-            self.softmax = tf.nn.softmax(flatten_logits, name='softmax')
+            self.seqLengths = tf.placeholder(dtype=tf.int32, shape=[1],
+                                             name='seqLength')
+            self.nn_outputs, self.new_seqLengths = inference(self.inputX,
+                                                             self.seqLengths,
+                                                             config,
+                                                             is_training=False,
+                                                             batch_size=1)
+            self.ctc_input = tf.transpose(self.nn_outputs, perm=[1, 0, 2])
+            self.softmax = tf.nn.softmax(self.ctc_input)
+            self.ctc_decode_input = tf.log(self.softmax)
+            self.ctc_decode_result, self.ctc_decode_log_prob = tf.nn.ctc_beam_search_decoder(
+                self.ctc_decode_input, self.new_seqLengths,
+                beam_width=config.beam_size, top_paths=1)
+            self.dense_output = tf.sparse_tensor_to_dense(
+                self.ctc_decode_result[0], default_value=-1,
+                name='dense_output')
 
 
 if __name__ == "__main__":
