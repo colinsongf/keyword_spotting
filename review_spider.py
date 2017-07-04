@@ -17,67 +17,96 @@ import os
 import re
 import pickle
 from glob import glob
+import json
+from concurrent.futures import ThreadPoolExecutor
 
 base_url = 'http://speechreview.in.naturali.io/prod/'
-i = 0
-p = re.compile(r'[a-zA-Z]+')
-wave_list = []
+
+wave_list = {}
+
 exist = set()
 if os.path.exists('./download/list.pkl'):
     with open('./download/list.pkl', 'rb') as f:
         wav_list = pickle.load(f)
-    exist = set([i[1] for i in wave_list])
+    exist = set(wave_list.keys())
 
-try:
-    while True:
-        print(i)
-        r = requests.get(
-            base_url + 'get?limit=50&offset=%d&maxid=16335321' % (i * 50))
 
-        i += 1
-        a = r.content
-        records = json.loads(a.decode())['Detail']
-        for r in records:
+def fetch():
+    json_list = ['./dump/0630.json', './dump/0629.json']
+    records = []
+    for j in json_list:
+        with open(j, 'r', encoding='utf-8') as f:
+            records.extend(json.load(f)['Detail'])
 
-            key = r['nires']
-            wav_file = r['awskey']
-            if not wav_file in exist and len(key) > 1 and len(key) < 12:
-                if ('你' in key or '好' in key or (
-                                '乐' in key and not '音乐' in key)) and not p.findall(
-                    key):
-                    download_url = base_url + 'audio/' + wav_file
-                    wave = requests.get(download_url).content
-                    wave_list.append((wav_file, key))
-                    path = "./download/" + wav_file
-                    print(r['awskey'])
-                    with open(path, 'wb') as f:
-                        f.write(wave)
+    p = re.compile(r'[a-zA-Z]+')
 
-                        # if key.count('乐乐') == 1 and key.count('你好') == 0:
-                        #     download_url = base_url + 'audio/' + key
-                        #     wave = requests.get(download_url).content
-                        #     path = "./lele/" + key
-                        #     print(r['awskey'])
-                        #     with open(path, 'wb') as f:
-                        #         f.write(wave)
-                        # elif key.count('你好') == 1 and key.count('乐乐') == 1:
-                        #     download_url = base_url + 'audio/' + key
-                        #     wave = requests.get(download_url).content
-                        #     path = "./nihaolele/" + key
-                        #     print(r['awskey'])
-                        #     with open(path, 'wb') as f:
-                        #         f.write(wave)
-except KeyboardInterrupt:
+    for r in records:
+
+        key = r['nires']
+        wav_file = r['awskey']
+        queryid = r['queryid']
+        deviceid = r['deviceid']
+
+        if not wav_file in exist and len(key) > 1 and len(key) < 12:
+            if ('你' in key or '好' in key or (
+                            '乐' in key and not '音乐' in key)) and not p.findall(
+                key):
+                wave_list[wav_file] = (key, queryid, deviceid)
+    print(len(wave_list))
     with open('./download/list.pkl', 'wb') as f:
         pickle.dump(wave_list, f)
-    wave_list = sorted(wave_list, key=lambda k: k[0])
-    new_list = []
-    current = None
-    for i in wave_list:
-        if i[0] == current:
-            continue
+
+
+def download(wave_dict=wave_list):
+    model1 = 'old-model'
+    model2 = 'mix-plus-full-type-decoder-0629'
+    sbs_url = 'http://sbs-dev.naturali.io/api/asr/%s/prod/%s?deviceid=%s&contact=0&appinfo=0'
+
+    if len(wave_dict) == 0:
+        with open('./download/list.pkl', 'rb') as f:
+            wave_dict = pickle.load(f)
+    wave_list = [tuple([key] + list(wave_dict[key])) for key in wave_dict]
+
+    def worker(wav_file, key, queryid, deviceid):
+
+        q1 = \
+            json.loads(
+                requests.get(sbs_url % (model1, queryid, deviceid)).text,
+                encoding='utf-8')[
+                'result']
+        q2 = \
+            json.loads(
+                requests.get(sbs_url % (model2, queryid, deviceid)).text,
+                encoding='utf-8')[
+                'result']
+        if q1 == q2:
+            download_url = base_url + 'audio/' + wav_file
+            wave = requests.get(download_url).content
+            wave_list.append((wav_file, key))
+            path = "./download/" + wav_file
+            print(key)
+            with open(path, 'wb') as f:
+                f.write(wave)
         else:
-            current = i[0]
-            new_list.append(i)
-    with open('./download/new_list.pkl', 'wb') as f:
-        pickle.dump(new_list, f)
+            print('skip')
+
+    ex = ThreadPoolExecutor(max_workers=40)
+    for wav_file, key, queryid, deviceid in wave_list:
+        ex.submit(worker, wav_file, key, queryid, deviceid)
+
+    print('done!')
+
+
+def div_list(l, n):
+    length = len(l)
+    t = length // n
+    quaters = [t * i for i in range(0, n)]
+    ran = range(0, n - 1)
+    result = [l[quaters[i]:quaters[i + 1]] for i in ran]
+    result.append(l[quaters[n - 1]:len(l)])
+    return result
+
+
+if __name__ == '__main__':
+    # fetch()
+    download()
