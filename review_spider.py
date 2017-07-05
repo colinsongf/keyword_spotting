@@ -32,7 +32,8 @@ if os.path.exists('./download/list.pkl'):
 
 
 def fetch():
-    json_list = ['./dump/0630.json', './dump/0629.json']
+    json_list = ['./dump/0620.json', './dump/0624.json', './dump/0624.json',
+                 './dump/0627.json', './dump/0702.json', './dump/0628.json']
     records = []
     for j in json_list:
         with open(j, 'r', encoding='utf-8') as f:
@@ -59,7 +60,7 @@ def fetch():
 
 def download(wave_dict=wave_list):
     model1 = 'old-model'
-    model2 = 'mix-plus-full-type-decoder-0629'
+    model2 = 'prod-0704'
     sbs_url = 'http://sbs-dev.naturali.io/api/asr/%s/prod/%s?deviceid=%s&contact=0&appinfo=0'
 
     if len(wave_dict) == 0:
@@ -68,17 +69,20 @@ def download(wave_dict=wave_list):
     wave_list = [tuple([key] + list(wave_dict[key])) for key in wave_dict]
 
     def worker(wav_file, key, queryid, deviceid):
-
+        # print(wav_file, key, queryid, deviceid)
         q1 = \
             json.loads(
                 requests.get(sbs_url % (model1, queryid, deviceid)).text,
                 encoding='utf-8')[
                 'result']
+
         q2 = \
             json.loads(
                 requests.get(sbs_url % (model2, queryid, deviceid)).text,
                 encoding='utf-8')[
                 'result']
+        print(q1,q2)
+        print('flag1')
         if q1 == q2:
             download_url = base_url + 'audio/' + wav_file
             wave = requests.get(download_url).content
