@@ -18,7 +18,7 @@ import re
 import pickle
 from glob import glob
 import json
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 base_url = 'http://speechreview.in.naturali.io/prod/'
 
@@ -32,8 +32,8 @@ if os.path.exists('./download/list.pkl'):
 
 
 def fetch():
-    json_list = ['./dump/0620.json', './dump/0624.json', './dump/0624.json',
-                 './dump/0627.json', './dump/0702.json', './dump/0628.json']
+    json_list = ['./dump/0620.json', './dump/0624.json', './dump/0627.json',
+                 './dump/0628.json', './dump/0702.json']
     records = []
     for j in json_list:
         with open(j, 'r', encoding='utf-8') as f:
@@ -54,8 +54,11 @@ def fetch():
                 key):
                 wave_list[wav_file] = (key, queryid, deviceid)
     print(len(wave_list))
+    new_list = []
+    for key in wave_list:
+        new_list.append((key,)+wave_list[key])
     with open('./download/list.pkl', 'wb') as f:
-        pickle.dump(wave_list, f)
+        pickle.dump(new_list, f)
 
 
 def download(wave_dict=wave_list):
@@ -65,38 +68,51 @@ def download(wave_dict=wave_list):
 
     if len(wave_dict) == 0:
         with open('./download/list.pkl', 'rb') as f:
-            wave_dict = pickle.load(f)
-    wave_list = [tuple([key] + list(wave_dict[key])) for key in wave_dict]
+            wave_list = pickle.load(f)
 
     def worker(wav_file, key, queryid, deviceid):
-        # print(wav_file, key, queryid, deviceid)
-        q1 = \
-            json.loads(
-                requests.get(sbs_url % (model1, queryid, deviceid)).text,
-                encoding='utf-8')[
-                'result']
+        try:
 
-        q2 = \
-            json.loads(
-                requests.get(sbs_url % (model2, queryid, deviceid)).text,
-                encoding='utf-8')[
-                'result']
-        print(q1,q2)
-        print('flag1')
-        if q1 == q2:
-            download_url = base_url + 'audio/' + wav_file
-            wave = requests.get(download_url).content
-            wave_list.append((wav_file, key))
-            path = "./download/" + wav_file
-            print(key)
-            with open(path, 'wb') as f:
-                f.write(wave)
-        else:
-            print('skip')
+            q1 = \
+                json.loads(
+                    requests.get(sbs_url % (model1, queryid, deviceid)).text,
+                    encoding='utf-8')[
+                    'result']
+            q2 = \
+                json.loads(
+                    requests.get(sbs_url % (model2, queryid, deviceid)).text,
+                    encoding='utf-8')[
+                    'result']
+            if q1 == q2:
+                download_url = base_url + 'audio/' + wav_file
+                wave = requests.get(download_url).content
+                wave_list.append((wav_file, key))
+                path = "./download/" + wav_file
+                print(key)
+                with open(path, 'wb') as f:
+                    f.write(wave)
+            else:
+                print('skip')
+            return 'done'
+        except Exception as e:
+            raise Exception(wav_file)
 
-    ex = ThreadPoolExecutor(max_workers=40)
+    ex = ThreadPoolExecutor(max_workers=6)
+    futures = []
     for wav_file, key, queryid, deviceid in wave_list:
-        ex.submit(worker, wav_file, key, queryid, deviceid)
+        futures.append(ex.submit(worker, wav_file, key, queryid, deviceid))
+    for fu in as_completed(futures):
+        try:
+            data = fu.result()
+        except Exception as e:
+            stop_file = str(e)
+            stop_i = 0
+            for i, tup in enumerate(wave_list):
+                if stop_file == tup[0]:
+                    stop_i = i
+            new_list = wave_list[stop_i:]
+            with open('./download/rest.pkl', 'wb') as f:
+                pickle.dump(new_list, f)
 
     print('done!')
 
