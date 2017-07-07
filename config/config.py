@@ -31,9 +31,9 @@ class Config(object):
         self.graph_path = './graph/ctc/'
         self.graph_name = 'graph.pb'
 
-        self.train_path = '/ssd/liuziqi/ctc_24w/train/'
-        self.valid_path = '/ssd/liuziqi/ctc_24w/valid/'
-        self.noise_path = '/ssd/liuziqi/ctc_24w/noise/'
+        self.train_path = '/ssd/liuziqi/ctc_23w/train/'
+        self.valid_path = '/ssd/liuziqi/ctc_23w/valid/'
+        self.noise_path = '/ssd/liuziqi/ctc_23w/noise/'
         self.model_name = 'latest.ckpt'
         self.rawdata_path = './rawdata/'
         self.rawdata_path = '/ssd/keyword/'
@@ -92,6 +92,7 @@ class Config(object):
     def beam_size(self):
         return self.num_classes - 1
 
+    @property
     def freq_size(self):
         return self.n_mfcc * 3 if self.mfcc else self.n_mel
 

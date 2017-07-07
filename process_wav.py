@@ -312,6 +312,9 @@ def sort_wave(pkl_path):
     with open(pkl_path + '.sorted', "wb") as f:
         pickle.dump(sorted_data, f)
 
+    y,sr = librosa.load(sorted_data[0][0])
+    print(len(y))
+
 
 def shuffle(pkl_path):
     import random
@@ -372,11 +375,11 @@ if __name__ == '__main__':
 
     base_pkl = 'ctc_label.pkl'
     sort_wave(wave_train_dir + base_pkl)
-    shuffle(wave_train_dir + base_pkl + '.sorted')
-    generate_trainning_data(
-        wave_train_dir + base_pkl + '.sorted.shuffled')
-
-    # sort_wave(wave_valid_dir + "ctc_valid_pinyin.pkl")
-    generate_valid_data(wave_valid_dir + "ctc_valid.pkl.sorted")
-
-    generate_noise_data(wave_noise_dir + 'noise.pkl')
+    # shuffle(wave_train_dir + base_pkl + '.sorted')
+    # generate_trainning_data(
+    #     wave_train_dir + base_pkl + '.sorted.shuffled')
+    #
+    # # sort_wave(wave_valid_dir + "ctc_valid_pinyin.pkl")
+    # generate_valid_data(wave_valid_dir + "ctc_valid.pkl.sorted")
+    #
+    # generate_noise_data(wave_noise_dir + 'noise.pkl')
