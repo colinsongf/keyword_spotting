@@ -23,6 +23,7 @@ from utils.common import describe
 from positional_encoding import positional_encoding_op
 
 
+
 def self_attention(inputs, config, is_training, scope_name='self_attention'):
     # inputs - [batch_size, time_steps, model_size]
     # return - [batch_size, time_steps, model_size]

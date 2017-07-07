@@ -15,7 +15,7 @@ compiler = OperaterCompiler('Positional Encoding',
                             source_dir,
                             lib_dirs)
 
-compiler.record_cpu_basis(['positional_encoding_op.cc'],
+compiler.record_cpu_basis(['mfcc.cc'],
                           '_positional_encoding_op.so')
 
 _positional_encoding_module = compiler.compile()

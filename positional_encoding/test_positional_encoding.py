@@ -2,7 +2,7 @@
 import numpy as np
 import tensorflow as tf
 
-from plugins.positional_encoding import positional_encoding_op 
+from positional_encoding import positional_encoding_op
 
 
 size = 16
