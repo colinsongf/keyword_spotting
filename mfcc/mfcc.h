@@ -17,8 +17,8 @@ limitations under the License.
 
 #include <vector>
 
-#include "tensorflow/core/kernels/mfcc_dct.h"
-#include "tensorflow/core/kernels/mfcc_mel_filterbank.h"
+#include "mfcc_dct.h"
+#include "mfcc_mel_filterbank.h"
 #include "tensorflow/core/platform/logging.h"
 #include "tensorflow/core/framework/op_kernel.h"
 

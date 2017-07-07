@@ -17,10 +17,38 @@ limitations under the License.
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/framework/types.h"
-#include "tensorflow/core/kernels/mfcc.h"
+#include "tensorflow/core/framework/common_shape_fns.h"
+#include "tensorflow/core/framework/op.h"
+#include "tensorflow/core/framework/shape_inference.h"
+#include "tensorflow/core/lib/core/bits.h"
+#include "mfcc.h"
 #include "tensorflow/core/lib/core/status.h"
 
 namespace tensorflow {
+
+using shape_inference::DimensionHandle;
+using shape_inference::InferenceContext;
+using shape_inference::ShapeHandle;
+
+Status MfccShapeFn(InferenceContext* c) {
+  ShapeHandle spectrogram;
+  TF_RETURN_IF_ERROR(c->WithRank(c->input(0), 3, &spectrogram));
+  ShapeHandle unused;
+  TF_RETURN_IF_ERROR(c->WithRank(c->input(1), 1, &unused));
+
+  int32 dct_coefficient_count;
+  TF_RETURN_IF_ERROR(
+      c->GetAttr("dct_coefficient_count", &dct_coefficient_count));
+
+  DimensionHandle spectrogram_channels = c->Dim(spectrogram, 0);
+  DimensionHandle spectrogram_length = c->Dim(spectrogram, 1);
+
+  DimensionHandle output_channels = c->MakeDim(dct_coefficient_count);
+
+  c->set_output(0, c->MakeShape({spectrogram_channels, spectrogram_length,
+                                 output_channels}));
+  return Status::OK();
+}
 
 // Create a speech fingerpring from spectrogram data.
 class MfccOp : public OpKernel {

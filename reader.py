@@ -23,6 +23,51 @@ from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.ops import random_ops
 
 
+def power_to_db(S, amin=1e-10, top_db=80.0):
+    # S must be real number (magnitude)
+    # S.shape = (B,T,H)
+    log_spec = 10.0 * np.log10(np.maximum(amin, S))
+    if top_db is not None:
+        if top_db < 0:
+            raise Exception('top_db must be non-negative')
+        log_spec = tf.maximum(log_spec, tf.reduce_max(log_spec) - top_db)
+    return log_spec
+
+
+def dct(n_filters, n_input):
+    basis = np.empty((n_filters, n_input))
+    basis[0, :] = 1.0 / np.sqrt(n_input)
+
+    samples = np.arange(1, 2 * n_input, 2) * np.pi / (2.0 * n_input)
+
+    for i in range(1, n_filters):
+        basis[i, :] = np.cos(i * samples) * np.sqrt(2.0 / n_input)
+
+    return basis.T
+
+
+def mfcc(linearspec, config, n_mfcc=13, top_db=None):
+    # linearspec.shape=(T,B,H)
+
+
+    mel_basis = librosa.filters.mel(
+        sr=config.samplerate,
+        n_fft=config.fft_size,
+        fmin=config.fmin,
+        fmax=config.fmax,
+        n_mels=config.freq_size).T
+    mel_basis = tf.constant(value=mel_basis, dtype=tf.float32)
+    mel_basis = tf.tile(tf.expand_dims(mel_basis, 0),
+                        [config.batch_size, 1, 1])
+    melspec = tf.matmul(linearspec, mel_basis)
+    S = power_to_db(melspec, top_db)
+
+    dct_basis = dct(n_mfcc, config.freq_size)
+    dct_basis = tf.tile(tf.expand_dims(dct_basis, 0),
+                        [config.batch_size, 1, 1])
+    return tf.matmul(S, dct_basis)
+
+
 class DataSet(object):
     def __init__(self, config, train_dir, valid_dir, noise_dir, mode='train'):
         self.config = config

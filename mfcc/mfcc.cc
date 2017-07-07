@@ -12,7 +12,7 @@ limitations under the License.
 
 #include <math.h>
 
-#include "tensorflow/core/kernels/mfcc.h"
+#include "mfcc.h"
 
 #include "tensorflow/core/platform/logging.h"
 

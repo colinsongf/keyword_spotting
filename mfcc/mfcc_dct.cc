@@ -10,7 +10,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tensorflow/core/kernels/mfcc_dct.h"
+#include "mfcc_dct.h"
 
 #include <math.h>
 #include "tensorflow/core/platform/logging.h"
