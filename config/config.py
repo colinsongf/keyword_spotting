@@ -20,6 +20,7 @@ def get_config():
 class Config(object):
     def __init__(self):
         self.mode = "train"  # train,valid,build
+        self.mfcc = False
         self.ktq = False
         self.spectrogram = 'mel'  # mfcc,mel
         self.label_dict = {'ni3': 1, 'hao3': 2,
@@ -61,6 +62,8 @@ class Config(object):
         self.power = 1
         self.fmin = 300
         self.fmax = 8000
+        self.n_mfcc = 13
+        self.n_mel = 60
 
         # noise flags
         self.use_white_noise = False
@@ -74,7 +77,6 @@ class Config(object):
         self.combine_frame = 2
         self.num_layers = 3
         self.max_grad_norm = -1
-        self.freq_size = 60
         self.feed_forward_inner_size = 512
         self.keep_prob = 0.9
         self.multi_head_num = 8
@@ -89,6 +91,9 @@ class Config(object):
     @property
     def beam_size(self):
         return self.num_classes - 1
+
+    def freq_size(self):
+        return self.n_mfcc * 3 if self.mfcc else self.n_mel
 
     def show(self):
         for item in self.__dict__:

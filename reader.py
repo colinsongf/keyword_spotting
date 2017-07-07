@@ -46,10 +46,36 @@ def dct(n_filters, n_input):
     return basis.T
 
 
+def delta(feat, N):
+    from functools import reduce
+    if N < 1:
+        raise ValueError('N must be an integer >= 1')
+    denominator = 2 * sum([i ** 2 for i in range(1, N + 1)])
+    delta_rersult = reduce(lambda a, b: a + b,
+                           [_delta_order(feat, i) for i in
+                            range(1, 1 + N)])
+    delta_rersult = delta_rersult / denominator
+
+    return delta_rersult
+
+
+def _delta_order(feat, order):
+    tf.pad(feat, [[0, 0], [2 * order, 2 * order], [0, 0]], "CONSTANT")
+    padding_head = tf.slice(feat, [0, 0, 0], [-1, 1, -1])
+    padding_head = tf.tile(padding_head, [1, 2, 1])
+    padding_tail = tf.slice(feat, [0, tf.shape(feat)[1] - 1, 0], [-1, 1, -1])
+    padding_tail = tf.tile(padding_tail, [1, 2, 1])
+
+    subtracted = tf.concat([feat, padding_tail], 1)
+    subtractor = tf.concat([padding_head, feat], 1)
+    delta_result = subtracted - subtractor * order
+    return delta_result
+
+
 def mfcc(linearspec, config, n_mfcc=13, top_db=None):
     # linearspec.shape=(T,B,H)
 
-
+    linearspec= tf.square(linearspec)
     mel_basis = librosa.filters.mel(
         sr=config.samplerate,
         n_fft=config.fft_size,
@@ -65,7 +91,10 @@ def mfcc(linearspec, config, n_mfcc=13, top_db=None):
     dct_basis = dct(n_mfcc, config.freq_size)
     dct_basis = tf.tile(tf.expand_dims(dct_basis, 0),
                         [config.batch_size, 1, 1])
-    return tf.matmul(S, dct_basis)
+    mfcc = tf.matmul(S, dct_basis)
+    mfcc_first_order = delta(mfcc, 1)
+    mfcc_second_order = delta(mfcc, 2)
+    return tf.concat([mfcc, mfcc_first_order, mfcc_second_order], 2)
 
 
 class DataSet(object):
@@ -313,10 +342,12 @@ class DataSet(object):
                     minval=0, maxval=1e-3)
                 linearspec = linearspec + noise
 
-        if self.config.power == 2:
-            linearspec = tf.square(linearspec)
-
-        melspec = tf.matmul(linearspec, self.mel_basis)
+        if self.config.mfcc:
+            melspec = mfcc(linearspec,self.config,13,None)
+        else:
+            if self.config.power == 2:
+                linearspec = tf.square(linearspec)
+            melspec = tf.matmul(linearspec, self.mel_basis)
 
         stager = data_flow_ops.StagingArea(
             [tf.float32, tf.int64, tf.int64, tf.int64, tf.int32],

@@ -93,6 +93,8 @@ def get_args():
                         type=int, default=None)
     parser.add_argument('-combine', '--combine_frame', help='combine frames',
                         type=int, default=None)
+    parser.add_argument('--mfcc', help='mfcc', type=int, default=None)
+    parser.add_argument('--n_mfcc', help='mfcc number', type=int, default=None)
 
     flags = parser.parse_args().__dict__
     return flags

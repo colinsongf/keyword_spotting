@@ -11,9 +11,11 @@ spec = np.abs(librosa.stft(y, 400, 160, 400)) ** 2
 mfcc1 = librosa.feature.mfcc(sr=16000,S=spec,n_mfcc=13)
 
 mfcc2 = mfcc(y,16000,0.025,0.01,13,60,400,0,8000,1,-1)
-print(mfcc2.sum())
-print(mfcc1.sum())
-
+print(mfcc2.shape)
+print(mfcc1.shape)
+d1 = delta(mfcc2,1)
+print(d1.shape)
+librosa.feature.delta
 # spec = np.abs(librosa.stft(y, 400, 160, 400)) ** 2
 # print(spec.shape)
 
