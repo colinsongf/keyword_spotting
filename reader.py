@@ -219,14 +219,6 @@ class DataSet(object):
         linearspec, label, seq_len = self.train_filequeue_reader(
             self.train_filename_queue)
 
-        if self.config.use_white_noise:
-            print('use white noise')
-            with tf.name_scope("white_noise"):
-                noise = tf.random_uniform(
-                    [self.config.batch_size, tf.reduce_max(seq_len),
-                     self.last_dim],
-                    minval=0, maxval=1e-3)
-                linearspec = linearspec + noise
         self.noise_stage_op = tf.no_op()
         self.noise_filequeue_enqueue_op = tf.no_op()
 
@@ -266,6 +258,15 @@ class DataSet(object):
                 tf.less(add_bg_noise, self.config.bg_noise_prob),
                 lambda: linearspec + bg_noise_slice,
                 lambda: linearspec)
+
+        if self.config.use_white_noise:
+            print('use white noise')
+            with tf.name_scope("white_noise"):
+                noise = tf.random_uniform(
+                    [self.config.batch_size, tf.shape(linearspec)[1],
+                     self.last_dim],
+                    minval=0, maxval=1e-3)
+                linearspec = linearspec + noise
 
         if self.config.power == 2:
             linearspec = tf.square(linearspec)
