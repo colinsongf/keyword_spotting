@@ -15,18 +15,19 @@ import pickle
 import librosa
 import os
 from tqdm import tqdm
-
-with open('./download/list.pkl', 'rb') as f:
-    wave_list = pickle.load(f)
-new_list = []
+from glob import glob
 
 max_len = 16000 * 12
-for i in tqdm(wave_list):
-    y, sr = librosa.load('./download/' + i[0], sr=16000)
+files = glob('./download/*.wav')
+wave_list = []
+for f in files:
+    y, sr = librosa.load(f, sr=16000)
     if len(y) > max_len:
-        os.system('rm ./download/%s' % i[0])
+        os.system('rm %s' % f)
     else:
-        new_list.append(i)
-
-with open('./download/list.pkl.filtered', 'wb') as f:
-    pickle.dump(new_list, f)
+        name = f.split('/')[-1]
+        label = name.split('_')[-1][:-4]
+        wave_list.append((name, label))
+print(len(wave_list))
+with open('./download/0706.pkl', 'wb') as f:
+    pickle.dump(wave_list, f)

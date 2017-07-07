@@ -25,8 +25,8 @@ class Config(object):
         self.label_dict = {'ni3': 1, 'hao3': 2,
                            'le4': 3}  # 0 for space 4 for other
 
-        self.model_path = './params/ctc4/'
-        self.save_path = './params/ctc4/'
+        self.model_path = './params/ctc1/'
+        self.save_path = './params/ctc1/'
         self.graph_path = './graph/ctc/'
         self.graph_name = 'graph.pb'
 
@@ -64,15 +64,15 @@ class Config(object):
 
         # noise flags
         self.use_white_noise = False
-        self.use_bg_noise = False
+        self.use_bg_noise = True
         self.bg_noise_prob_raise = 1.05
         self.bg_decay_max_db = -6
         self.bg_decay_min_db = -20
         self.bg_noise_prob = 0.5
 
         # model params
-        self.combine_frame = 1
-        self.num_layers = 2
+        self.combine_frame = 2
+        self.num_layers = 3
         self.max_grad_norm = -1
         self.freq_size = 60
         self.feed_forward_inner_size = 512

@@ -18,15 +18,15 @@ count = 0
 new = []
 marker = EngTonedMarker()
 
-with open('./download/list.pkl.filtered', 'rb') as f:
+with open('./download/0706.pkl', 'rb') as f:
     a = pickle.load(f)
     for i in a:
         ret = marker.mark(i[1])
-        new.append((i[0], ret))
+        new.append((i[0], ret, i[1]))
         print(ret)
 print(len(new))
 
-with open('./download/0702_pinyin.pkl', 'wb') as f:
+with open('./download/0706_pinyin.pkl', 'wb') as f:
     pickle.dump(new, f)
 
 
