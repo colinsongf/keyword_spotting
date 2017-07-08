@@ -21,86 +21,15 @@ from tensorflow.python.framework import dtypes
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.ops import random_ops
-
-
-def power_to_db(S, amin=1e-10, top_db=80.0):
-    # S must be real number (magnitude)
-    # S.shape = (B,T,H)
-    log_spec = 10.0 * np.log10(np.maximum(amin, S))
-    if top_db is not None:
-        if top_db < 0:
-            raise Exception('top_db must be non-negative')
-        log_spec = tf.maximum(log_spec, tf.reduce_max(log_spec) - top_db)
-    return log_spec
-
-
-def dct(n_filters, n_input):
-    basis = np.empty((n_filters, n_input))
-    basis[0, :] = 1.0 / np.sqrt(n_input)
-
-    samples = np.arange(1, 2 * n_input, 2) * np.pi / (2.0 * n_input)
-
-    for i in range(1, n_filters):
-        basis[i, :] = np.cos(i * samples) * np.sqrt(2.0 / n_input)
-
-    return basis.T
-
-
-def delta(feat, N):
-    from functools import reduce
-    if N < 1:
-        raise ValueError('N must be an integer >= 1')
-    denominator = 2 * sum([i ** 2 for i in range(1, N + 1)])
-    delta_rersult = reduce(lambda a, b: a + b,
-                           [_delta_order(feat, i) for i in
-                            range(1, 1 + N)])
-    delta_rersult = delta_rersult / denominator
-
-    return delta_rersult
-
-
-def _delta_order(feat, order):
-    tf.pad(feat, [[0, 0], [2 * order, 2 * order], [0, 0]], "CONSTANT")
-    padding_head = tf.slice(feat, [0, 0, 0], [-1, 1, -1])
-    padding_head = tf.tile(padding_head, [1, 2, 1])
-    padding_tail = tf.slice(feat, [0, tf.shape(feat)[1] - 1, 0], [-1, 1, -1])
-    padding_tail = tf.tile(padding_tail, [1, 2, 1])
-
-    subtracted = tf.concat([feat, padding_tail], 1)
-    subtractor = tf.concat([padding_head, feat], 1)
-    delta_result = subtracted - subtractor * order
-    return delta_result
-
-
-def mfcc(linearspec, config, n_mfcc=13, top_db=None):
-    # linearspec.shape=(T,B,H)
-
-    linearspec= tf.square(linearspec)
-    mel_basis = librosa.filters.mel(
-        sr=config.samplerate,
-        n_fft=config.fft_size,
-        fmin=config.fmin,
-        fmax=config.fmax,
-        n_mels=config.freq_size).T
-    mel_basis = tf.constant(value=mel_basis, dtype=tf.float32)
-    mel_basis = tf.tile(tf.expand_dims(mel_basis, 0),
-                        [config.batch_size, 1, 1])
-    melspec = tf.matmul(linearspec, mel_basis)
-    S = power_to_db(melspec, top_db)
-
-    dct_basis = dct(n_mfcc, config.freq_size)
-    dct_basis = tf.tile(tf.expand_dims(dct_basis, 0),
-                        [config.batch_size, 1, 1])
-    mfcc = tf.matmul(S, dct_basis)
-    mfcc_first_order = delta(mfcc, 1)
-    mfcc_second_order = delta(mfcc, 2)
-    return tf.concat([mfcc, mfcc_first_order, mfcc_second_order], 2)
+from utils.mfcc import mfcc
 
 
 class DataSet(object):
     def __init__(self, config, train_dir, valid_dir, noise_dir, mode='train'):
         self.config = config
+        # freq size of linear spectrogram
         self.last_dim = 1 + config.fft_size // 2
+
         self.mel_basis = librosa.filters.mel(
             sr=config.samplerate,
             n_fft=config.fft_size,
@@ -119,6 +48,7 @@ class DataSet(object):
             self.train_reader = tf.TFRecordReader(name='train_reader')
             self.epoch = self.epochs_completed
             print('file size', self.train_file_size)
+
             if config.use_bg_noise:
                 self.noise_filename = glob(path_join(noise_dir, '*.tfrecords'))
                 self.noise_reader = tf.TFRecordReader(name='noise_reader')
@@ -138,10 +68,6 @@ class DataSet(object):
     @property
     def epochs_completed(self):
         return self.train_reader.num_work_units_completed() // self.train_file_size
-
-    @property
-    def test(self):
-        return self.train_reader.num_work_units_completed(), self.train_reader.num_records_produced()
 
     def train_filequeue_reader(self, filename_queue):
         (keys, values) = self.train_reader.read_up_to(filename_queue,
@@ -178,7 +104,9 @@ class DataSet(object):
 
             sparse_label = tf.SparseTensor(label_indices, label_values,
                                            label_shape)
+            # then we can sparse_concat at axis 0
             sparse_label = tf.sparse_reshape(sparse_label, [1, -1])
+
             audio_list.append(audio)
             label_list.append(sparse_label)
             len_list.append(seq_len)
@@ -226,7 +154,6 @@ class DataSet(object):
                                                       self.config.batch_size)
         context_features = {
             "seq_len": tf.FixedLenFeature([1], dtype=tf.int64),
-            "name": tf.FixedLenFeature([], dtype=tf.string),
             "correctness": tf.FixedLenFeature([1], dtype=tf.int64),
             "label": tf.VarLenFeature(dtype=tf.int64)
         }
@@ -238,7 +165,6 @@ class DataSet(object):
         len_list = []
         correct_list = []
         label_list = []
-        name_list = []
 
         for i in range(self.config.batch_size):
             context, sequence = tf.parse_single_sequence_example(
@@ -250,12 +176,11 @@ class DataSet(object):
             seq_len = context['seq_len']
             correct = context['correctness']
             label = context['label']
-            name = context['name']
             sparse_label = tf.sparse_reshape(label, [1, -1])
             label_list.append(sparse_label)
             audio_list.append(audio)
             len_list.append(seq_len)
-            name_list.append(name)
+
             correct_list.append(correct)
 
         label_tensor = tf.sparse_tensor_to_dense(
@@ -264,10 +189,9 @@ class DataSet(object):
             tf.reshape(tf.stack(len_list), (-1,), name='seq_lengths'), tf.int32)
         correctness = tf.reshape(tf.stack(correct_list), (-1,),
                                  name='correctness')
-        name_tensor = tf.stack(name_list)
 
         return tf.stack(audio_list,
-                        name='input_audio'), seq_lengths, correctness, label_tensor, name_tensor
+                        name='input_audio'), seq_lengths, correctness, label_tensor
 
     def string_input_queue(self, string_tensor, shuffle=True,
                            name=None, seed=None, capacity=16384):
@@ -302,6 +226,7 @@ class DataSet(object):
                 True)
             bg_noise_origin, bg_noise_lengths = noise_stager.get()
 
+            # all noise wave already padded to max_seq_len
             noise_length = self.config.max_sequence_length
 
             audio_db = self.compute_db(linearspec, seq_len)
@@ -343,7 +268,7 @@ class DataSet(object):
                 linearspec = linearspec + noise
 
         if self.config.mfcc:
-            melspec = mfcc(linearspec,self.config,13,None)
+            melspec = mfcc(linearspec, self.config, 13, None)
         else:
             if self.config.power == 2:
                 linearspec = tf.square(linearspec)
@@ -361,34 +286,34 @@ class DataSet(object):
         return stager, stage_op, self.train_filequeue_enqueue_op
 
     def valid_queue(self):
-        with tf.device('/cpu:0'):
-            self.valid_filename_queue, self.valid_filequeue_enqueue_op = self.string_input_queue(
-                self.valid_filename, shuffle=False, capacity=16384)
 
-            linearspec, seq_len, correctness, labels, names = self.valid_filequeue_reader(
-                self.valid_filename_queue)
-            if self.config.power == 2:
-                linearspec = tf.square(linearspec)
-            melspec = tf.matmul(linearspec, self.mel_basis)
+        self.valid_filename_queue, self.valid_filequeue_enqueue_op = self.string_input_queue(
+            self.valid_filename, shuffle=False, capacity=16384)
 
-            stager = data_flow_ops.StagingArea(
-                [tf.float32, tf.int32, tf.int64, tf.int64, tf.string],
-                shapes=[(self.config.batch_size, None, self.config.freq_size),
-                        (self.config.batch_size), (self.config.batch_size),
-                        (self.config.batch_size, None), (None,)])
+        linearspec, seq_len, correctness, labels = self.valid_filequeue_reader(
+            self.valid_filename_queue)
+        if self.config.power == 2:
+            linearspec = tf.square(linearspec)
+        melspec = tf.matmul(linearspec, self.mel_basis)
 
-            stage_op = stager.put(
-                (melspec, seq_len, correctness, labels, names))
+        stager = data_flow_ops.StagingArea(
+            [tf.float32, tf.int32, tf.int64, tf.int64],
+            shapes=[(self.config.batch_size, None, self.config.freq_size),
+                    (self.config.batch_size), (self.config.batch_size),
+                    (self.config.batch_size, None)])
 
-            return stager, stage_op, self.valid_filequeue_enqueue_op
+        stage_op = stager.put(
+            (melspec, seq_len, correctness, labels))
+
+        return stager, stage_op, self.valid_filequeue_enqueue_op
 
     def noise_queue(self, shuffle=True):
 
-        self.noise_filename_queue, self.noise_filequeue_enqueue_op = self.string_input_queue(
+        noise_filename_queue, noise_filequeue_enqueue_op = self.string_input_queue(
             self.noise_filename, shuffle=shuffle, capacity=16384)
 
         audio, seq_len = self.noise_filequeue_reader(
-            self.noise_filename_queue)
+            noise_filename_queue)
 
         stager = data_flow_ops.StagingArea(
             [tf.float32, tf.int64],
@@ -398,7 +323,7 @@ class DataSet(object):
 
         stage_op = stager.put((audio, seq_len))
 
-        return stager, stage_op, self.noise_filequeue_enqueue_op
+        return stager, stage_op, noise_filequeue_enqueue_op
 
     def compute_db(self, spectrum, lengths):
         with tf.name_scope("compute_db"):

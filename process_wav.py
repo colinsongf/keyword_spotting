@@ -35,6 +35,15 @@ error_list = []
 label_dict = config.label_dict
 
 
+def pre_emphasis(signal, coefficient=0.97):
+    '''对信号进行预加重
+    参数含义：
+    signal:原始信号
+    coefficient:加重系数，默认为0.95
+    '''
+    return np.append(signal[0], signal[1:] - coefficient * signal[:-1])
+
+
 def time2frame(second, sr=config.samplerate, n_fft=config.fft_size,
                step_size=config.step_size):
     return int((second * sr - (n_fft // 2)) / step_size) if second > 0 else 0
@@ -43,10 +52,6 @@ def time2frame(second, sr=config.samplerate, n_fft=config.fft_size,
 def point2frame(point, sr=config.samplerate, n_fft=config.fft_size,
                 step_size=config.step_size):
     return (point - (n_fft // 2)) // step_size
-
-
-def time2point(second, sr=config.samplerate):
-    return int(second * sr)
 
 
 def convert_label(label):
@@ -61,15 +66,10 @@ def convert_label(label):
     return label_values, label_indices, label_shape
 
 
-def dense_to_ont_hot(labels_dense, num_classes):
-    len = labels_dense.shape[0]
-    labels_one_hot = np.zeros((len, num_classes))
-    labels_one_hot[np.arange(len), labels_dense] = 1
-    return labels_one_hot
-
-
 def process_stft(f):
     y, sr = librosa.load(f, sr=config.samplerate)
+    if config.pre_emphasis:
+        y = pre_emphasis(y)
     linearspec = np.transpose(np.abs(
         librosa.core.stft(y, config.fft_size,
                           config.step_size)))
@@ -312,7 +312,7 @@ def sort_wave(pkl_path):
     with open(pkl_path + '.sorted', "wb") as f:
         pickle.dump(sorted_data, f)
 
-    y,sr = librosa.load(sorted_data[0][0])
+    y, sr = librosa.load(dir + sorted_data[0][0])
     print(len(y))
 
 
@@ -374,12 +374,12 @@ if __name__ == '__main__':
     check_dir(save_noise_dir)
 
     base_pkl = 'ctc_label.pkl'
-    sort_wave(wave_train_dir + base_pkl)
-    # shuffle(wave_train_dir + base_pkl + '.sorted')
-    # generate_trainning_data(
-    #     wave_train_dir + base_pkl + '.sorted.shuffled')
-    #
-    # # sort_wave(wave_valid_dir + "ctc_valid_pinyin.pkl")
-    # generate_valid_data(wave_valid_dir + "ctc_valid.pkl.sorted")
-    #
-    # generate_noise_data(wave_noise_dir + 'noise.pkl')
+    # sort_wave(wave_train_dir + base_pkl)
+    shuffle(wave_train_dir + base_pkl + '.sorted')
+    generate_trainning_data(
+        wave_train_dir + base_pkl + '.sorted.shuffled')
+
+    # sort_wave(wave_valid_dir + "ctc_valid_pinyin.pkl")
+    generate_valid_data(wave_valid_dir + "ctc_valid.pkl.sorted")
+
+    generate_noise_data(wave_noise_dir + 'noise.pkl')

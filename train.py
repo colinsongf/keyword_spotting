@@ -139,12 +139,13 @@ class Runner(object):
                 last_time = time.time()
 
                 try:
-                    sess.run([self.train_model.stage_op,
+                    sess.run([self.data.noise_stage_op,
+                              self.data.noise_filequeue_enqueue_op,
+                              self.train_model.stage_op,
                               self.train_model.input_filequeue_enqueue_op,
                               self.valid_model.stage_op,
-                              self.valid_model.input_filequeue_enqueue_op,
-                              self.data.noise_stage_op,
-                              self.data.noise_filequeue_enqueue_op])
+                              self.valid_model.input_filequeue_enqueue_op])
+
                     va = tf.trainable_variables()
                     for i in va:
                         print(i.name)
@@ -160,10 +161,10 @@ class Runner(object):
                         # print(lab)
                         _, _, _, _, _, l, lr, step, grad = sess.run(
                             [self.train_model.train_op,
-                             self.train_model.stage_op,
-                             self.train_model.input_filequeue_enqueue_op,
                              self.data.noise_stage_op,
                              self.data.noise_filequeue_enqueue_op,
+                             self.train_model.stage_op,
+                             self.train_model.input_filequeue_enqueue_op,
                              self.train_model.loss,
                              self.train_model.learning_rate,
                              self.train_model.global_step,
@@ -171,10 +172,12 @@ class Runner(object):
                              ])
                         epoch = sess.run([self.data.epoch])[0]
                         accu_loss += l
-
                         if epoch > self.epoch:
                             self.epoch += 1
                             print('accumulated loss', accu_loss)
+                            saver.save(sess, save_path=(
+                                path_join(self.config.save_path,
+                                          'latest.ckpt')))
                             accu_loss = 0
                         if step % config.valid_step == config.valid_step - 1:
                             print('epoch time ', (time.time() - last_time) / 60)
@@ -186,11 +189,10 @@ class Runner(object):
                             wer = 0
                             valid_batch = self.data.valid_file_size * config.tfrecord_size // config.batch_size
                             for i in range(valid_batch):
-                                ctc_output, correctness, labels, names, _, _ = sess.run(
+                                ctc_output, correctness, labels, _, _ = sess.run(
                                     [self.valid_model.dense_output,
                                      self.valid_model.correctness,
                                      self.valid_model.labels,
-                                     self.valid_model.names,
                                      self.valid_model.stage_op,
                                      self.valid_model.input_filequeue_enqueue_op])
                                 np.set_printoptions(precision=4,
@@ -260,8 +262,11 @@ class Runner(object):
                             path_join(self.config.save_path, 'latest.ckpt')))
                         print('best miss rate:%f\tbest false rate"%f' % (
                             best_miss, best_false))
+
                 except tf.errors.OutOfRangeError:
                     print('Done training -- epoch limit reached')
+                except Exception as e:
+                    print(e)
                 finally:
                     with open('best_list.pkl', 'wb') as f:
                         pickle.dump(best_list, f)
@@ -280,12 +285,11 @@ class Runner(object):
                     # if i > 7:
                     #     break
                     ind = 14
-                    ctc_output, ctc_input, correctness, labels, names, _, _ = sess.run(
+                    ctc_output, ctc_input, correctness, labels, _, _ = sess.run(
                         [self.valid_model.dense_output,
                          self.valid_model.nn_outputs,
                          self.valid_model.correctness,
                          self.valid_model.labels,
-                         self.valid_model.names,
                          self.valid_model.stage_op,
                          self.valid_model.input_filequeue_enqueue_op])
                     np.set_printoptions(precision=4,
@@ -301,7 +305,6 @@ class Runner(object):
                               ctc_output]
                     for k, r in enumerate(result):
                         if r != correctness[k]:
-                            print(names[k].decode())
                             print(ctc_output[k])
                             print(labels[k])
                             with open('logits.txt', 'w') as f:
@@ -346,7 +349,7 @@ class Runner(object):
 
             frozen_graph_def = graph_util.convert_variables_to_constants(
                 session, session.graph.as_graph_def(),
-                ['model/inputX', 'model/seqLength','model/dense_output'])
+                ['model/inputX', 'model/seqLength', 'model/dense_output'])
             tf.train.write_graph(
                 frozen_graph_def,
                 os.path.dirname(graph_path),

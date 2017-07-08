@@ -29,7 +29,6 @@ def self_attention(inputs, config, is_training, scope_name='self_attention'):
     # return - [batch_size, time_steps, model_size]
     assert (config.model_size % config.multi_head_num == 0)
     head_size = config.model_size // config.multi_head_num
-    outputs = []
     with tf.variable_scope(scope_name):
         combined = tf.layers.conv2d(
             tf.expand_dims(inputs, 2), 3 * config.model_size,
@@ -142,7 +141,7 @@ class Attention(object):
             self.build_graph(config, is_train)
         else:
             stager, self.stage_op, self.input_filequeue_enqueue_op = input
-            self.inputX, self.seqLengths, self.correctness, self.labels, self.names = stager.get()
+            self.inputX, self.seqLengths, self.correctness, self.labels = stager.get()
             self.build_graph(config, is_train)
 
     @describe
