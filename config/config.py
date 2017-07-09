@@ -26,14 +26,14 @@ class Config(object):
         self.label_dict = {'ni3': 1, 'hao3': 2,
                            'le4': 3}  # 0 for space 4 for other
 
-        self.model_path = './params/24w/'
-        self.save_path = './params/24w/'
+        self.model_path = './params/noclip/'
+        self.save_path = './params/noclip/'
         self.graph_path = './graph/24w/'
         self.graph_name = 'graph.pb'
 
-        self.train_path = '/ssd/liuziqi/ctc_24w/train/'
-        self.valid_path = '/ssd/liuziqi/ctc_24w/valid/'
-        self.noise_path = '/ssd/liuziqi/ctc_24w/noise/'
+        self.train_path = '/ssd/liuziqi/ctc_23w/train/'
+        self.valid_path = '/ssd/liuziqi/ctc_23w/valid/'
+        self.noise_path = '/ssd/liuziqi/ctc_23w/noise/'
         self.model_name = 'latest.ckpt'
         self.rawdata_path = './rawdata/'
         self.rawdata_path = '/ssd/keyword/'
