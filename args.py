@@ -12,6 +12,8 @@
 @desc:
 '''
 import argparse
+import os
+from config import attention_config, rnn_config
 
 
 def get_args():
@@ -20,12 +22,14 @@ def get_args():
     parser.add_argument('--mode', help='train: train model, ' +
                                        'valid: model validation, ',
                         default=None)
+    parser.add_argument('--model', help='rnn or attention',
+                        default=None)
     parser.add_argument('-opt', '--optimizer',
                         help='optimzier:adam sgd nesterov',
                         default=None)
-    parser.add_argument('-ktq', '--ktq',
+    parser.add_argument('--ktq',
                         help='whether run in ktq', type=int,
-                        default=None)
+                        default=0)
     parser.add_argument('-clip', '--max_grad_norm', help='max_grad_norm clip',
                         type=float,
                         default=None)
@@ -100,3 +104,19 @@ def get_args():
 
     flags = parser.parse_args().__dict__
     return flags
+
+
+flags = get_args()
+model = flags['model']
+
+del (flags['model'])
+
+if not flags['ktq']:
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(flags['gpu'])
+
+del (flags['ktq'])
+del (flags['gpu'])
+
+
+def parse_args():
+    return flags, model

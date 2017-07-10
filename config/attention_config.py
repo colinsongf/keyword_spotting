@@ -5,7 +5,7 @@
 @author: ZiqiLiu
 
 
-@file: config.py
+@file: attention_config.py
 
 @time: 2017/5/18 上午11:18
 
@@ -26,9 +26,9 @@ class Config(object):
         self.label_dict = {'ni3': 1, 'hao3': 2,
                            'le4': 3}  # 0 for space 4 for other
 
-        self.model_path = './params/24w/'
-        self.save_path = './params/24w/'
-        self.graph_path = './graph/24w/'
+        self.model_path = './params/23w/'
+        self.save_path = './params/23w/'
+        self.graph_path = './graph/23w/'
         self.graph_name = 'graph.pb'
 
         self.train_path = '/ssd/liuziqi/ctc_24w/train/'

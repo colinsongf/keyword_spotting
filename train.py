@@ -20,26 +20,13 @@ import sys
 import time
 import pickle
 import signal
-from config.config import get_config
-from args import get_args
-
-config = get_config()
-flags = get_args()
-for key in flags:
-    if flags[key] is not None:
-        if not hasattr(config, key):
-            print("WARNING: Invalid override with attribute %s" % (key))
-        else:
-            setattr(config, key, flags[key])
-if not config.ktq:
-    os.environ["CUDA_VISIBLE_DEVICES"] = config.gpu
-
+from args import parse_args
 import numpy as np
 import tensorflow as tf
 from glob import glob
 from tensorflow.python.framework import graph_util
-
-from models.attention_ctc import Attention, DeployModel
+from config import attention_config, rnn_config
+from models import attention_ctc, rnn_ctc
 from reader import read_dataset
 from utils.common import check_dir, path_join
 from utils.prediction import evaluate, ctc_predict
@@ -55,7 +42,7 @@ class Runner(object):
         self.epoch = 0
         self.wer_cal = WERCalculator([0, -1])
 
-    def run(self):
+    def run(self, TrainingModel):
 
         graph = tf.Graph()
         with graph.as_default(), tf.Session() as sess:
@@ -65,20 +52,20 @@ class Runner(object):
             if config.mode == 'train':
                 print('building training model....')
                 with tf.variable_scope("model"):
-                    self.train_model = Attention(self.config,
-                                                 self.data.batch_input_queue(),
-                                                 is_train=True)
+                    self.train_model = TrainingModel(self.config,
+                                                     self.data.batch_input_queue(),
+                                                     is_train=True)
                     self.train_model.config.show()
                 print('building valid model....')
                 with tf.variable_scope("model", reuse=True):
-                    self.valid_model = Attention(self.config,
-                                                 self.data.valid_queue(),
-                                                 is_train=False)
+                    self.valid_model = TrainingModel(self.config,
+                                                     self.data.valid_queue(),
+                                                     is_train=False)
             else:
                 with tf.variable_scope("model", reuse=False):
-                    self.valid_model = Attention(self.config,
-                                                 self.data.valid_queue(),
-                                                 is_train=False)
+                    self.valid_model = TrainingModel(self.config,
+                                                     self.data.valid_queue(),
+                                                     is_train=False)
             saver = tf.train.Saver()
 
             # restore from stored models
@@ -145,7 +132,6 @@ class Runner(object):
                               self.train_model.input_filequeue_enqueue_op,
                               self.valid_model.stage_op,
                               self.valid_model.input_filequeue_enqueue_op])
-
 
                     va = tf.trainable_variables()
                     for i in va:
@@ -255,14 +241,13 @@ class Runner(object):
                                                'best' + str(
                                                    best_count) + '.ckpt')))
 
-                    if not DEBUG:
-                        print(
-                            'training finished, total epoch %d, the model will be save in %s' % (
-                                self.epoch, self.config.save_path))
-                        saver.save(sess, save_path=(
-                            path_join(self.config.save_path, 'latest.ckpt')))
-                        print('best miss rate:%f\tbest false rate"%f' % (
-                            best_miss, best_false))
+                    print(
+                        'training finished, total epoch %d, the model will be save in %s' % (
+                            self.epoch, self.config.save_path))
+                    saver.save(sess, save_path=(
+                        path_join(self.config.save_path, 'latest.ckpt')))
+                    print('best miss rate:%f\tbest false rate"%f' % (
+                        best_miss, best_false))
 
                 except tf.errors.OutOfRangeError:
                     print('Done training -- epoch limit reached')
@@ -325,7 +310,7 @@ class Runner(object):
                 print('flase_accept_rate: %d/%d' % (
                     false_count, self.data.validation_size - target_count))
 
-    def build_graph(self):
+    def build_graph(self, DeployModel):
         check_dir(self.config.graph_path)
         config_path = path_join(self.config.graph_path, 'config.pkl')
         graph_path = path_join(self.config.graph_path, self.config.graph_name)
@@ -367,9 +352,25 @@ class Runner(object):
 
 if __name__ == '__main__':
 
-    print(flags)
+    flags, model = parse_args()
+    if model == 'rnn':
+        config = rnn_config.get_config()
+        TrainingModel = rnn_ctc.GRU
+        DeployModel = rnn_ctc.DeployModel
+    elif model == 'attention':
+        config = attention_config.get_config()
+        TrainingModel = attention_ctc.Attention
+        DeployModel = attention_ctc.DeployModel
+    else:
+        raise Exception('model %s not defined!' % model)
+    for key in flags:
+        if flags[key] is not None:
+            if not hasattr(config, key):
+                print("WARNING: Invalid override with attribute %s" % (key))
+            else:
+                setattr(config, key, flags[key])
     runner = Runner(config)
     if config.mode == 'build':
-        runner.build_graph()
+        runner.build_graph(DeployModel)
     else:
-        runner.run()
+        runner.run(TrainingModel)

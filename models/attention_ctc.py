@@ -21,6 +21,7 @@ import math
 
 from utils.common import describe
 from positional_encoding import positional_encoding_op
+from griffinlim.griffinlim_ops import  frame
 
 
 
@@ -220,14 +221,15 @@ class DeployModel(object):
         """
 
         # input place holder
-        config.use_bg_noise = False
-        config.use_white_noise = False
         config.keep_prob = 1
 
         with tf.device('/cpu:0'):
             self.inputX = tf.placeholder(dtype=tf.float32,
                                          shape=[None, config.freq_size],
                                          name='inputX')
+            self.linearspec = tf.squeeze(frame(self.inputX, nfft=config.,
+                                      hop=reader_config.hop_length,
+                                      win=reader_config.win_length))
             self.inputX = tf.expand_dims(self.inputX, 0, name='reshape_inputX')
             self.fuck = tf.identity(self.inputX, name='fuck')
 

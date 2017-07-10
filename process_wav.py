@@ -13,7 +13,7 @@
 '''
 import librosa
 import numpy as np
-from config.config import get_config
+from config.attention_config import get_config
 import pickle
 import tensorflow as tf
 from utils.common import check_dir, path_join, increment_id

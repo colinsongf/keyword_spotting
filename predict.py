@@ -12,7 +12,7 @@
 @desc:
 '''
 import tensorflow as tf
-from config.config import get_config
+from config.attention_config import get_config
 import argparse
 from utils.common import path_join
 from utils.prediction import moving_average, decode, predict
