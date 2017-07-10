@@ -123,9 +123,6 @@ class DataSet(object):
         (keys, values) = self.noise_reader.read_up_to(filename_queue,
                                                       self.config.batch_size,
                                                       name='read_noise')
-        context_features = {
-            "seq_len": tf.FixedLenFeature([1], dtype=tf.int64),
-        }
         audio_features = {
             "audio": tf.FixedLenSequenceFeature([self.last_dim],
                                                 dtype=tf.float32)
@@ -136,16 +133,14 @@ class DataSet(object):
         for i in range(self.config.batch_size):
             context, sequence = tf.parse_single_sequence_example(
                 serialized=values[i],
-                context_features=context_features,
                 sequence_features=audio_features
             )
             audio = sequence['audio']
-            seq_len = context['seq_len']
+            seq_len = tf.shape(audio)[0]
             audio_list.append(audio)
             len_list.append(seq_len)
 
-        seq_lengths = tf.reshape(tf.stack(len_list), (-1,),
-                                 name='noise_lengths')
+        seq_lengths = tf.stack(len_list, name='noise_lengths')
 
         return tf.stack(audio_list, name='noise_audio'), seq_lengths
 
@@ -210,21 +205,21 @@ class DataSet(object):
             return q, enq
 
     def batch_input_queue(self, shuffle=True):
-
-        self.train_filename_queue, self.train_filequeue_enqueue_op = self.string_input_queue(
-            self.train_filename, shuffle=shuffle, capacity=16384)
-
-        linearspec, label, seq_len = self.train_filequeue_reader(
-            self.train_filename_queue)
-
         self.noise_stage_op = tf.no_op()
         self.noise_filequeue_enqueue_op = tf.no_op()
+        with tf.device('/cpu:0'):
+            self.train_filename_queue, self.train_filequeue_enqueue_op = self.string_input_queue(
+                self.train_filename, shuffle=shuffle, capacity=16384)
+            linearspec, label, seq_len = self.train_filequeue_reader(
+                self.train_filename_queue)
+            if self.config.use_bg_noise:
+                print('use bg noise')
+                self.noise_stager, self.noise_stage_op, self.noise_filequeue_enqueue_op = self.noise_queue(
+                    True)
+
 
         if self.config.use_bg_noise:
-            print('use bg noise')
-            noise_stager, self.noise_stage_op, self.noise_filequeue_enqueue_op = self.noise_queue(
-                True)
-            bg_noise_origin, bg_noise_lengths = noise_stager.get()
+            bg_noise_origin, bg_noise_lengths = self.noise_stager.get()
 
             # all noise wave already padded to max_seq_len
             noise_length = self.config.max_sequence_length
@@ -286,12 +281,12 @@ class DataSet(object):
         return stager, stage_op, self.train_filequeue_enqueue_op
 
     def valid_queue(self):
+        with tf.device('/cpu:0'):
+            self.valid_filename_queue, self.valid_filequeue_enqueue_op = self.string_input_queue(
+                self.valid_filename, shuffle=False, capacity=16384)
+            linearspec, seq_len, correctness, labels = self.valid_filequeue_reader(
+                self.valid_filename_queue)
 
-        self.valid_filename_queue, self.valid_filequeue_enqueue_op = self.string_input_queue(
-            self.valid_filename, shuffle=False, capacity=16384)
-
-        linearspec, seq_len, correctness, labels = self.valid_filequeue_reader(
-            self.valid_filename_queue)
         if self.config.power == 2:
             linearspec = tf.square(linearspec)
         melspec = tf.matmul(linearspec, self.mel_basis)
@@ -308,15 +303,15 @@ class DataSet(object):
         return stager, stage_op, self.valid_filequeue_enqueue_op
 
     def noise_queue(self, shuffle=True):
+        with tf.device('/cpu:0'):
+            noise_filename_queue, noise_filequeue_enqueue_op = self.string_input_queue(
+                self.noise_filename, shuffle=shuffle, capacity=16384)
 
-        noise_filename_queue, noise_filequeue_enqueue_op = self.string_input_queue(
-            self.noise_filename, shuffle=shuffle, capacity=16384)
-
-        audio, seq_len = self.noise_filequeue_reader(
-            noise_filename_queue)
+            audio, seq_len = self.noise_filequeue_reader(
+                noise_filename_queue)
 
         stager = data_flow_ops.StagingArea(
-            [tf.float32, tf.int64],
+            [tf.float32, tf.int32],
             shapes=[
                 (self.config.batch_size, None, self.last_dim),
                 (self.config.batch_size)])

@@ -146,6 +146,7 @@ class Runner(object):
                               self.valid_model.stage_op,
                               self.valid_model.input_filequeue_enqueue_op])
 
+
                     va = tf.trainable_variables()
                     for i in va:
                         print(i.name)
