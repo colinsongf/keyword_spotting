@@ -287,9 +287,12 @@ class DataSet(object):
             linearspec, seq_len, correctness, labels = self.valid_filequeue_reader(
                 self.valid_filename_queue)
 
-        if self.config.power == 2:
-            linearspec = tf.square(linearspec)
-        melspec = tf.matmul(linearspec, self.mel_basis)
+        if self.config.mfcc:
+            melspec = mfcc(linearspec, self.config, 13, None)
+        else:
+            if self.config.power == 2:
+                linearspec = tf.square(linearspec)
+            melspec = tf.matmul(linearspec, self.mel_basis)
 
         stager = data_flow_ops.StagingArea(
             [tf.float32, tf.int32, tf.int64, tf.int64],
