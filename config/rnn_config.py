@@ -50,7 +50,7 @@ class Config(object):
         self.learning_rate = 2e-3
         self.max_epoch = 200
         self.valid_step = 320
-        self.lr_decay = 0.9
+        self.lr_decay = 0.8
         self.decay_step = 20000
         self.use_relu = True
         self.optimizer = 'adam'  # adam sgd nesterov
