@@ -17,10 +17,12 @@ import numpy as np
 import librosa
 
 
-def power_to_db(S, amin=1e-10, top_db=80.0):
+def power_to_db(S, amin=1e-10, top_db=80.0, ref_value=1.0):
     # S must be real number (magnitude)
     # S.shape = (B,T,H)
     log_spec = 10.0 * tf.log(tf.maximum(amin, S)) / tf.log(10.0)
+    log_spec -= 10.0 * tf.log(tf.maximum(amin, ref_value)) / tf.log(10.0)
+
     if top_db is not None:
         if top_db < 0:
             raise Exception('top_db must be non-negative')
@@ -107,7 +109,7 @@ def test(linearspec, config, n_mfcc=13, top_db=None):
         n_mels=config.n_mel).T
     mel_basis = tf.constant(value=mel_basis, dtype=tf.float32)
     melspec = tf.matmul(linearspec, mel_basis)
-    S = power_to_db(melspec, 1e-10, top_db)
+    S = power_to_db(melspec, 1e-10)
 
     dct_basis = dct(n_mfcc, config.n_mel)
     dct_basis = tf.cast(dct_basis, tf.float32)
