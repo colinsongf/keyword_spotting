@@ -54,7 +54,7 @@ class GRU(object):
         self.nn_outputs, _ = inference1(config, self.inputX,
                                         self.seqLengths, is_train)
         self.fc_outputs = inference2(self.nn_outputs, config)
-        self.ctc_input = tf.transpose(self.nn_outputs, perm=[1, 0, 2])
+        self.ctc_input = tf.transpose(self.fc_outputs, perm=[1, 0, 2])
 
         if is_train:
             self.label_dense = tf.sparse_tensor_to_dense(self.label_batch)
