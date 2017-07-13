@@ -99,13 +99,9 @@ class GRU(object):
                               g is not None]
             self.grads = [grad for (grad, var) in grads_and_vars]
             self.vs = [var for (grad, var) in grads_and_vars]
-            print(self.grads)
-            print('=' * 50)
             if config.max_grad_norm > 0:
                 self.grads, hehe = tf.clip_by_global_norm(
                     self.grads, config.max_grad_norm)
-                print(self.grads)
-                print(hehe)
             self.train_op = self.optimizer.apply_gradients(
                 zip(self.grads, self.vs),
                 global_step=self.global_step)
