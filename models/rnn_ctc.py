@@ -34,6 +34,8 @@ class GRU(object):
             stager, self.stage_op, self.input_filequeue_enqueue_op = input
             # we only use 1 gpu
             self.inputX, self.label_values, self.label_indices, self.label_dense_shape, self.seqLengths = stager.get()
+            if config.keep_prob < 1:
+                self.inputX = tf.nn.dropout(self.inputX, config.keep_prob)
             self.label_batch = tf.SparseTensor(
                 self.label_indices,
                 tf.cast(self.label_values, tf.int32),
