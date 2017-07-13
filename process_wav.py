@@ -373,9 +373,9 @@ if __name__ == '__main__':
     check_dir(save_valid_dir)
     check_dir(save_noise_dir)
 
-    base_pkl = 'ctc_24w.pkl'
-    sort_wave(wave_train_dir + base_pkl)
-    shuffle(wave_train_dir + base_pkl + '.sorted')
+    base_pkl = 'ctc_23w.pkl'
+    # sort_wave(wave_train_dir + base_pkl)
+    # shuffle(wave_train_dir + base_pkl + '.sorted')
     generate_trainning_data(
         wave_train_dir + base_pkl + '.sorted.shuffled')
 

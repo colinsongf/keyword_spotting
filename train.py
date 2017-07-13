@@ -20,6 +20,7 @@ import sys
 import time
 import pickle
 import signal
+import traceback
 from args import parse_args
 import numpy as np
 import tensorflow as tf
@@ -147,7 +148,7 @@ class Runner(object):
                         #      self.train_model.global_step])
                         # print(x.shape)
                         # print(lab)
-                        _, _, _, _, _, l, lr, step, grad = sess.run(
+                        _, _, _, _, _, l, lr, step,grads = sess.run(
                             [self.train_model.train_op,
                              self.data.noise_stage_op,
                              self.data.noise_filequeue_enqueue_op,
@@ -254,6 +255,7 @@ class Runner(object):
                     print('Done training -- epoch limit reached')
                 except Exception as e:
                     print(e)
+                    traceback.print_exc()
                 finally:
                     with open('best_list.pkl', 'wb') as f:
                         pickle.dump(best_list, f)
