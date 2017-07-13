@@ -45,12 +45,12 @@ def pre_emphasis(signal, coefficient=0.97):
 
 
 def time2frame(second, sr=config.samplerate, n_fft=config.fft_size,
-               step_size=config.step_size):
+               step_size=config.hop_size):
     return int((second * sr - (n_fft // 2)) / step_size) if second > 0 else 0
 
 
 def point2frame(point, sr=config.samplerate, n_fft=config.fft_size,
-                step_size=config.step_size):
+                step_size=config.hop_size):
     return (point - (n_fft // 2)) // step_size
 
 
@@ -72,7 +72,7 @@ def process_stft(f):
         y = pre_emphasis(y)
     linearspec = np.transpose(np.abs(
         librosa.core.stft(y, config.fft_size,
-                          config.step_size)))
+                          config.hop_size)))
 
     return linearspec, y
 
@@ -82,7 +82,7 @@ def process_mel(f):
 
     mel_spectrogram = np.transpose(
         librosa.feature.melspectrogram(y, sr=sr, n_fft=config.fft_size,
-                                       hop_length=config.step_size,
+                                       hop_length=config.hop_size,
                                        power=2.,
                                        fmin=300,
                                        fmax=8000,

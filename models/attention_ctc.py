@@ -18,25 +18,24 @@
 
 import tensorflow as tf
 import math
-
+import librosa
 from utils.common import describe
 from positional_encoding import positional_encoding_op
-from griffinlim.griffinlim_ops import  frame
-
+from utils.stft import tf_frame
 
 
 def self_attention(inputs, config, is_training, scope_name='self_attention'):
     # inputs - [batch_size, time_steps, model_size]
     # return - [batch_size, time_steps, model_size]
-    assert (config.model_size % config.multi_head_num == 0)
-    head_size = config.model_size // config.multi_head_num
+    assert (config.hidden_size % config.multi_head_num == 0)
+    head_size = config.hidden_size // config.multi_head_num
     with tf.variable_scope(scope_name):
         combined = tf.layers.conv2d(
-            tf.expand_dims(inputs, 2), 3 * config.model_size,
+            tf.expand_dims(inputs, 2), 3 * config.hidden_size,
             (1, 1), name="qkv_transform")
         q, k, v = tf.split(
             tf.squeeze(combined, 2),
-            [config.model_size, config.model_size, config.model_size],
+            [config.hidden_size, config.hidden_size, config.hidden_size],
             axis=2)
 
         q_ = tf.concat(tf.split(q, config.multi_head_num, axis=2),
@@ -66,7 +65,7 @@ def feed_forward(inputs, config, scope_name='feed_forward'):
             tf.expand_dims(inputs, 2), config.feed_forward_inner_size,
             (1, 1), activation=tf.nn.relu, name="conv1")  # [B, T, 1, F]
         outputs = tf.layers.conv2d(
-            inners, config.model_size, (1, 1), name="conv2")  # [B, T, 1, F]
+            inners, config.hidden_size, (1, 1), name="conv2")  # [B, T, 1, F]
     return tf.squeeze(outputs, 2)
 
 
@@ -89,12 +88,12 @@ def inference(inputs, seqLengths, config, is_training, batch_size=None):
         max_length = max_length // config.combine_frame + 1
 
     inputs = tf.layers.conv2d(
-        tf.expand_dims(inputs, 2), config.model_size, (1, 1),
+        tf.expand_dims(inputs, 2), config.hidden_size, (1, 1),
         name='input_linear_trans')  # [B, T, 1, F]
     inputs = tf.squeeze(inputs, 2)  # [B, T, F]
 
     pe = positional_encoding_op.positional_encoding(
-        max_length, config.model_size)
+        max_length, config.hidden_size)
     inputs = inputs + pe
 
     layer_inputs = inputs
@@ -223,32 +222,59 @@ class DeployModel(object):
         # input place holder
         config.keep_prob = 1
 
-        with tf.device('/cpu:0'):
-            self.inputX = tf.placeholder(dtype=tf.float32,
-                                         shape=[None, config.freq_size],
-                                         name='inputX')
-            self.linearspec = tf.squeeze(frame(self.inputX, nfft=config.,
-                                      hop=reader_config.hop_length,
-                                      win=reader_config.win_length))
-            self.inputX = tf.expand_dims(self.inputX, 0, name='reshape_inputX')
-            self.fuck = tf.identity(self.inputX, name='fuck')
+        # with tf.device('/cpu:0'):
+        #
+        # self.inputX = tf.placeholder(dtype=tf.float32,
+        #                              shape=[None, config.fft_size],
+        #                              name='inputX')
+        #
+        # complex_tensor = tf.complex(
+        #     self.inputX,
+        #     imag=tf.zeros_like(self.inputX, dtype=tf.float32),
+        #     name='complex_tensor')
+        # abs = tf.abs(
+        #     tf.fft(complex_tensor, name='fft'))
+        # print(abs)
 
-            self.seqLengths = tf.placeholder(dtype=tf.int32, shape=[1],
-                                             name='seqLength')
-            self.nn_outputs, self.new_seqLengths = inference(self.inputX,
-                                                             self.seqLengths,
-                                                             config,
-                                                             is_training=False,
-                                                             batch_size=1)
-            self.ctc_input = tf.transpose(self.nn_outputs, perm=[1, 0, 2])
-            self.softmax = tf.nn.softmax(self.ctc_input)
-            self.ctc_decode_input = tf.log(self.softmax)
-            self.ctc_decode_result, self.ctc_decode_log_prob = tf.nn.ctc_beam_search_decoder(
-                self.ctc_decode_input, self.new_seqLengths,
-                beam_width=config.beam_size, top_paths=1)
-            self.dense_output = tf.sparse_tensor_to_dense(
-                self.ctc_decode_result[0], default_value=-1,
-                name='dense_output')
+        self.inputX = tf.placeholder(dtype=tf.float32,
+                                     shape=[None, ],
+                                     name='inputX')
+        self.inputX = tf.expand_dims(self.inputX, 0)
+        self.frames = tf_frame(self.inputX, 400, 160, name='frame')
+        print(self.frames)
+        self.linearspec = tf.abs(tf.spectral.rfft(self.frames, [400]))
+        print(self.linearspec)
+
+        self.mel_basis = librosa.filters.mel(
+            sr=config.samplerate,
+            n_fft=config.fft_size,
+            fmin=config.fmin,
+            fmax=config.fmax,
+            n_mels=config.freq_size).T
+        self.mel_basis = tf.constant(value=self.mel_basis, dtype=tf.float32)
+        self.mel_basis = tf.expand_dims(self.mel_basis, 0)
+
+        self.melspec = tf.matmul(self.linearspec, self.mel_basis, name='mel')
+
+        # self.melspec = tf.expand_dims(self.melspec, 0)
+
+        self.fuck = tf.identity(self.melspec, name='fuck')
+
+        self.seqLengths = tf.expand_dims(tf.shape(self.melspec)[1], 0)
+        self.nn_outputs, self.new_seqLengths = inference(self.melspec,
+                                                         self.seqLengths,
+                                                         config,
+                                                         is_training=False,
+                                                         batch_size=1)
+        self.ctc_input = tf.transpose(self.nn_outputs, perm=[1, 0, 2])
+        self.softmax = tf.nn.softmax(self.ctc_input)
+        self.ctc_decode_input = tf.log(self.softmax)
+        self.ctc_decode_result, self.ctc_decode_log_prob = tf.nn.ctc_beam_search_decoder(
+            self.ctc_decode_input, self.new_seqLengths,
+            beam_width=config.beam_size, top_paths=1)
+        self.dense_output = tf.sparse_tensor_to_dense(
+            self.ctc_decode_result[0], default_value=-1,
+            name='dense_output')
 
 
 if __name__ == "__main__":

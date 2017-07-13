@@ -62,7 +62,7 @@ def get_args():
     parser.add_argument('-head', '--multi_head_num',
                         help='multi_head_num',
                         type=int, default=None)
-    parser.add_argument('-hidden', '--model_size',
+    parser.add_argument('-hidden', '--hidden_size',
                         help='number of hidden unit in attention layer',
                         type=int, default=None)
     parser.add_argument('-feed', '--feed_forward_inner_size',
@@ -100,6 +100,9 @@ def get_args():
     parser.add_argument('--mfcc', help='mfcc', type=int, default=None)
     parser.add_argument('--n_mfcc', help='mfcc number', type=int, default=None)
     parser.add_argument('--pre_emphasis', help='pre_emphasis', type=int,
+                        default=None)
+    parser.add_argument('-var', '--variational_recurrent',
+                        help='variational_recurrent', type=int,
                         default=None)
 
     flags = parser.parse_args().__dict__

@@ -93,3 +93,24 @@ def mfcc(linearspec, config, n_mfcc=13, top_db=None):
     mfcc_second_order = delta(mfcc, 2)
     tf.concat([mfcc, mfcc_first_order], 2)
     return tf.concat([mfcc, mfcc_first_order, mfcc_second_order], 2)
+
+
+def test(linearspec, config, n_mfcc=13, top_db=None):
+    # linearspec.shape=(T,B,H)
+
+    linearspec = tf.square(linearspec)
+    mel_basis = librosa.filters.mel(
+        sr=config.samplerate,
+        n_fft=config.fft_size,
+        fmin=config.fmin,
+        fmax=config.fmax,
+        n_mels=config.n_mel).T
+    mel_basis = tf.constant(value=mel_basis, dtype=tf.float32)
+    melspec = tf.matmul(linearspec, mel_basis)
+    S = power_to_db(melspec, 1e-10, top_db)
+
+    dct_basis = dct(n_mfcc, config.n_mel)
+    dct_basis = tf.cast(dct_basis, tf.float32)
+
+    mfcc = tf.matmul(S, dct_basis)
+    return mfcc

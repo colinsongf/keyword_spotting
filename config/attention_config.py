@@ -31,9 +31,9 @@ class Config(object):
         self.graph_path = './graph/23w/'
         self.graph_name = 'graph.pb'
 
-        self.train_path = '/ssd/liuziqi/ctc_24w/train/'
-        self.valid_path = '/ssd/liuziqi/ctc_24w/valid/'
-        self.noise_path = '/ssd/liuziqi/ctc_24w/noise/'
+        self.train_path = '/ssd/liuziqi/ctc_23w/train/'
+        self.valid_path = '/ssd/liuziqi/ctc_23w/valid/'
+        self.noise_path = '/ssd/liuziqi/ctc_23w/noise/'
         self.model_name = 'latest.ckpt'
         self.rawdata_path = './rawdata/'
         self.rawdata_path = '/ssd/keyword/'
@@ -57,7 +57,7 @@ class Config(object):
 
         # pre process flags
         self.fft_size = 400
-        self.step_size = 160
+        self.hop_size = 160
         self.samplerate = 16000
         self.max_sequence_length = 2000
         self.power = 1
@@ -83,7 +83,7 @@ class Config(object):
         self.feed_forward_inner_size = 512
         self.keep_prob = 0.9
         self.multi_head_num = 8
-        self.model_size = 128
+        self.hidden_size = 128
 
     @property
     def num_classes(self):

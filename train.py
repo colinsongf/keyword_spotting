@@ -87,6 +87,7 @@ class Runner(object):
             best_false = 1
             accu_loss = 0
             st_time = time.time()
+            epoch_step = config.tfrecord_size * self.data.train_file_size // config.batch_size
             if os.path.exists(path_join(self.config.save_path, 'best.pkl')):
                 with open(path_join(self.config.save_path, 'best.pkl'),
                           'rb') as f:
@@ -157,16 +158,18 @@ class Runner(object):
                              self.train_model.global_step,
                              self.train_model.grads
                              ])
-                        epoch = sess.run([self.data.epoch])[0]
+                        epoch = step // epoch_step
                         accu_loss += l
                         if epoch > self.epoch:
-                            self.epoch += 1
+                            self.epoch = epoch
+                            print(epoch)
+                            print(step)
                             print('accumulated loss', accu_loss)
                             saver.save(sess, save_path=(
                                 path_join(self.config.save_path,
                                           'latest.ckpt')))
                             accu_loss = 0
-                        if step % config.valid_step == config.valid_step - 1:
+                        if step % config.valid_step == 0:
                             print('epoch time ', (time.time() - last_time) / 60)
                             last_time = time.time()
 
@@ -335,7 +338,7 @@ class Runner(object):
 
             frozen_graph_def = graph_util.convert_variables_to_constants(
                 session, session.graph.as_graph_def(),
-                ['model/inputX', 'model/seqLength', 'model/dense_output'])
+                ['model/inputX', 'model/dense_output', 'model/mel'])
             tf.train.write_graph(
                 frozen_graph_def,
                 os.path.dirname(graph_path),
@@ -353,6 +356,7 @@ class Runner(object):
 if __name__ == '__main__':
 
     flags, model = parse_args()
+    print(flags)
     if model == 'rnn':
         config = rnn_config.get_config()
         TrainingModel = rnn_ctc.GRU
@@ -369,6 +373,7 @@ if __name__ == '__main__':
                 print("WARNING: Invalid override with attribute %s" % (key))
             else:
                 setattr(config, key, flags[key])
+
     runner = Runner(config)
     if config.mode == 'build':
         runner.build_graph(DeployModel)
