@@ -18,8 +18,10 @@
 
 import tensorflow as tf
 from utils.common import describe
+from utils.stft import tf_frame
 from tensorflow.python.ops.rnn import dynamic_rnn
 from tensorflow.contrib.rnn import GRUCell
+import librosa
 
 cell_fn = GRUCell
 
@@ -49,8 +51,9 @@ class GRU(object):
     @describe
     def build_graph(self, config, is_train):
 
-        self.nn_outputs = build_dynamic_rnn(config, self.inputX,
-                                            self.seqLengths, is_train)
+        self.nn_outputs, _ = inference1(config, self.inputX,
+                                        self.seqLengths, is_train)
+        self.fc_outputs = inference2(self.nn_outputs, config)
         self.ctc_input = tf.transpose(self.nn_outputs, perm=[1, 0, 2])
 
         if is_train:
@@ -126,25 +129,58 @@ class DeployModel(object):
 
         with tf.device('/cpu:0'):
             self.inputX = tf.placeholder(dtype=tf.float32,
-                                         shape=[None, config.num_features],
+                                         shape=[None, ],
                                          name='inputX')
-            self.inputX = tf.expand_dims(self.inputX, 0, name='reshape_inputX')
-            self.fuck = tf.identity(self.inputX, name='fuck')
+            self._rnn_initial_states = tf.placeholder(
+                tf.float32,
+                [config.num_layers,
+                 config.batch_size,
+                 config.hidden_size],
+                name='rnn_initial_states')
+            self._prev_ctc_decode_inputs = tf.placeholder(
+                tf.float32,
+                [None,
+                 config.batch_size,
+                 config.num_classes],
+                name='prev_ctc_decode_inputs')
 
-            self.seqLengths = tf.placeholder(dtype=tf.int32, shape=[1],
-                                             name='seqLength')
-            self.nn_outputs = build_dynamic_rnn(config, self.inputX,
-                                                self.seqLengths,
-                                                is_training=False)
-            self.ctc_input = tf.transpose(self.nn_outputs, perm=[1, 0, 2])
+            self.inputX = tf.expand_dims(self.inputX, 0)
+            self.frames = tf_frame(self.inputX, 400, 160, name='frame')
 
-            self.softmax = tf.nn.softmax(self.ctc_input)
-            self.ctc_decode_input = tf.log(self.softmax)
+            self.linearspec = tf.abs(tf.spectral.rfft(self.frames, [400]))
+
+            self.mel_basis = librosa.filters.mel(
+                sr=config.samplerate,
+                n_fft=config.fft_size,
+                fmin=config.fmin,
+                fmax=config.fmax,
+                n_mels=config.freq_size).T
+            self.mel_basis = tf.constant(value=self.mel_basis, dtype=tf.float32)
+            self.mel_basis = tf.expand_dims(self.mel_basis, 0)
+
+            self.melspec = tf.matmul(self.linearspec, self.mel_basis,
+                                     name='mel')
+
+            self.seqLengths = tf.expand_dims(tf.shape(self.melspec)[1], 0)
+            rnn_initial_states = tuple(tf.unstack(self._rnn_initial_states))
+            self.nn_outputs, rnn_states = inference1(config, self.inputX,
+                                                     self.seqLengths,
+                                                     is_training=False,
+                                                     initial_state=rnn_initial_states)
+            self.rnn_states = tf.stack(rnn_states, name="rnn_states")
+            rnn_outputs = tf.transpose(self.nn_outputs, perm=[1, 0, 2])
+
+            self.softmax = tf.nn.softmax(rnn_outputs)
+            ctc_decode_input = tf.log(self.softmax)
+            self.ctc_decode_input = tf.concat(
+                [self._prev_ctc_decode_inputs, ctc_decode_input], axis=1,
+                name="ctc_decode_inputs")
             self.ctc_decode_result, self.ctc_decode_log_prob = tf.nn.ctc_beam_search_decoder(
                 self.ctc_decode_input, self.seqLengths,
                 beam_width=config.beam_size, top_paths=1)
             self.dense_output = tf.sparse_tensor_to_dense(
-                self.ctc_decode_result[0], default_value=-1)
+                self.ctc_decode_result[0], default_value=-1,
+                name='dense_output')
 
 
 def get_cell(config, is_training):
@@ -174,9 +210,32 @@ def get_cell(config, is_training):
     return cell
 
 
-def build_dynamic_rnn(config,
-                      inputX,
-                      seqLengths, is_training):
+def inference1(config,
+               inputX,
+               seqLengths, is_training, initial_state=None):
+    """
+       The model is splited into two parts in order to support streaming.
+       This part contains the CNN layer and RNN layers in the model.
+       input:
+         inputs: a 3D Tensor with shape [batch_size, time_step, freq_size]
+                 the input spectrum after stft and padding
+         actual_lengths: a 1D Tensor with shape [batch_size] which indictates
+                         the actual lengths of each instances in inputs
+         initial_states: a list of Tensor with length of rnn_layer_nums,
+                         each Tensor has the shape [batch_size, hidden_size]
+                         the initial states of rnn cell
+         global_step: a Tensorflow Variable which indicates the number of
+                      step in training
+         config: a ModelConfig instance which indicates the model config
+                 see speech/attention_config.py
+         is_train: a bool indicates whether in training
+       return:
+         rnn_outputs: a 3D Tensor with shape [time_step, batch_size, hidden_size]
+                      the outputs of the last rnn layer
+         rnn_states: a list of Tensor with length of rnn_layer_nums,
+                     each Tensor has the shape [batch_size, hidden_size]
+                     the final states of rnn cell
+    """
     with tf.variable_scope('rnn_cell',
                            initializer=tf.contrib.layers.xavier_initializer(
                                uniform=False)):
@@ -188,20 +247,36 @@ def build_dynamic_rnn(config,
         else:
             # cell = tf.contrib.rnn.MultiRNNCell([get_cell(config)])
             cell = get_cell(config, is_training)
-    outputs, output_states = dynamic_rnn(cell,
-                                         inputs=inputX,
-                                         sequence_length=seqLengths,
-                                         initial_state=None,
-                                         dtype=tf.float32,
-                                         scope="drnn")
+    outputs, states = dynamic_rnn(cell,
+                                  inputs=inputX,
+                                  sequence_length=seqLengths,
+                                  initial_state=initial_state,
+                                  dtype=tf.float32,
+                                  scope="drnn")
+    return outputs, states
 
+
+def inference2(rnn_outputs, config):
+    """
+      The model is splited into two parts in order to support streaming.
+      This part contains the lookahead layer and the full connect layer.
+      input:
+        rnn_outputs: a 3D Tensor with shape [time_step, batch_size, hidden_size]
+                     the outputs of the last rnn layer
+        config: a ModelConfig instance which indicates the model config
+                see speech/attention_config.py
+        is_train: a bool indicates whether in training
+      return:
+        linear_outputs: a 3D Tensor with shape
+                        [batch_size,time_step,  num_tokens+1]
+                        the outputs of the full connect layer
+      """
     with tf.name_scope('fc-layer'):
-
         weightsClasses = tf.get_variable(name='weightsClasses',
                                          initializer=tf.truncated_normal(
                                              [config.hidden_size,
                                               config.num_classes]))
-        flatten_outputs = tf.reshape(outputs,
+        flatten_outputs = tf.reshape(rnn_outputs,
                                      (-1, config.hidden_size))
         biasesClasses = tf.get_variable(name='biasesClasses',
                                         initializer=tf.zeros(

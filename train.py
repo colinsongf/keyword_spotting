@@ -162,8 +162,6 @@ class Runner(object):
                         accu_loss += l
                         if epoch > self.epoch:
                             self.epoch = epoch
-                            print(epoch)
-                            print(step)
                             print('accumulated loss', accu_loss)
                             saver.save(sess, save_path=(
                                 path_join(self.config.save_path,
