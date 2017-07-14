@@ -15,6 +15,54 @@
 import numpy as np
 
 
+
+def ctc_decode(softmax, lockout=4, thres=0.5, loose_thres=0.2):
+    np.set_printoptions(precision=4, threshold=np.inf,
+                        suppress=True)
+    softmax = softmax[:, 1:5]
+    i = 0
+
+    result = []
+    length = softmax.shape[0]
+    loose = False
+
+    while (i < length):
+        if loose:
+            if (softmax[i, :].max() < loose_thres):
+                if result[-1][0] != 3:
+                    i += lockout
+                    loose = False
+                    continue
+            else:
+                if softmax[i, 2] > loose_thres:
+                    result.append((3, i))
+                    i += lockout
+                    loose = False
+                    continue
+                else:
+                    pos = softmax[i, :].argmax() + 1
+                    if softmax[i, pos - 1] > 0.6:
+                        if result[-1][1] + lockout < i:
+                            result.append((pos, i))
+
+        else:
+            if (softmax[i, :].max() > thres):
+                result.append((softmax[i, :].argmax() + 1, i))
+                i += lockout
+                if len(result) >= 3:
+                    temp = [i[0] for i in result[-3:]]
+                    if temp == [1, 2, 3]:
+                        loose = True
+                continue
+        i += 1
+
+    new_result = [0]
+    for i in result:
+        new_result.append(i[0])
+        new_result.append(0)
+    return np.asarray(new_result,dtype=np.int32)
+
+
 def ctc_predict(seq):
     text = ''
     for i in seq:

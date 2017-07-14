@@ -63,7 +63,7 @@ class Config(object):
         self.power = 1
         self.fmin = 300
         self.fmax = 8000
-        self.n_mfcc = 13
+        self.n_mfcc = 20
         self.n_mel = 60
         self.pre_emphasis = False
 

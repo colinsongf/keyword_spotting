@@ -22,6 +22,7 @@ import librosa
 from utils.common import describe
 from positional_encoding import positional_encoding_op
 from utils.stft import tf_frame
+from utils.mfcc import mfcc
 
 
 def self_attention(inputs, config, is_training, scope_name='self_attention'):
@@ -200,8 +201,9 @@ class Attention(object):
                 zip(self.grads, self.vs),
                 global_step=self.global_step)
         else:
-            self.softmax = tf.nn.softmax(self.ctc_input)
-            self.ctc_decode_input = tf.log(self.softmax)
+            self.ctc_input = tf.transpose(self.ctc_input, perm=[1, 0, 2])
+            self.softmax = tf.nn.softmax(self.ctc_input, name='softmax')
+            self.ctc_decode_input = tf.log(self.softmax, name='ctc_input')
             self.ctc_decode_result, self.ctc_decode_log_prob = tf.nn.ctc_beam_search_decoder(
                 self.ctc_decode_input, self.new_seqLengths,
                 beam_width=config.beam_size, top_paths=1)
@@ -241,20 +243,22 @@ class DeployModel(object):
                                      name='inputX')
         self.inputX = tf.expand_dims(self.inputX, 0)
         self.frames = tf_frame(self.inputX, 400, 160, name='frame')
-        print(self.frames)
+
         self.linearspec = tf.abs(tf.spectral.rfft(self.frames, [400]))
-        print(self.linearspec)
 
-        self.mel_basis = librosa.filters.mel(
-            sr=config.samplerate,
-            n_fft=config.fft_size,
-            fmin=config.fmin,
-            fmax=config.fmax,
-            n_mels=config.freq_size).T
-        self.mel_basis = tf.constant(value=self.mel_basis, dtype=tf.float32)
-        self.mel_basis = tf.expand_dims(self.mel_basis, 0)
+        if config.mfcc:
+            self.melspec = mfcc(self.linearspec, config,batch_size=1)
+        else:
+            self.mel_basis = librosa.filters.mel(
+                sr=config.samplerate,
+                n_fft=config.fft_size,
+                fmin=config.fmin,
+                fmax=config.fmax,
+                n_mels=config.freq_size).T
+            self.mel_basis = tf.constant(value=self.mel_basis, dtype=tf.float32)
+            self.mel_basis = tf.expand_dims(self.mel_basis, 0)
 
-        self.melspec = tf.matmul(self.linearspec, self.mel_basis, name='mel')
+            self.melspec = tf.matmul(self.linearspec, self.mel_basis, name='mel')
 
         # self.melspec = tf.expand_dims(self.melspec, 0)
 
@@ -266,16 +270,8 @@ class DeployModel(object):
                                                          config,
                                                          is_training=False,
                                                          batch_size=1)
-        self.ctc_input = tf.transpose(self.nn_outputs, perm=[1, 0, 2])
-        self.softmax = tf.nn.softmax(self.ctc_input,name='softmax')
-        self.ctc_decode_input = tf.log(self.softmax,name='ctc_input')
-        self.ctc_decode_result, self.ctc_decode_log_prob = tf.nn.ctc_beam_search_decoder(
-            self.ctc_decode_input, self.new_seqLengths,
-            beam_width=config.beam_size, top_paths=1)
-        self.dense_output = tf.sparse_tensor_to_dense(
-            self.ctc_decode_result[0], default_value=-1,
-            name='dense_output')
 
+        self.softmax = tf.nn.softmax(self.nn_outputs, name='softmax')
 
 if __name__ == "__main__":
     pass

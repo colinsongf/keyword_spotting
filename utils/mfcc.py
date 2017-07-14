@@ -69,8 +69,10 @@ def _delta_order(feat, order):
     return tf.slice(delta_result, [0, 1, 0], [-1, tf.shape(feat)[1], -1])
 
 
-def mfcc(linearspec, config,  top_db=None):
-    # linearspec.shape=(T,B,H)
+def mfcc(linearspec, config, batch_size=None, top_db=None):
+    if batch_size is None:
+        batch_size = config.batch_size
+    # linearspec.shape=(B,T,H)
     n_mfcc = config.n_mfcc
     linearspec = tf.square(linearspec)
     mel_basis = librosa.filters.mel(
@@ -81,13 +83,13 @@ def mfcc(linearspec, config,  top_db=None):
         n_mels=config.n_mel).T
     mel_basis = tf.constant(value=mel_basis, dtype=tf.float32)
     mel_basis = tf.tile(tf.expand_dims(mel_basis, 0),
-                        [config.batch_size, 1, 1])
+                        [batch_size, 1, 1])
     melspec = tf.matmul(linearspec, mel_basis)
     S = power_to_db(melspec, 1e-10, top_db)
 
     dct_basis = dct(n_mfcc, config.n_mel)
     dct_basis = tf.tile(tf.expand_dims(dct_basis, 0),
-                        [config.batch_size, 1, 1])
+                        [batch_size, 1, 1])
     dct_basis = tf.cast(dct_basis, tf.float32)
 
     mfcc = tf.matmul(S, dct_basis)

@@ -30,7 +30,7 @@ from config import attention_config, rnn_config
 from models import attention_ctc, rnn_ctc
 from reader import read_dataset
 from utils.common import check_dir, path_join
-from utils.prediction import evaluate, ctc_predict
+from utils.prediction import evaluate, ctc_predict, ctc_decode
 
 from utils.wer import WERCalculator
 
@@ -178,8 +178,8 @@ class Runner(object):
                             wer = 0
                             valid_batch = self.data.valid_file_size * config.tfrecord_size // config.batch_size
                             for i in range(valid_batch):
-                                ctc_output, correctness, labels, _, _ = sess.run(
-                                    [self.valid_model.dense_output,
+                                softmax, correctness, labels, _, _ = sess.run(
+                                    [self.valid_model.softmax,
                                      self.valid_model.correctness,
                                      self.valid_model.labels,
                                      self.valid_model.stage_op,
@@ -194,8 +194,10 @@ class Runner(object):
                                 # print(self.valid_set[i * config.batch_size])
                                 # for i in names:
                                 #     print(i.decode())
+                                # print(softmax.shape)
+                                decode_output = [ctc_decode(s) for s in softmax]
                                 result = [ctc_predict(seq) for seq in
-                                          ctc_output]
+                                          decode_output]
                                 miss, target, false_accept = evaluate(
                                     result, correctness.tolist())
 
@@ -204,7 +206,7 @@ class Runner(object):
                                 false_count += false_accept
 
                                 wer += self.wer_cal.cal_batch_wer(labels,
-                                                                  ctc_output).sum()
+                                                                  decode_output).sum()
                                 # print(miss_count, false_count)
 
                             miss_rate = miss_count / target_count
@@ -338,8 +340,7 @@ class Runner(object):
 
             frozen_graph_def = graph_util.convert_variables_to_constants(
                 session, session.graph.as_graph_def(),
-                ['model/inputX', 'model/dense_output', 'model/ctc_input',
-                 'model/softmax'])
+                ['model/inputX', 'model/softmax'])
             tf.train.write_graph(
                 frozen_graph_def,
                 os.path.dirname(graph_path),

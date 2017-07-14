@@ -67,7 +67,7 @@ def convert_label(label):
 
 
 def process_stft(f):
-    print(f)
+
     y, sr = librosa.load(f, sr=config.samplerate)
     if config.pre_emphasis:
         y = pre_emphasis(y)
