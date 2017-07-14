@@ -196,6 +196,8 @@ class Runner(object):
                                 #     print(i.decode())
                                 # print(softmax.shape)
                                 decode_output = [ctc_decode(s) for s in softmax]
+                                for i in decode_output:
+                                    print(i)
                                 result = [ctc_predict(seq) for seq in
                                           decode_output]
                                 miss, target, false_accept = evaluate(
