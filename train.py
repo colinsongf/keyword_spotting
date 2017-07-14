@@ -177,6 +177,7 @@ class Runner(object):
                             target_count = 0
                             wer = 0
                             valid_batch = self.data.valid_file_size * config.tfrecord_size // config.batch_size
+                            text = ""
                             for i in range(valid_batch):
                                 softmax, correctness, labels, _, _ = sess.run(
                                     [self.valid_model.softmax,
@@ -197,7 +198,9 @@ class Runner(object):
                                 # print(softmax.shape)
                                 decode_output = [ctc_decode(s) for s in softmax]
                                 for i in decode_output:
-                                    print(i)
+                                    text += str(i) + '\n'
+                                    text += str(labels) + '\n'
+                                    text += '=' * 20 + '\n'
                                 result = [ctc_predict(seq) for seq in
                                           decode_output]
                                 miss, target, false_accept = evaluate(
@@ -210,6 +213,8 @@ class Runner(object):
                                 wer += self.wer_cal.cal_batch_wer(labels,
                                                                   decode_output).sum()
                                 # print(miss_count, false_count)
+                            with open('./valid.txt','w') as f:
+                                f.write(text)
 
                             miss_rate = miss_count / target_count
                             false_accept_rate = false_count / (
