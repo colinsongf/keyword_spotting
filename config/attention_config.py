@@ -26,8 +26,8 @@ class Config(object):
         self.label_dict = {'ni3': 1, 'hao3': 2,
                            'le4': 3}  # 0 for space 4 for other
 
-        self.model_path = './params/23w/'
-        self.save_path = './params/23w/'
+        self.model_path = './params/mfcc/'
+        self.save_path = './params/mfcc/'
         self.graph_path = './graph/23w/'
         self.graph_name = 'graph.pb'
 

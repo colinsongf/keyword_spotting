@@ -267,8 +267,8 @@ class DeployModel(object):
                                                          is_training=False,
                                                          batch_size=1)
         self.ctc_input = tf.transpose(self.nn_outputs, perm=[1, 0, 2])
-        self.softmax = tf.nn.softmax(self.ctc_input)
-        self.ctc_decode_input = tf.log(self.softmax)
+        self.softmax = tf.nn.softmax(self.ctc_input,name='softmax')
+        self.ctc_decode_input = tf.log(self.softmax,name='ctc_input')
         self.ctc_decode_result, self.ctc_decode_log_prob = tf.nn.ctc_beam_search_decoder(
             self.ctc_decode_input, self.new_seqLengths,
             beam_width=config.beam_size, top_paths=1)

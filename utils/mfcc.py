@@ -69,9 +69,9 @@ def _delta_order(feat, order):
     return tf.slice(delta_result, [0, 1, 0], [-1, tf.shape(feat)[1], -1])
 
 
-def mfcc(linearspec, config, n_mfcc=13, top_db=None):
+def mfcc(linearspec, config,  top_db=None):
     # linearspec.shape=(T,B,H)
-
+    n_mfcc = config.n_mfcc
     linearspec = tf.square(linearspec)
     mel_basis = librosa.filters.mel(
         sr=config.samplerate,

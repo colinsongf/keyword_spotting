@@ -217,7 +217,6 @@ class DataSet(object):
                 self.noise_stager, self.noise_stage_op, self.noise_filequeue_enqueue_op = self.noise_queue(
                     True)
 
-
         if self.config.use_bg_noise:
             bg_noise_origin, bg_noise_lengths = self.noise_stager.get()
 
@@ -263,7 +262,7 @@ class DataSet(object):
                 linearspec = linearspec + noise
 
         if self.config.mfcc:
-            melspec = mfcc(linearspec, self.config, 13, None)
+            melspec = mfcc(linearspec, self.config, None)
         else:
             if self.config.power == 2:
                 linearspec = tf.square(linearspec)
@@ -288,7 +287,7 @@ class DataSet(object):
                 self.valid_filename_queue)
 
         if self.config.mfcc:
-            melspec = mfcc(linearspec, self.config, 13, None)
+            melspec = mfcc(linearspec, self.config, None)
         else:
             if self.config.power == 2:
                 linearspec = tf.square(linearspec)
