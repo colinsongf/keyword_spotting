@@ -167,6 +167,9 @@ class Runner(object):
                             saver.save(sess, save_path=(
                                 path_join(self.config.save_path,
                                           'latest.ckpt')))
+                            print('latest.ckpt save in %s' % (
+                            path_join(self.config.save_path,
+                                      'latest.ckpt')))
                             accu_loss = 0
                         if step % config.valid_step == 0:
                             print('epoch time ', (time.time() - last_time) / 60)
@@ -213,7 +216,7 @@ class Runner(object):
                                 wer += self.wer_cal.cal_batch_wer(labels,
                                                                   decode_output).sum()
                                 # print(miss_count, false_count)
-                            with open('./valid.txt','w') as f:
+                            with open('./valid.txt', 'w') as f:
                                 f.write(text)
 
                             miss_rate = miss_count / target_count

@@ -138,7 +138,6 @@ def make_noise_example(spectrogram):
 def make_valid_example(spectrogram, seq_len, correctness, label, name):
     spectrogram = spectrogram.tolist()
     ex = tf.train.SequenceExample()
-    print(name)
 
     ex.context.feature["seq_len"].int64_list.value.append(seq_len)
     ex.context.feature['label'].int64_list.value.extend(label)
@@ -376,11 +375,11 @@ if __name__ == '__main__':
 
     base_pkl = 'ctc_23w.pkl'
     # sort_wave(wave_train_dir + base_pkl)
-    # shuffle(wave_train_dir + base_pkl + '.sorted')
-    generate_trainning_data(
-        wave_train_dir + base_pkl + '.sorted.shuffled')
+    # # shuffle(wave_train_dir + base_pkl + '.sorted')
+    # generate_trainning_data(
+    #     wave_train_dir + base_pkl + '.sorted.shuffled')
 
     # sort_wave(wave_valid_dir + "ctc_valid_pinyin.pkl")
     generate_valid_data(wave_valid_dir + "ctc_valid.pkl.sorted")
 
-    generate_noise_data(wave_noise_dir + 'noise.pkl')
+    # generate_noise_data(wave_noise_dir + 'noise.pkl')
