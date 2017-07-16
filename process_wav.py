@@ -23,10 +23,14 @@ config = get_config()
 wave_train_dir = config.rawdata_path + 'train/'
 wave_valid_dir = config.rawdata_path + 'valid/'
 wave_noise_dir = config.rawdata_path + 'noise/'
+wav_customize_dir = config.rawdata_path + 'customize/'
+wav_customize_valid_dir = config.rawdata_path + 'customize_valid/'
 
 save_train_dir = config.train_path
 save_valid_dir = config.valid_path
 save_noise_dir = config.noise_path
+save_custom_dir = config.custom_path
+save_custom_valid_dir = config.custom_valid_path
 
 global_len = []
 temp_list = []
@@ -67,7 +71,6 @@ def convert_label(label):
 
 
 def process_stft(f):
-
     y, sr = librosa.load(f, sr=config.samplerate)
     if config.pre_emphasis:
         y = pre_emphasis(y)
@@ -289,6 +292,167 @@ def generate_noise_data(path):
     print('save in %s' % save_noise_dir)
 
 
+def generate_customize_data(path):
+    check_dir(save_custom_dir)
+    with open(path, 'rb') as f:
+        # (audio_name,pinyin)
+        wav_list = pickle.load(f)
+        print('read pkl from ', f)
+    audio_list = [i[0] for i in wav_list]
+    label_list = [i[1] for i in wav_list]
+    text_list = [i[2] for i in wav_list]
+    tuple_list = []
+    import os
+    for i, audio_name in enumerate(audio_list):
+        slow = audio_name.replace('.wav', '_slow.wav')
+        fast = audio_name.replace('.wav', '_fast.wav')
+        loud = audio_name.replace('.wav', '_loud.wav')
+        silent = audio_name.replace('.wav', 'slient.wav')
+        os.system(
+            'ffmpeg -i "%s" -filter:a "atempo=0.8" -vn -y -loglevel 0 "%s"' % (
+                path_join(wav_customize_dir, audio_name),
+                path_join(wav_customize_dir, slow)))
+        os.system(
+            'ffmpeg -i "%s" -filter:a "atempo=1.2" -vn -y -loglevel 0 "%s"' % (
+                path_join(wav_customize_dir, audio_name),
+                path_join(wav_customize_dir, fast)))
+        os.system(
+            'ffmpeg -y -i "%s" -vn -sn -filter:a volume=2.0dB -ar 16000 -loglevel 0 "%s"' % (
+                path_join(wav_customize_dir, audio_name),
+                path_join(wav_customize_dir, loud)))
+        os.system(
+            'ffmpeg -y -i "%s" -vn -sn -filter:a volume=-2.0dB -ar 16000 -loglevel 0 "%s"' % (
+                path_join(wav_customize_dir, audio_name),
+                path_join(wav_customize_dir, silent)))
+        spec, seq_len, label_values, label_indices, label_shape = make_record(
+            path_join(wav_customize_dir, audio_name),
+            label_list[i])
+        slow_spec, _ = process_stft(path_join(wav_customize_dir, slow))
+        fast_spec, _ = process_stft(path_join(wav_customize_dir, fast))
+        loud_spec, _ = process_stft(path_join(wav_customize_dir, loud))
+        silent_spec, _ = process_stft(path_join(wav_customize_dir, silent))
+
+        tuple_list.append(
+            (spec, seq_len, label_values, label_indices, label_shape))
+        tuple_list.append(
+            (slow_spec, len(slow_spec), label_values, label_indices,
+             label_shape))
+        tuple_list.append(
+            (fast_spec, len(fast_spec), label_values, label_indices,
+             label_shape))
+        tuple_list.append(
+            (loud_spec, len(loud_spec), label_values, label_indices,
+             label_shape))
+        tuple_list.append(
+            (silent_spec, len(silent_spec), label_values, label_indices,
+             label_shape))
+
+    tuple_list.append(tuple_list[0])
+
+    # 16 records
+    tuple_list.extend(tuple_list)
+
+    tuple_list = batch_padding_trainning(tuple_list)
+    print(len(tuple_list))
+    fname = 'custom.tfrecords'
+    ex_list = [make_trainning_example(spec, seq_len, label_values,
+                                      label_indices, label_shape) for
+               spec, seq_len, label_values, label_indices, label_shape
+               in tuple_list]
+    writer = tf.python_io.TFRecordWriter(
+        path_join(save_custom_dir, fname))
+    for ex in ex_list:
+        writer.write(ex.SerializeToString())
+    writer.close()
+    print(fname, 'created')
+    print('save in %s' % save_custom_dir)
+
+
+def generate_custom_valid_data(pkl_path):
+    check_dir(save_custom_valid_dir)
+    with open(pkl_path, 'rb') as f:
+        wav_list = pickle.load(f)
+    wav_list.extend(wav_list * 10)
+    wav_list = wav_list[:32]
+    print('read pkl from %s' % f)
+    audio_list = [i[0] for i in wav_list]
+    correctness_list = [i[1] for i in wav_list]
+    label_list = [i[2] for i in wav_list]
+    assert len(audio_list) == len(correctness_list)
+    tuple_list = []
+    counter = 0
+    record_count = 0
+    for audio_name, correctness, label in zip(audio_list, correctness_list,
+                                              label_list):
+        spectrogram, wave = process_stft(
+            path_join(wav_customize_valid_dir, audio_name))
+        seq_len = spectrogram.shape[0]
+        label_values, _, _ = convert_label(label)
+
+        tuple_list.append(
+            (spectrogram, seq_len, correctness, label_values, audio_name))
+        counter += 1
+        if counter == config.tfrecord_size:
+            tuple_list = batch_padding_valid(tuple_list)
+            fname = 'valid' + increment_id(record_count, 5) + '.tfrecords'
+            ex_list = [
+                make_valid_example(spec, seq_len, correctness, label_values,
+                                   audio_name) for
+                spec, seq_len, correctness, label_values, audio_name in
+                tuple_list]
+            writer = tf.python_io.TFRecordWriter(
+                path_join(save_custom_valid_dir, fname))
+            for ex in ex_list:
+                writer.write(ex.SerializeToString())
+            writer.close()
+            record_count += 1
+            counter = 0
+            tuple_list.clear()
+            print(fname, 'created')
+    print('save in %s' % save_custom_valid_dir)
+
+
+def collect_customize_data(valid=False):
+    check_dir(wav_customize_valid_dir)
+    check_dir(wav_customize_dir)
+    import requests
+    import json
+    from marker.pkg.pinyin_tone.pinyin import EngTonedMarker
+    marker = EngTonedMarker()
+
+    device_id = '32EFEA3263D079E1BE3767C87FC0A1C2'
+    base_url = 'http://speechreview.in.naturali.io/prod/'
+
+    r = requests.get(base_url + 'get?limit=50&offset=0&deviceid=' + device_id)
+    a = r.content
+    j = json.loads(a.decode())
+
+    records = j['Detail'][:3]
+    pkl = []
+    for record in records:
+        download_url = base_url + 'audio/' + record['awskey']
+        label = record['nires']
+        print(download_url)
+        wave = requests.get(download_url).content
+        ret = marker.mark(label)
+        print(ret)
+        if valid:
+            path = path_join(wav_customize_valid_dir, record['awskey'])
+            pkl.append((record['awskey'], 1, ret))
+        else:
+            path = path_join(wav_customize_dir, record['awskey'])
+            pkl.append((record['awskey'], ret, label))
+
+        with open(path, 'wb') as f:
+            f.write(wave)
+    if valid:
+        pkl_path = path_join(wav_customize_valid_dir, 'valid.pkl')
+    else:
+        pkl_path = path_join(wav_customize_dir, 'data.pkl')
+    with open(pkl_path, 'wb') as f:
+        pickle.dump(pkl, f)
+
+
 def expand_spectrogram(spec, target_len):
     times = target_len // spec.shape[0]
     expand_spec = spec
@@ -383,3 +547,9 @@ if __name__ == '__main__':
     generate_valid_data(wave_valid_dir + "ctc_valid.pkl.sorted")
 
     # generate_noise_data(wave_noise_dir + 'noise.pkl')
+
+    # collect_customize_data(valid=True)
+    #
+    # generate_customize_data(wav_customize_dir + 'data.pkl')
+    #
+    generate_custom_valid_data(wav_customize_valid_dir + 'valid.pkl')

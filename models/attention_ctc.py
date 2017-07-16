@@ -119,12 +119,39 @@ def inference(inputs, seqLengths, config, is_training, batch_size=None):
                 feed_forward_outputs + feed_forward_inputs)
             layer_inputs = layer_outputs
 
-    outputs = tf.layers.conv2d(
-        tf.expand_dims(layer_outputs, 2), config.num_classes,
-        (1, 1), name='output_linear_trans')  # [B, T, 1, F]
-    outputs = tf.squeeze(outputs, 2)  # [B, T, F]
+    output_linear_weights = tf.get_variable(name='output_linear_weights',
+                                            initializer=tf.truncated_normal(
+                                                [config.hidden_size,
+                                                 config.num_classes]))
+    output_linear_biases = tf.get_variable(name='output_linear_biases',
+                                           initializer=tf.zeros(
+                                               [config.num_classes]))
+    if config.customize == 1:
+        weights_origin, other_words = tf.split(output_linear_weights, [4, 2], 1)
+        weights_origin = tf.stop_gradient(weights_origin)
+        customize_weights = tf.get_variable('new_weights',
+                                            initializer=tf.truncated_normal(
+                                                [config.hidden_size,
+                                                 config.num_customize]))
+        output_linear_weights = tf.concat(
+            [weights_origin, customize_weights, other_words], 1)
+
+        bias_origin, bias_other_words = tf.split(output_linear_biases, [4, 2])
+        bias_origin = tf.stop_gradient(bias_origin)
+        customize_bias = tf.get_variable('new_bias',
+                                         initializer=tf.zeros(
+                                             [config.num_customize]))
+        output_linear_biases = tf.concat(
+            [bias_origin, customize_bias, bias_other_words], 0)
+
+    linear_input = tf.reshape(layer_outputs, [-1, config.hidden_size],
+                              'linear_input')
+
+    outputs = tf.matmul(linear_input,
+                        output_linear_weights) + output_linear_biases
     if config.use_relu:
         outputs = tf.nn.relu(outputs)
+    outputs = tf.reshape(outputs, [config.batch_size, -1, config.num_classes])
     return outputs, seqLengths
 
 

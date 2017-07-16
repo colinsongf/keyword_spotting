@@ -20,20 +20,26 @@ def get_config():
 class Config(object):
     def __init__(self):
         self.mode = "train"  # train,valid,build
+        self.customize = 0  # 0 not  1 transform  2 restore from customize
         self.mfcc = False
         self.ktq = False
         self.spectrogram = 'mel'  # mfcc,mel
         self.label_dict = {'ni3': 1, 'hao3': 2,
                            'le4': 3}  # 0 for space 4 for other
+        self.customize_dict = {'ping2': 4, 'guo3': 5}
+        self._origin_label_seq = '1233'
+        self._customize_label_seq = '45'
 
-        self.model_path = './params/mfcc/'
-        self.save_path = './params/mfcc/'
+        self.model_path = './params/2l/'
+        self.save_path = './params/2l/'
         self.graph_path = './graph/23w/'
         self.graph_name = 'graph.pb'
 
         self.train_path = '/ssd/liuziqi/ctc_23w/train/'
         self.valid_path = '/ssd/liuziqi/ctc_23w/valid/'
         self.noise_path = '/ssd/liuziqi/ctc_23w/noise/'
+        self.custom_path = '/ssd/liuziqi/ctc_23w/custom/'
+        self.custom_valid_path = '/ssd/liuziqi/ctc_23w/custom_valid/'
         self.model_name = 'latest.ckpt'
         self.rawdata_path = './rawdata/'
         self.rawdata_path = '/ssd/keyword/'
@@ -67,7 +73,6 @@ class Config(object):
         self.n_mel = 60
         self.pre_emphasis = False
 
-
         # noise flags
         self.use_white_noise = False
         self.use_bg_noise = True
@@ -88,8 +93,22 @@ class Config(object):
     @property
     def num_classes(self):
         # word+1 for background
-        return len(
-            self.label_dict) + 3  # 0 for space 4 for others, 5 for ctc blank
+        if self.customize == 2:
+            return len(self.label_dict) + len(self.customize_dict) + 3
+        else:
+            return len(
+                self.label_dict) + 3  # 0 for space 4 for others, 5 for ctc blank
+
+    @property
+    def num_customize(self):
+        return len(self.customize_dict)
+
+    @property
+    def label_seqs(self):
+        if self.customize:
+            return [self._origin_label_seq, self._customize_label_seq]
+        else:
+            return [self._origin_label_seq]
 
     @property
     def beam_size(self):

@@ -67,7 +67,11 @@ class Runner(object):
                     self.valid_model = TrainingModel(self.config,
                                                      self.data.valid_queue(),
                                                      is_train=False)
-            saver = tf.train.Saver()
+
+            variables_to_restore = [v for v in
+                                    tf.contrib.slim.get_variables_to_restore()
+                                    if not 'new_' in v.name]
+            saver = tf.train.Saver(variables_to_restore)
 
             # restore from stored models
             files = glob(path_join(self.config.model_path, '*.ckpt.*'))
@@ -82,6 +86,19 @@ class Runner(object):
                 sess.run(tf.global_variables_initializer())
 
             sess.run(tf.local_variables_initializer())
+
+            with tf.variable_scope("model", reuse=True):
+                # uninitialized = sess.run(tf.report_uninitialized_variables(
+                #     tf.global_variables()))
+                # uninitialized = [n.decode() for n in uninitialized]
+
+                to_initialized = [v for v in
+                                  tf.contrib.slim.get_variables_to_restore()
+                                  if 'new_' in v.name]
+                for i in to_initialized:
+                    print(i.name)
+                    sess.run(tf.variables_initializer([i]))
+
             tf.Graph.finalize(graph)
 
             best_miss = 1
@@ -168,8 +185,8 @@ class Runner(object):
                                 path_join(self.config.save_path,
                                           'latest.ckpt')))
                             print('latest.ckpt save in %s' % (
-                            path_join(self.config.save_path,
-                                      'latest.ckpt')))
+                                path_join(self.config.save_path,
+                                          'latest.ckpt')))
                             accu_loss = 0
                         if step % config.valid_step == 0:
                             print('epoch time ', (time.time() - last_time) / 60)
