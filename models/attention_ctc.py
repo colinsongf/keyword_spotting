@@ -127,28 +127,31 @@ def inference(inputs, seqLengths, config, is_training, batch_size=None):
                                            initializer=tf.zeros(
                                                [config.num_classes]))
     if config.customize == 1:
-        weights_origin, other_words = tf.split(output_linear_weights, [4, 2], 1)
+        weights_origin, other_words, blank = tf.split(output_linear_weights,
+                                                      [4, 1, 1], 1)
         weights_origin = tf.stop_gradient(weights_origin)
         customize_weights = tf.get_variable('new_weights',
                                             initializer=tf.truncated_normal(
                                                 [config.hidden_size,
                                                  config.num_customize]))
         output_linear_weights = tf.concat(
-            [weights_origin, customize_weights, other_words], 1)
+            [weights_origin, other_words, customize_weights, blank], 1)
 
-        bias_origin, bias_other_words = tf.split(output_linear_biases, [4, 2])
+        bias_origin, bias_other_words, bias_blank = tf.split(
+            output_linear_biases, [4, 1, 1])
         bias_origin = tf.stop_gradient(bias_origin)
         customize_bias = tf.get_variable('new_bias',
                                          initializer=tf.zeros(
                                              [config.num_customize]))
         output_linear_biases = tf.concat(
-            [bias_origin, customize_bias, bias_other_words], 0)
+            [bias_origin, bias_other_words, customize_bias, bias_blank], 0)
 
     linear_input = tf.reshape(layer_outputs, [-1, config.hidden_size],
                               'linear_input')
 
     outputs = tf.matmul(linear_input,
                         output_linear_weights) + output_linear_biases
+    outputs = tf.Print(outputs,[tf.shape(outputs),'outputs shape:'])
     if config.use_relu:
         outputs = tf.nn.relu(outputs)
     outputs = tf.reshape(outputs, [config.batch_size, -1, config.num_classes])
@@ -274,7 +277,7 @@ class DeployModel(object):
         self.linearspec = tf.abs(tf.spectral.rfft(self.frames, [400]))
 
         if config.mfcc:
-            self.melspec = mfcc(self.linearspec, config,batch_size=1)
+            self.melspec = mfcc(self.linearspec, config, batch_size=1)
         else:
             self.mel_basis = librosa.filters.mel(
                 sr=config.samplerate,
@@ -285,7 +288,8 @@ class DeployModel(object):
             self.mel_basis = tf.constant(value=self.mel_basis, dtype=tf.float32)
             self.mel_basis = tf.expand_dims(self.mel_basis, 0)
 
-            self.melspec = tf.matmul(self.linearspec, self.mel_basis, name='mel')
+            self.melspec = tf.matmul(self.linearspec, self.mel_basis,
+                                     name='mel')
 
         # self.melspec = tf.expand_dims(self.melspec, 0)
 
@@ -299,6 +303,7 @@ class DeployModel(object):
                                                          batch_size=1)
 
         self.softmax = tf.nn.softmax(self.nn_outputs, name='softmax')
+
 
 if __name__ == "__main__":
     pass

@@ -26,12 +26,12 @@ class Config(object):
         self.spectrogram = 'mel'  # mfcc,mel
         self.label_dict = {'ni3': 1, 'hao3': 2,
                            'le4': 3}  # 0 for space 4 for other
-        self.customize_dict = {'ping2': 4, 'guo3': 5}
+        self.customize_dict = {'ping2': 5, 'guo3': 6}
         self._origin_label_seq = '1233'
         self._customize_label_seq = '45'
 
-        self.model_path = './params/2l/'
-        self.save_path = './params/2l/'
+        self.model_path = './params/ctc2/'
+        self.save_path = './params/ctc2/'
         self.graph_path = './graph/23w/'
         self.graph_name = 'graph.pb'
 
