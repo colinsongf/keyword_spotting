@@ -37,6 +37,7 @@ temp_list = []
 error_list = []
 
 label_dict = config.label_dict
+custom_dict = config.customize_dict
 
 
 def pre_emphasis(signal, coefficient=0.97):
@@ -58,11 +59,11 @@ def point2frame(point, sr=config.samplerate, n_fft=config.fft_size,
     return (point - (n_fft // 2)) // step_size
 
 
-def convert_label(label):
+def convert_label(label, dic=label_dict):
     assert len(label) > 0
     label_values = [0]
     for c in label:
-        label_values.append(label_dict.get(c, 4))
+        label_values.append(dic.get(c, 4))
         label_values.append(0)
     label_shape = len(label_values)
     label_indices = range(len(label_values))
@@ -95,12 +96,12 @@ def process_mel(f):
     return mel_spectrogram, y
 
 
-def make_record(f, label):
+def make_record(f, label, dic=label_dict):
     # print(f)
     # print(text)
     spectrogram, wave = process_stft(f)
     seq_len = spectrogram.shape[0]
-    label_values, label_indices, label_shape = convert_label(label)
+    label_values, label_indices, label_shape = convert_label(label,dic)
 
     return spectrogram, seq_len, label_values, label_indices, label_shape
 
@@ -326,7 +327,7 @@ def generate_customize_data(path):
                 path_join(wav_customize_dir, silent)))
         spec, seq_len, label_values, label_indices, label_shape = make_record(
             path_join(wav_customize_dir, audio_name),
-            label_list[i])
+            label_list[i], custom_dict)
         slow_spec, _ = process_stft(path_join(wav_customize_dir, slow))
         fast_spec, _ = process_stft(path_join(wav_customize_dir, fast))
         loud_spec, _ = process_stft(path_join(wav_customize_dir, loud))
@@ -348,6 +349,9 @@ def generate_customize_data(path):
              label_shape))
 
     tuple_list.append(tuple_list[0])
+    for i in tuple_list:
+        print(i[2])
+        print(str(i[3]))
 
     # 16 records
     tuple_list.extend(tuple_list)
@@ -387,7 +391,7 @@ def generate_custom_valid_data(pkl_path):
         spectrogram, wave = process_stft(
             path_join(wav_customize_valid_dir, audio_name))
         seq_len = spectrogram.shape[0]
-        label_values, _, _ = convert_label(label)
+        label_values, _, _ = convert_label(label,custom_dict)
 
         tuple_list.append(
             (spectrogram, seq_len, correctness, label_values, audio_name))
@@ -544,12 +548,12 @@ if __name__ == '__main__':
     #     wave_train_dir + base_pkl + '.sorted.shuffled')
 
     # sort_wave(wave_valid_dir + "ctc_valid_pinyin.pkl")
-    generate_valid_data(wave_valid_dir + "ctc_valid.pkl.sorted")
+    # generate_valid_data(wave_valid_dir + "ctc_valid.pkl.sorted")
 
     # generate_noise_data(wave_noise_dir + 'noise.pkl')
 
     # collect_customize_data(valid=True)
-    #
-    # generate_customize_data(wav_customize_dir + 'data.pkl')
+
+    generate_customize_data(wav_customize_dir + 'data.pkl')
     #
     generate_custom_valid_data(wav_customize_valid_dir + 'valid.pkl')

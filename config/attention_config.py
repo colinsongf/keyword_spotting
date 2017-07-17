@@ -26,7 +26,7 @@ class Config(object):
         self.spectrogram = 'mel'  # mfcc,mel
         self.label_dict = {'ni3': 1, 'hao3': 2,
                            'le4': 3}  # 0 for space 4 for other
-        self.customize_dict = {'ping2': 5, 'guo3': 6}
+        self._customize_dict = {'ping2': 5, 'guo3': 6}
         self._origin_label_seq = '1233'
         self._customize_label_seq = '45'
 
@@ -94,14 +94,25 @@ class Config(object):
     def num_classes(self):
         # word+1 for background
         if self.customize == 2:
-            return len(self.label_dict) + len(self.customize_dict) + 3
+            return len(self.label_dict) + len(self._customize_dict) + 3
         else:
             return len(
                 self.label_dict) + 3  # 0 for space 4 for others, 5 for ctc blank
 
     @property
     def num_customize(self):
-        return len(self.customize_dict)
+        return len(self._customize_dict)
+
+    @property
+    def customize_dict(self):
+        return dict(self.label_dict, **self._customize_dict)
+
+    @property
+    def get_dict(self):
+        if self.customize:
+            return self.customize_dict()
+        else:
+            return self.label_dict
 
     @property
     def label_seqs(self):

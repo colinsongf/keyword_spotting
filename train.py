@@ -71,15 +71,18 @@ class Runner(object):
             variables_to_restore = [v for v in
                                     tf.contrib.slim.get_variables_to_restore()
                                     if not 'new_' in v.name]
-            saver = tf.train.Saver(variables_to_restore)
+
+            saver = tf.train.Saver()
+            saver_origin = tf.train.Saver(
+                variables_to_restore) if config.customize == 1 else saver
 
             # restore from stored models
             files = glob(path_join(self.config.model_path, '*.ckpt.*'))
 
             if len(files) > 0:
 
-                saver.restore(sess, path_join(self.config.model_path,
-                                              self.config.model_name))
+                saver_origin.restore(sess, path_join(self.config.model_path,
+                                                     self.config.model_name))
                 print(('Model restored from:' + self.config.model_path))
             else:
                 print("Model doesn't exist.\nInitializing........")

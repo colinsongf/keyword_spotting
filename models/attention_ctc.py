@@ -151,10 +151,11 @@ def inference(inputs, seqLengths, config, is_training, batch_size=None):
 
     outputs = tf.matmul(linear_input,
                         output_linear_weights) + output_linear_biases
-    outputs = tf.Print(outputs,[tf.shape(outputs),'outputs shape:'])
+    # outputs = tf.Print(outputs, [tf.shape(outputs), 'outputs shape:'])
     if config.use_relu:
         outputs = tf.nn.relu(outputs)
-    outputs = tf.reshape(outputs, [config.batch_size, -1, config.num_classes])
+    outputs = tf.reshape(outputs, [config.batch_size, -1,
+                                   config.num_classes + config.num_customize if config.customize == 1 else config.num_classes])
     return outputs, seqLengths
 
 
