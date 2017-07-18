@@ -203,13 +203,13 @@ class Attention(object):
         else:
             self.ctc_input = tf.transpose(self.ctc_input, perm=[1, 0, 2])
             self.softmax = tf.nn.softmax(self.ctc_input, name='softmax')
-            self.ctc_decode_input = tf.log(self.softmax, name='ctc_input')
-            self.ctc_decode_result, self.ctc_decode_log_prob = tf.nn.ctc_beam_search_decoder(
-                self.ctc_decode_input, self.new_seqLengths,
-                beam_width=config.beam_size, top_paths=1)
-            self.dense_output = tf.sparse_tensor_to_dense(
-                self.ctc_decode_result[0], default_value=-1,
-                name='dense_output')
+            # self.ctc_decode_input = tf.log(self.softmax, name='ctc_input')
+            # self.ctc_decode_result, self.ctc_decode_log_prob = tf.nn.ctc_beam_search_decoder(
+            #     self.ctc_decode_input, self.new_seqLengths,
+            #     beam_width=config.beam_size, top_paths=1)
+            # self.dense_output = tf.sparse_tensor_to_dense(
+            #     self.ctc_decode_result[0], default_value=-1,
+            #     name='dense_output')
 
 
 class DeployModel(object):

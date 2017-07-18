@@ -26,8 +26,8 @@ class Config(object):
         self.label_dict = {'ni3': 1, 'hao3': 2,
                            'le4': 3}  # 0 for space 4 for other
 
-        self.model_path = './params/rnnctc/'
-        self.save_path = './params/rnnctc/'
+        self.model_path = './params/rnnctc1/'
+        self.save_path = './params/rnnctc1/'
         self.graph_path = './graph/mel/'
         self.graph_name = 'graph.pb'
 
@@ -56,7 +56,7 @@ class Config(object):
         self.optimizer = 'adam'  # adam sgd nesterov
 
         self.fft_size = 400
-        self.step_size = 160
+        self.hop_size = 160
         self.samplerate = 16000
         self.max_sequence_length = 2000
         self.power = 1
@@ -80,7 +80,7 @@ class Config(object):
 
         self.keep_prob = 0.9
         self.variational_recurrent = False
-        self.hidden_size = 64
+        self.hidden_size = 128
         self.cell_clip = 3.
 
     @property

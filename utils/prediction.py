@@ -16,7 +16,7 @@ import numpy as np
 
 
 
-def ctc_decode(softmax, lockout=4, thres=0.5, loose_thres=0.2):
+def ctc_decode(softmax, lockout=3, thres=0.5, loose_thres=0.2):
     np.set_printoptions(precision=4, threshold=np.inf,
                         suppress=True)
     softmax = softmax[:, 1:5]
@@ -70,7 +70,7 @@ def ctc_predict(seq):
             break
         if i > 0:
             text += str(i)
-    return 1 if '123' in text else 0
+    return 1 if '1233' in text else 0
     # return 1 if '1233' in text else 0
 
 

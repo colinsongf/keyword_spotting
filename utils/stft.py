@@ -96,8 +96,6 @@ def frame(y, n_fft=400, hop_length=160, win_length=400, window='hann',
 
     # Pad the time series so that frames are centered
 
-    y = np.pad(y, int(n_fft // 2), mode='reflect')
-
     # Window the time series.
     y_frames = librosa.util.frame(y, frame_length=n_fft, hop_length=hop_length)
 
