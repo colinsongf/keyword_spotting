@@ -77,7 +77,8 @@ class Config(object):
         # model params
         self.num_layers = 2
         self.max_grad_norm = -1
-
+        self.ues_layer_norm = False
+        self.use_residual = False
         self.keep_prob = 0.9
         self.variational_recurrent = False
         self.hidden_size = 128

@@ -19,6 +19,8 @@
 import tensorflow as tf
 from utils.common import describe
 from utils.stft import tf_frame
+from utils.custom_wrapper import LayerNormalizer, ResidualWrapper, \
+    HighwayWrapper
 from tensorflow.python.ops.rnn import dynamic_rnn
 from tensorflow.contrib.rnn import GRUCell
 import librosa
@@ -169,7 +171,7 @@ class DeployModel(object):
                                                      is_training=False,
                                                      initial_state=rnn_initial_states)
             self.rnn_states = tf.stack(rnn_states, name="rnn_states")
-            self.linear_output = inference2(self.nn_outputs, config,1)
+            self.linear_output = inference2(self.nn_outputs, config, 1)
 
             self.softmax = tf.nn.softmax(self.linear_output, name='softmax')
             # ctc_decode_input = tf.log(self.softmax)
@@ -184,7 +186,6 @@ class DeployModel(object):
             #     name='dense_output')
 
 
-
 def get_cell(config, is_training):
     print(tf.get_variable_scope().reuse)
     cell = cell_fn(num_units=config.hidden_size,
@@ -192,15 +193,9 @@ def get_cell(config, is_training):
                    activation=tf.tanh,
                    reuse=tf.get_variable_scope().reuse
                    )
-    # cell = cell_fn(num_units=config.hidden_size,
-    #                use_peepholes=True,
-    #                cell_clip=config.cell_clip,
-    #                initializer=tf.contrib.layers.xavier_initializer(),
-    #                forget_bias=1.0,
-    #                state_is_tuple=True,
-    #                activation=tf.tanh,
-    #                reuse=tf.get_variable_scope().reuse
-    #                )
+    # add wrappers: ln -> dropout -> residual
+    if config.use_layer_norm:
+        cell = LayerNormalizer(cell)
     if is_training:
         if config.keep_prob < 1:
             cell = tf.contrib.rnn.DropoutWrapper(cell,
@@ -208,6 +203,8 @@ def get_cell(config, is_training):
                                                  dtype=tf.float32,
                                                  variational_recurrent=config.variational_recurrent
                                                  )
+    if config.use_residual:
+        cell = ResidualWrapper(cell)
 
     return cell
 
@@ -238,18 +235,17 @@ def inference1(config,
                      each Tensor has the shape [batch_size, hidden_size]
                      the final states of rnn cell
     """
-    with tf.variable_scope('rnn_cell',
-                           initializer=tf.contrib.layers.xavier_initializer(
-                               uniform=False)):
-        if config.num_layers > 1:
-            print('building multi layer LSTM')
-            cell = tf.contrib.rnn.MultiRNNCell(
-                [get_cell(config, is_training) for _ in
-                 range(config.num_layers)])
-        else:
-            # cell = tf.contrib.rnn.MultiRNNCell([get_cell(config)])
-            cell = get_cell(config, is_training)
-    outputs, states = dynamic_rnn(cell,
+    rnn_cells = []
+    for i in config.num_layers:
+        with tf.variable_scope('rnn_cell%d' % i,
+                               initializer=tf.contrib.layers.xavier_initializer(
+                                   uniform=False)):
+            print('building RNN layer')
+            rnn_cells.append(get_cell(config, is_training))
+
+    rnn_cells = tf.contrib.rnn.MultiRNNCell(rnn_cells)
+
+    outputs, states = dynamic_rnn(rnn_cells,
                                   inputs=inputX,
                                   sequence_length=seqLengths,
                                   initial_state=initial_state,

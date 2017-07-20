@@ -179,15 +179,17 @@ class HotwordDetector(object):
                     time.sleep(sleep_time)
                     continue
 
-                if vad(data, 20):
+                if vad(data, 30):
                     pass
                     self.prev_speech = True
                 else:
-                    if self.prev_speech:
-                        self.prev_speech = False
-                        self.clean_state()
-                        self.prob_queue.clear()
-                    continue
+                    # if self.prev_speech:
+                    #     self.prev_speech = False
+                    #     self.clean_state()
+                    #     self.prob_queue.clear()
+                    self.clean_state()
+                    self.prob_queue.clear()
+
 
                 data = np.concatenate((self.res, data), 0)
 
@@ -284,10 +286,10 @@ if __name__ == '__main__':
 
     # main loop
 
-    detector.start(detected_callback=play_audio_file,
-                   interrupt_check=interrupt_callback,
-                   sleep_time=0.03)
+    # detector.start(detected_callback=play_audio_file,
+    #                interrupt_check=interrupt_callback,
+    #                sleep_time=0.03)
+    #
 
 
-
-    # detector.test('temp1.wav')
+    detector.test('temp.wav')

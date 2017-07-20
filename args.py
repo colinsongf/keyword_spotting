@@ -104,6 +104,12 @@ def get_args():
     parser.add_argument('-var', '--variational_recurrent',
                         help='variational_recurrent', type=int,
                         default=None)
+    parser.add_argument('-ln', '--ues_layer_norm',
+                        help='ues_layer_norm', type=int,
+                        default=None)
+    parser.add_argument('-res', '--ues_residual',
+                        help='use residual wrapper', type=int,
+                        default=None)
 
     flags = parser.parse_args().__dict__
     return flags
