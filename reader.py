@@ -333,8 +333,8 @@ class DataSet(object):
 
 
 def read_dataset(config):
-    save_train_dir = config.train_path
-    save_valid_dir = config.valid_path
+    save_train_dir = config.custom_path if config.customize else config.train_path
+    save_valid_dir = config.custom_valid_path if config.customize else config.valid_path
     save_noise_dir = config.noise_path
 
     return DataSet(config=config, train_dir=save_train_dir,
