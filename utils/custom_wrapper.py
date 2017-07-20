@@ -4,6 +4,7 @@
 
 @author: ZiqiLiu
 
+This file contains custom wrapper for different cells
 
 @file: custom_wrapper.py
 
@@ -11,9 +12,6 @@
 
 @desc:
 '''
-
-
-""" This file contains custom wrapper for different cells"""
 from __future__ import absolute_import
 from tensorflow.contrib.rnn.python.ops.core_rnn_cell import RNNCell
 from tensorflow.python.ops import array_ops

@@ -26,8 +26,8 @@ class Config(object):
         self.label_dict = {'ni3': 1, 'hao3': 2,
                            'le4': 3}  # 0 for space 4 for other
 
-        self.model_path = './params/rnnctc1/'
-        self.save_path = './params/rnnctc1/'
+        self.model_path = './params/rnnctc4/'
+        self.save_path = './params/rnnctc4/'
         self.graph_path = './graph/mel/'
         self.graph_name = 'graph.pb'
 
@@ -77,7 +77,7 @@ class Config(object):
         # model params
         self.num_layers = 2
         self.max_grad_norm = -1
-        self.ues_layer_norm = False
+        self.use_layer_norm = False
         self.use_residual = False
         self.keep_prob = 0.9
         self.variational_recurrent = False

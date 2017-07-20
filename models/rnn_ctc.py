@@ -236,7 +236,7 @@ def inference1(config,
                      the final states of rnn cell
     """
     rnn_cells = []
-    for i in config.num_layers:
+    for i in range(config.num_layers):
         with tf.variable_scope('rnn_cell%d' % i,
                                initializer=tf.contrib.layers.xavier_initializer(
                                    uniform=False)):
