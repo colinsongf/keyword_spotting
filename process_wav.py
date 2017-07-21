@@ -328,6 +328,7 @@ def generate_customize_data(path):
         spec, seq_len, label_values, label_indices, label_shape = make_record(
             path_join(wav_customize_dir, audio_name),
             label_list[i], custom_dict)
+        print(label_values)
         slow_spec, _ = process_stft(path_join(wav_customize_dir, slow))
         fast_spec, _ = process_stft(path_join(wav_customize_dir, fast))
         loud_spec, _ = process_stft(path_join(wav_customize_dir, loud))

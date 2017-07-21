@@ -20,6 +20,7 @@ import sys
 import time
 import pickle
 import signal
+import matplotlib.pyplot as plt
 import traceback
 from args import parse_args
 import numpy as np
@@ -108,7 +109,7 @@ class Runner(object):
             best_false = 1
             accu_loss = 0
             st_time = time.time()
-            epoch_step = 160*config.tfrecord_size * self.data.train_file_size // config.batch_size
+            epoch_step = 160 * config.tfrecord_size * self.data.train_file_size // config.batch_size
             if os.path.exists(path_join(self.config.save_path, 'best.pkl')):
                 with open(path_join(self.config.save_path, 'best.pkl'),
                           'rb') as f:
@@ -212,21 +213,30 @@ class Runner(object):
                                 np.set_printoptions(precision=4,
                                                     threshold=np.inf,
                                                     suppress=True)
-                                # print('-----------------')
-                                #
-                                # print(labels[0])
-                                # print(names[0].decode())
-                                # print(self.valid_set[i * config.batch_size])
-                                # for i in names:
-                                #     print(i.decode())
-                                # print(softmax.shape)
-                                decode_output = [ctc_decode(s,config.num_classes) for s in softmax]
+                                colors = ['r', 'b', 'g', 'm', 'y', 'k', 'b',
+                                          'r']
+                                y = softmax[0]
+                                print(y)
+                                x = range(len(y))
+                                plt.figure(figsize=(10, 4))  # 创建绘图对象
+
+                                for i in range(0, y.shape[1]):
+                                    plt.plot(x, y[:, i], colors[i], linewidth=1,
+                                             label=str(i))
+                                plt.legend(loc='upper right')
+                                plt.savefig('temp.png')
+
+                                decode_output = [
+                                    ctc_decode(s, config.num_classes) for s in
+                                    softmax]
                                 for i in decode_output:
                                     text += str(i) + '\n'
                                     text += str(labels) + '\n'
                                     text += '=' * 20 + '\n'
-                                result = [ctc_predict(seq,config.label_seqs) for seq in
+                                result = [ctc_predict(seq, config.label_seqs)
+                                          for seq in
                                           decode_output]
+                                print(result)
                                 miss, target, false_accept = evaluate(
                                     result, correctness.tolist())
 
@@ -242,7 +252,7 @@ class Runner(object):
 
                             miss_rate = miss_count / target_count
                             false_accept_rate = false_count / max((
-                                self.data.validation_size - target_count),1)
+                                self.data.validation_size - target_count), 1)
                             print('--------------------------------')
                             print('epoch %d' % self.epoch)
                             print('training loss:' + str(l))
