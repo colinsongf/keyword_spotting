@@ -122,10 +122,10 @@ def inference(inputs, seqLengths, config, is_training, batch_size=None):
     output_linear_weights = tf.get_variable(name='output_linear_weights',
                                             initializer=tf.truncated_normal(
                                                 [config.hidden_size,
-                                                 config.num_classes]))
+                                                 config.init_num_classes]))
     output_linear_biases = tf.get_variable(name='output_linear_biases',
                                            initializer=tf.zeros(
-                                               [config.num_classes]))
+                                               [config.init_num_classes]))
     if config.customize == 1:
         weights_origin, other_words, blank = tf.split(output_linear_weights,
                                                       [4, 1, 1], 1)
@@ -155,7 +155,7 @@ def inference(inputs, seqLengths, config, is_training, batch_size=None):
     if config.use_relu:
         outputs = tf.nn.relu(outputs)
     outputs = tf.reshape(outputs, [config.batch_size, -1,
-                                   config.num_classes + config.num_customize if config.customize == 1 else config.num_classes])
+                                   config.num_classes])
     return outputs, seqLengths
 
 

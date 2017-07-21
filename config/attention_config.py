@@ -93,6 +93,15 @@ class Config(object):
     @property
     def num_classes(self):
         # word+1 for background
+        if self.customize:
+            return len(self.label_dict) + len(self._customize_dict) + 3
+        else:
+            return len(
+                self.label_dict) + 3  # 0 for space 4 for others, 5 for ctc blank
+
+    @property
+    def init_num_classes(self):
+        # word+1 for background
         if self.customize == 2:
             return len(self.label_dict) + len(self._customize_dict) + 3
         else:
@@ -110,7 +119,7 @@ class Config(object):
     @property
     def get_dict(self):
         if self.customize:
-            return self.customize_dict()
+            return self.customize_dict
         else:
             return self.label_dict
 

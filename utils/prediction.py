@@ -15,11 +15,10 @@
 import numpy as np
 
 
-
-def ctc_decode(softmax, lockout=4, thres=0.5, loose_thres=0.2):
+def ctc_decode(softmax, classnum, lockout=4, thres=0.5, loose_thres=0.2):
     np.set_printoptions(precision=4, threshold=np.inf,
                         suppress=True)
-    softmax = softmax[:, 1:5]
+    softmax = softmax[:, 1:classnum - 1]
     i = 0
 
     result = []
@@ -60,17 +59,20 @@ def ctc_decode(softmax, lockout=4, thres=0.5, loose_thres=0.2):
     for i in result:
         new_result.append(i[0])
         new_result.append(0)
-    return np.asarray(new_result,dtype=np.int32)
+    return np.asarray(new_result, dtype=np.int32)
 
 
-def ctc_predict(seq):
+def ctc_predict(seq, labels):
     text = ''
     for i in seq:
         if i < 0:
             break
         if i > 0:
             text += str(i)
-    return 1 if '123' in text else 0
+    for l in labels:
+        if l in text:
+            return 1
+    return  0
     # return 1 if '1233' in text else 0
 
 

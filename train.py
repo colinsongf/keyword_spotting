@@ -108,7 +108,7 @@ class Runner(object):
             best_false = 1
             accu_loss = 0
             st_time = time.time()
-            epoch_step = config.tfrecord_size * self.data.train_file_size // config.batch_size
+            epoch_step = 160*config.tfrecord_size * self.data.train_file_size // config.batch_size
             if os.path.exists(path_join(self.config.save_path, 'best.pkl')):
                 with open(path_join(self.config.save_path, 'best.pkl'),
                           'rb') as f:
@@ -199,6 +199,7 @@ class Runner(object):
                             false_count = 0
                             target_count = 0
                             wer = 0
+
                             valid_batch = self.data.valid_file_size * config.tfrecord_size // config.batch_size
                             text = ""
                             for i in range(valid_batch):
@@ -219,12 +220,12 @@ class Runner(object):
                                 # for i in names:
                                 #     print(i.decode())
                                 # print(softmax.shape)
-                                decode_output = [ctc_decode(s) for s in softmax]
+                                decode_output = [ctc_decode(s,config.num_classes) for s in softmax]
                                 for i in decode_output:
                                     text += str(i) + '\n'
                                     text += str(labels) + '\n'
                                     text += '=' * 20 + '\n'
-                                result = [ctc_predict(seq) for seq in
+                                result = [ctc_predict(seq,config.label_seqs) for seq in
                                           decode_output]
                                 miss, target, false_accept = evaluate(
                                     result, correctness.tolist())
@@ -240,8 +241,8 @@ class Runner(object):
                                 f.write(text)
 
                             miss_rate = miss_count / target_count
-                            false_accept_rate = false_count / (
-                                self.data.validation_size - target_count)
+                            false_accept_rate = false_count / max((
+                                self.data.validation_size - target_count),1)
                             print('--------------------------------')
                             print('epoch %d' % self.epoch)
                             print('training loss:' + str(l))
