@@ -178,7 +178,7 @@ def inference(inputs, seqLengths, config, is_training, batch_size=None):
     if config.use_relu:
         outputs = tf.nn.relu(outputs)
     outputs = tf.reshape(outputs, [batch_size, -1,
-                                   config.num_classes],name='nn_outputs')
+                                   config.num_classes])
     return outputs, seqLengths
 
 
@@ -323,6 +323,7 @@ class DeployModel(object):
                                                          config,
                                                          is_training=False,
                                                          batch_size=1)
+        self.nn_outputs = tf.squeeze(self.nn_outputs,0,name='nn_outputs')
 
         self.softmax = tf.nn.softmax(self.nn_outputs, name='softmax')
 
