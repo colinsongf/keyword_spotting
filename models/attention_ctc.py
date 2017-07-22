@@ -73,6 +73,7 @@ def feed_forward(inputs, config, scope_name='feed_forward'):
 def inference(inputs, seqLengths, config, is_training, batch_size=None):
     if not batch_size:
         batch_size = config.batch_size
+    print(batch_size)
     # positional encoding
     max_length = tf.shape(inputs)[1]
     if config.combine_frame > 1:
@@ -119,32 +120,54 @@ def inference(inputs, seqLengths, config, is_training, batch_size=None):
                 feed_forward_outputs + feed_forward_inputs)
             layer_inputs = layer_outputs
 
-    output_linear_weights = tf.get_variable(name='output_linear_weights',
-                                            initializer=tf.truncated_normal(
-                                                [config.hidden_size,
-                                                 config.init_num_classes]))
-    output_linear_biases = tf.get_variable(name='output_linear_biases',
-                                           initializer=tf.zeros(
-                                               [config.init_num_classes]))
-    if config.customize == 1:
-        weights_origin, other_words, blank = tf.split(output_linear_weights,
-                                                      [4, 1, 1], 1)
-        weights_origin = tf.stop_gradient(weights_origin)
+    origin_linear_weights = tf.get_variable(
+        name='origin_linear_weights', initializer=tf.truncated_normal(
+            [config.hidden_size,
+             config.origin_num_classes]))
+    origin_linear_biases = tf.get_variable(
+        name='origin_linear_biases', initializer=tf.zeros(
+            [config.origin_num_classes]))
+    others_linear_weights = tf.get_variable(
+        name='others_linear_weights', initializer=tf.truncated_normal(
+            [config.hidden_size,
+             1]))
+    others_linear_biases = tf.get_variable(
+        name='others_linear_biases', initializer=tf.zeros(
+            [1]))
+    blank_linear_weights = tf.get_variable(
+        name='blank_linear_weights', initializer=tf.truncated_normal(
+            [config.hidden_size,
+             1]))
+    blank_linear_biases = tf.get_variable(
+        name='blank_linear_biases', initializer=tf.zeros(
+            [1]))
+    if config.customize:
         customize_weights = tf.get_variable('new_weights',
                                             initializer=tf.truncated_normal(
                                                 [config.hidden_size,
                                                  config.num_customize]))
-        output_linear_weights = tf.concat(
-            [weights_origin, other_words, customize_weights, blank], 1)
 
-        bias_origin, bias_other_words, bias_blank = tf.split(
-            output_linear_biases, [4, 1, 1])
-        bias_origin = tf.stop_gradient(bias_origin)
+        output_linear_weights = tf.concat(
+            [origin_linear_weights, others_linear_weights, customize_weights,
+             blank_linear_weights], 1,
+            name='output_linear_weights')
+
         customize_bias = tf.get_variable('new_bias',
                                          initializer=tf.zeros(
                                              [config.num_customize]))
         output_linear_biases = tf.concat(
-            [bias_origin, bias_other_words, customize_bias, bias_blank], 0)
+            [origin_linear_biases, others_linear_biases, customize_bias,
+             blank_linear_biases], 0,
+            name='output_linear_biases')
+    else:
+        output_linear_weights = tf.concat(
+            [origin_linear_weights, others_linear_weights,
+             blank_linear_weights], 1,
+            name='output_linear_weights')
+        output_linear_biases = tf.concat(
+            [origin_linear_biases, others_linear_biases,
+             blank_linear_biases], 0,
+            name='output_linear_biases')
 
     linear_input = tf.reshape(layer_outputs, [-1, config.hidden_size],
                               'linear_input')
@@ -154,8 +177,8 @@ def inference(inputs, seqLengths, config, is_training, batch_size=None):
     # outputs = tf.Print(outputs, [tf.shape(outputs), 'outputs shape:'])
     if config.use_relu:
         outputs = tf.nn.relu(outputs)
-    outputs = tf.reshape(outputs, [config.batch_size, -1,
-                                   config.num_classes])
+    outputs = tf.reshape(outputs, [batch_size, -1,
+                                   config.num_classes],name='nn_outputs')
     return outputs, seqLengths
 
 
@@ -220,9 +243,19 @@ class Attention(object):
             else:
                 raise Exception('optimizer not defined')
 
-            self.vs = tf.trainable_variables()
+            vs = tf.trainable_variables()
+            if config.customize:
+                to_train = []
+                for v in vs:
+                    if 'new_' in v.name or 'others_' in v.name:
+                        to_train.append(v)
+                print('training variable:')
+                for i in to_train:
+                    print(i)
+                vs = to_train
+
             grads_and_vars = self.optimizer.compute_gradients(self.loss,
-                                                              self.vs)
+                                                              vs)
             self.grads = [grad for (grad, var) in grads_and_vars]
             self.vs = [var for (grad, var) in grads_and_vars]
             if config.max_grad_norm > 0:
@@ -255,20 +288,6 @@ class DeployModel(object):
         # input place holder
         config.keep_prob = 1
 
-        # with tf.device('/cpu:0'):
-        #
-        # self.inputX = tf.placeholder(dtype=tf.float32,
-        #                              shape=[None, config.fft_size],
-        #                              name='inputX')
-        #
-        # complex_tensor = tf.complex(
-        #     self.inputX,
-        #     imag=tf.zeros_like(self.inputX, dtype=tf.float32),
-        #     name='complex_tensor')
-        # abs = tf.abs(
-        #     tf.fft(complex_tensor, name='fft'))
-        # print(abs)
-
         self.inputX = tf.placeholder(dtype=tf.float32,
                                      shape=[None, ],
                                      name='inputX')
@@ -291,8 +310,10 @@ class DeployModel(object):
 
             self.melspec = tf.matmul(self.linearspec, self.mel_basis,
                                      name='mel')
-
-        # self.melspec = tf.expand_dims(self.melspec, 0)
+        # self.inputX = tf.placeholder(dtype=tf.float32,
+        #                              shape=[None, config.freq_size],
+        #                              name='inputX')
+        # self.melspec = tf.expand_dims(self.inputX, 0)
 
         self.fuck = tf.identity(self.melspec, name='fuck')
 

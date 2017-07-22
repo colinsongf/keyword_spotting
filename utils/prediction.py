@@ -62,6 +62,28 @@ def ctc_decode(softmax, classnum, lockout=4, thres=0.5, loose_thres=0.2):
     return np.asarray(new_result, dtype=np.int32)
 
 
+def ctc_decode_strict(softmax, classnum, lockout=4, thres=0.5):
+    np.set_printoptions(precision=4, threshold=np.inf,
+                        suppress=True, )
+    softmax = softmax[:, 1:classnum - 1]
+    i = 0
+    result = []
+    length = softmax.shape[0]
+
+    while (i < length):
+
+        if (softmax[i, :].max() > thres):
+            result.append((softmax[i, :].argmax() + 1, i))
+            i += lockout
+            continue
+        i += 1
+    new_result = [0]
+    for i in result:
+        new_result.append(i[0])
+        new_result.append(0)
+    return np.asarray(new_result, dtype=np.int32)
+
+
 def ctc_predict(seq, labels):
     text = ''
     for i in seq:
@@ -72,7 +94,7 @@ def ctc_predict(seq, labels):
     for l in labels:
         if l in text:
             return 1
-    return  0
+    return 0
     # return 1 if '1233' in text else 0
 
 

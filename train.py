@@ -21,6 +21,7 @@ import time
 import pickle
 import signal
 import matplotlib.pyplot as plt
+from tensorflow.python.ops import variables
 import traceback
 from args import parse_args
 import numpy as np
@@ -31,7 +32,8 @@ from config import attention_config, rnn_config
 from models import attention_ctc, rnn_ctc
 from reader import read_dataset
 from utils.common import check_dir, path_join
-from utils.prediction import evaluate, ctc_predict, ctc_decode
+from utils.prediction import evaluate, ctc_predict, ctc_decode, \
+    ctc_decode_strict
 
 from utils.wer import WERCalculator
 
@@ -91,17 +93,15 @@ class Runner(object):
 
             sess.run(tf.local_variables_initializer())
 
-            with tf.variable_scope("model", reuse=True):
-                # uninitialized = sess.run(tf.report_uninitialized_variables(
-                #     tf.global_variables()))
-                # uninitialized = [n.decode() for n in uninitialized]
+            if config.customize == 1:
+                with tf.variable_scope("model", reuse=True):
 
-                to_initialized = [v for v in
-                                  tf.contrib.slim.get_variables_to_restore()
-                                  if 'new_' in v.name]
-                for i in to_initialized:
-                    print(i.name)
-                    sess.run(tf.variables_initializer([i]))
+                    to_initialized = [v for v in
+                                      tf.contrib.slim.get_variables_to_restore()
+                                      if 'new_' in v.name]
+                    for i in to_initialized:
+                        print(i.name)
+                        sess.run(tf.variables_initializer([i]))
 
             tf.Graph.finalize(graph)
 
@@ -109,7 +109,9 @@ class Runner(object):
             best_false = 1
             accu_loss = 0
             st_time = time.time()
-            epoch_step = 160 * config.tfrecord_size * self.data.train_file_size // config.batch_size
+            epoch_step = config.tfrecord_size * self.data.train_file_size // config.batch_size
+            if config.customize:
+                epoch_step *= 60
             if os.path.exists(path_join(self.config.save_path, 'best.pkl')):
                 with open(path_join(self.config.save_path, 'best.pkl'),
                           'rb') as f:
@@ -144,9 +146,17 @@ class Runner(object):
                 best_list = []
                 best_threshold = 0.08
                 best_count = 0
+                custom_best_count = 0
                 # (miss,false,step,best_count)
 
                 last_time = time.time()
+
+                print('savable...')
+                for v in variables._all_saveable_objects():
+                    print(v.name)
+                print('restorable...')
+                for v in tf.contrib.slim.get_variables_to_restore():
+                    print(v.name)
 
                 try:
                     sess.run([self.data.noise_stage_op,
@@ -156,9 +166,9 @@ class Runner(object):
                               self.valid_model.stage_op,
                               self.valid_model.input_filequeue_enqueue_op])
 
-                    va = tf.trainable_variables()
-                    for i in va:
-                        print(i.name)
+                    # va = tf.trainable_variables()
+                    # for i in va:
+                    #     print(i.name)
                     while self.epoch < self.config.max_epoch:
 
                         # _, _, x, lab, step = sess.run(
@@ -210,24 +220,11 @@ class Runner(object):
                                      self.valid_model.labels,
                                      self.valid_model.stage_op,
                                      self.valid_model.input_filequeue_enqueue_op])
-                                np.set_printoptions(precision=4,
-                                                    threshold=np.inf,
-                                                    suppress=True)
-                                colors = ['r', 'b', 'g', 'm', 'y', 'k', 'b',
-                                          'r']
-                                y = softmax[0]
-                                print(y)
-                                x = range(len(y))
-                                plt.figure(figsize=(10, 4))  # 创建绘图对象
 
-                                for i in range(0, y.shape[1]):
-                                    plt.plot(x, y[:, i], colors[i], linewidth=1,
-                                             label=str(i))
-                                plt.legend(loc='upper right')
-                                plt.savefig('temp.png')
 
                                 decode_output = [
-                                    ctc_decode(s, config.num_classes) for s in
+                                    ctc_decode_strict(s, config.num_classes) for
+                                    s in
                                     softmax]
                                 for i in decode_output:
                                     text += str(i) + '\n'
@@ -236,7 +233,26 @@ class Runner(object):
                                 result = [ctc_predict(seq, config.label_seqs)
                                           for seq in
                                           decode_output]
-                                print(result)
+
+                                if config.customize:
+                                    np.set_printoptions(precision=4,
+                                                        threshold=np.inf,
+                                                        suppress=True)
+                                    colors = ['r', 'b', 'g', 'm', 'y', 'k', 'b',
+                                              'r']
+                                    y = softmax[0]
+                                    print(y)
+                                    x = range(len(y))
+                                    plt.figure(figsize=(10, 4))  # 创建绘图对象
+
+                                    for i in range(0, y.shape[1]):
+                                        plt.plot(x, y[:, i], colors[i], linewidth=1,
+                                                 label=str(i))
+                                    plt.legend(loc='upper right')
+                                    plt.savefig('temp.png')
+                                    print(decode_output)
+
+
                                 miss, target, false_accept = evaluate(
                                     result, correctness.tolist())
 
@@ -274,6 +290,16 @@ class Runner(object):
                                         'wb') as f:
                                     best_tuple = (best_miss, best_false)
                                     pickle.dump(best_tuple, f)
+                            if config.customize:
+                                if miss_count == 0:
+                                    custom_best_count += 1
+                                if custom_best_count > 5:
+                                    saver.save(sess,
+                                               save_path=(path_join(
+                                                   self.config.save_path,
+                                                   'custom.ckpt')))
+                                    raise Exception(
+                                        'customize keyword training finished')
                             if miss_rate + false_accept_rate < best_threshold:
                                 best_count += 1
                                 print('best_count', best_count)
@@ -381,7 +407,7 @@ class Runner(object):
 
             frozen_graph_def = graph_util.convert_variables_to_constants(
                 session, session.graph.as_graph_def(),
-                ['model/inputX', 'model/softmax'])
+                ['model/inputX', 'model/softmax', 'model/nn_outputs'])
             tf.train.write_graph(
                 frozen_graph_def,
                 os.path.dirname(graph_path),

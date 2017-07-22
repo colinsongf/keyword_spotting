@@ -28,7 +28,7 @@ class Config(object):
                            'le4': 3}  # 0 for space 4 for other
         self._customize_dict = {'ping2': 5, 'guo3': 6}
         self._origin_label_seq = '1233'
-        self._customize_label_seq = '45'
+        self._customize_label_seq = '56'
 
         self.model_path = './params/ctc2/'
         self.save_path = './params/ctc2/'
@@ -99,14 +99,13 @@ class Config(object):
             return len(
                 self.label_dict) + 3  # 0 for space 4 for others, 5 for ctc blank
 
+
+
     @property
-    def init_num_classes(self):
+    def origin_num_classes(self):
         # word+1 for background
-        if self.customize == 2:
-            return len(self.label_dict) + len(self._customize_dict) + 3
-        else:
-            return len(
-                self.label_dict) + 3  # 0 for space 4 for others, 5 for ctc blank
+        return len(
+            self.label_dict) + 1  # 0 for space
 
     @property
     def num_customize(self):
