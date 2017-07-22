@@ -286,10 +286,10 @@ if __name__ == '__main__':
 
     # main loop
 
-    # detector.start(detected_callback=play_audio_file,
-    #                interrupt_check=interrupt_callback,
-    #                sleep_time=0.03)
-    #
+    detector.start(detected_callback=play_audio_file,
+                   interrupt_check=interrupt_callback,
+                   sleep_time=0.03)
 
 
-    detector.test('temp.wav')
+
+    # detector.test('temp.wav')
