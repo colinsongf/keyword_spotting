@@ -41,10 +41,6 @@ def get_args():
                         help='reset global step',
                         type=int,
                         default=None)
-    parser.add_argument('-warm', '--warmup',
-                        help='lr warmup',
-                        type=int,
-                        default=None)
     parser.add_argument('-m', '--model_path',
                         help='The  model path for restoring',
                         default=None)
@@ -99,6 +95,7 @@ def get_args():
                         type=int, default=None)
     parser.add_argument('--mfcc', help='mfcc', type=int, default=None)
     parser.add_argument('--n_mfcc', help='mfcc number', type=int, default=None)
+    parser.add_argument('--n_mel', help='mel number', type=int, default=None)
     parser.add_argument('--pre_emphasis', help='pre_emphasis', type=int,
                         default=None)
     parser.add_argument('-var', '--variational_recurrent',
