@@ -41,10 +41,6 @@ def get_args():
                         help='reset global step',
                         type=int,
                         default=None)
-    parser.add_argument('-warm', '--warmup',
-                        help='lr warmup',
-                        type=int,
-                        default=None)
     parser.add_argument('-m', '--model_path',
                         help='The  model path for restoring',
                         default=None)
@@ -105,12 +101,19 @@ def get_args():
     parser.add_argument('-var', '--variational_recurrent',
                         help='variational_recurrent', type=int,
                         default=None)
-    parser.add_argument('-custom', '--customize', help='customize', type=int,
+    parser.add_argument('-ln', '--ues_layer_norm',
+                        help='ues_layer_norm', type=int,
                         default=None)
-    parser.add_argument('-dict', '--_customize_dict', help='customize',
-                        nargs='*',
+    parser.add_argument('-res', '--ues_residual',
+                        help='use residual wrapper', type=int,
                         default=None)
     parser.add_argument('--value_clip', help='nn outputs value clip', type=int,
+                        default=None)
+    parser.add_argument('-bgmax', '--bg_decay_max_db',
+                        help='bg_decay_max_db', type=int,
+                        default=None)
+    parser.add_argument('-bgmin', '--bg_decay_min_db',
+                        help='bg_decay_min_db', type=int,
                         default=None)
 
     flags = parser.parse_args().__dict__

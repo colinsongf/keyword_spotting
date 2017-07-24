@@ -76,14 +76,6 @@ class GRU(object):
             self.learning_rate = tf.train.exponential_decay(
                 initial_learning_rate, self.global_step, self.config.decay_step,
                 self.config.lr_decay, name='lr')
-            if config.warmup:
-                self.warmup_lr = tf.train.polynomial_decay(5e-3,
-                                                           self.global_step,
-                                                           40000, 1.35e-3, 0.5)
-                self.post_lr = tf.train.exponential_decay(
-                    1.5e-3, self.global_step, self.config.decay_step,
-                    self.config.lr_decay, name='lr')
-                self.learning_rate = tf.minimum(self.warmup_lr, self.post_lr)
 
             if config.optimizer == 'adam':
                 self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
