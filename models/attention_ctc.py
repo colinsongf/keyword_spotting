@@ -177,6 +177,7 @@ def inference(inputs, seqLengths, config, is_training, batch_size=None):
     # outputs = tf.Print(outputs, [tf.shape(outputs), 'outputs shape:'])
     if config.use_relu:
         outputs = tf.nn.relu(outputs)
+        outputs = tf.clip_by_value(outputs, 0, 20)
     outputs = tf.reshape(outputs, [batch_size, -1,
                                    config.num_classes])
     return outputs, seqLengths
@@ -225,14 +226,6 @@ class Attention(object):
             self.learning_rate = tf.train.exponential_decay(
                 initial_learning_rate, self.global_step, self.config.decay_step,
                 self.config.lr_decay, name='lr')
-            if config.warmup:
-                self.warmup_lr = tf.train.polynomial_decay(5e-3,
-                                                           self.global_step,
-                                                           40000, 1.35e-3, 0.5)
-                self.post_lr = tf.train.exponential_decay(
-                    1.5e-3, self.global_step, self.config.decay_step,
-                    self.config.lr_decay, name='lr')
-                self.learning_rate = tf.minimum(self.warmup_lr, self.post_lr)
 
             if config.optimizer == 'adam':
                 self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
@@ -323,7 +316,7 @@ class DeployModel(object):
                                                          config,
                                                          is_training=False,
                                                          batch_size=1)
-        self.nn_outputs = tf.squeeze(self.nn_outputs,0,name='nn_outputs')
+        self.nn_outputs = tf.squeeze(self.nn_outputs, 0, name='nn_outputs')
 
         self.softmax = tf.nn.softmax(self.nn_outputs, name='softmax')
 
