@@ -26,7 +26,6 @@ import numpy as np
 import tensorflow as tf
 from glob import glob
 from tensorflow.python.framework import graph_util
-from config import attention_config, rnn_config
 from models import attention_ctc, rnn_ctc
 from reader import read_dataset
 from utils.common import check_dir, path_join
