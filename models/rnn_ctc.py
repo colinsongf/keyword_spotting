@@ -290,7 +290,8 @@ def inference2(rnn_outputs, config, batch_size=None):
                         [batch_size, -1, config.num_classes],name='test')
     if config.use_relu:
         logits = tf.nn.relu(logits, name='relu')
-        logits = tf.clip_by_value(logits, 0, 20)
+        if config.value_clip>0:
+            logits = tf.clip_by_value(logits, 0, 20)
     return logits
 
 
