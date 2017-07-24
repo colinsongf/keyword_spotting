@@ -20,11 +20,15 @@ def get_config():
 class Config(object):
     def __init__(self):
         self.mode = "train"  # train,valid,build
-        self.ktq = False
+        self.customize = 0  # 0 not  1 transform  2 restore from customize
         self.mfcc = False
         self.spectrogram = 'mel'  # mfcc,mel
         self.label_dict = {'ni3': 1, 'hao3': 2,
                            'le4': 3}  # 0 for space 4 for other
+        self._customize_dict = {'ping2': 5, 'guo3': 6}
+        self.custom_keyword = 'ping2guo3'
+        self._origin_label_seq = '1233'
+        self._customize_label_seq = '56'
 
         self.model_path = './params/rnnctc/'
         self.save_path = './params/rnnctc/'
@@ -34,6 +38,8 @@ class Config(object):
         self.train_path = '/ssd/liuziqi/ctc_23w/train/'
         self.valid_path = '/ssd/liuziqi/ctc_23w/valid/'
         self.noise_path = '/ssd/liuziqi/ctc_23w/noise/'
+        self.custom_path = '/ssd/liuziqi/ctc_23w/custom/'
+        self.custom_valid_path = '/ssd/liuziqi/ctc_23w/custom_valid/'
         self.model_name = 'latest.ckpt'
         self.rawdata_path = './rawdata/'
         self.rawdata_path = '/ssd/keyword/'
@@ -77,17 +83,49 @@ class Config(object):
         # model params
         self.num_layers = 2
         self.max_grad_norm = -1
-
-        self.keep_prob = 0.9
+        self.value_clip = 20
+        self.keep_prob = 0.7
         self.variational_recurrent = False
-        self.hidden_size = 64
+        self.hidden_size = 128
         self.cell_clip = 3.
 
     @property
     def num_classes(self):
         # word+1 for background
+        if self.customize:
+            return len(self.label_dict) + len(self._customize_dict) + 3
+        else:
+            return len(
+                self.label_dict) + 3  # 0 for space 4 for others, 5 for ctc blank
+
+    @property
+    def origin_num_classes(self):
+        # word+1 for background
         return len(
-            self.label_dict) + 3  # 0 for space 4 for others, 5 for ctc blank
+            self.label_dict) + 1  # 0 for space
+
+    @property
+    def num_customize(self):
+        return len(self._customize_dict)
+
+    @property
+    def customize_dict(self):
+        return dict(self.label_dict, **self._customize_dict)
+
+    @property
+    def get_dict(self):
+        if self.customize:
+            return self.customize_dict
+        else:
+            return self.label_dict
+
+    @property
+    def label_seqs(self):
+        if self.customize:
+            self._customize_label_seq = range(5, 5 + len(self._customize_dict))
+            return [self._origin_label_seq, self._customize_label_seq]
+        else:
+            return [self._origin_label_seq]
 
     @property
     def beam_size(self):

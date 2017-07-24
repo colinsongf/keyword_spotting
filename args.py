@@ -99,6 +99,7 @@ def get_args():
                         type=int, default=None)
     parser.add_argument('--mfcc', help='mfcc', type=int, default=None)
     parser.add_argument('--n_mfcc', help='mfcc number', type=int, default=None)
+    parser.add_argument('--n_mel', help='mel number', type=int, default=None)
     parser.add_argument('--pre_emphasis', help='pre_emphasis', type=int,
                         default=None)
     parser.add_argument('-var', '--variational_recurrent',
@@ -116,29 +117,30 @@ def get_args():
     return flags
 
 
+flags = get_args()
+model = flags['model']
+if model == 'rnn':
+    config = rnn_config.get_config()
+
+elif model == 'attention':
+    config = attention_config.get_config()
+else:
+    raise Exception('model %s not defined!' % model)
+
+del (flags['model'])
+
+if not flags['ktq']:
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(flags['gpu'])
+
+del (flags['ktq'])
+del (flags['gpu'])
+
+print(flags)
+
+
 def parse_args():
-    flags = get_args()
-    model = flags['model']
-    if model == 'rnn':
-        config = rnn_config.get_config()
-
-    elif model == 'attention':
-        config = attention_config.get_config()
-    else:
-        raise Exception('model %s not defined!' % model)
-
-    del (flags['model'])
-
-    if not flags['ktq']:
-        os.environ["CUDA_VISIBLE_DEVICES"] = str(flags['gpu'])
-
-    del (flags['ktq'])
-    del (flags['gpu'])
-
-    print(flags)
-
     for key in flags:
-        if key == '_customize_dict' and len(flags[key]) > 0:
+        if key == '_customize_dict' and flags[key]:
             custom_dict = {}
             custom_keyword = ''
             for i, word in enumerate(flags[key]):
@@ -162,3 +164,7 @@ def parse_args():
             else:
                 setattr(config, key, flags[key])
     return config, model
+
+
+if __name__ == '__main__':
+    parse_args()

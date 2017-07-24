@@ -22,7 +22,6 @@ class Config(object):
         self.mode = "train"  # train,valid,build
         self.customize = 0  # 0 not  1 transform  2 restore from customize
         self.mfcc = False
-        self.ktq = False
         self.spectrogram = 'mel'  # mfcc,mel
         self.label_dict = {'ni3': 1, 'hao3': 2,
                            'le4': 3}  # 0 for space 4 for other
@@ -78,8 +77,8 @@ class Config(object):
         self.use_white_noise = False
         self.use_bg_noise = True
         self.bg_noise_prob_raise = 1.05
-        self.bg_decay_max_db = -6
-        self.bg_decay_min_db = -20
+        self.bg_decay_max_db = -5
+        self.bg_decay_min_db = -15
         self.bg_noise_prob = 0.5
 
         # model params
@@ -88,7 +87,7 @@ class Config(object):
         self.max_grad_norm = -1
         self.value_clip = 20
         self.feed_forward_inner_size = 512
-        self.keep_prob = 0.9
+        self.keep_prob = 0.8
         self.multi_head_num = 8
         self.hidden_size = 128
 

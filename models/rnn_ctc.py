@@ -19,6 +19,8 @@
 import tensorflow as tf
 from utils.common import describe
 from utils.stft import tf_frame
+from utils.custom_wrapper import LayerNormalizer, ResidualWrapper, \
+    HighwayWrapper
 from tensorflow.python.ops.rnn import dynamic_rnn
 from tensorflow.contrib.rnn import GRUCell
 import librosa
@@ -108,12 +110,12 @@ class GRU(object):
         else:
             self.ctc_input = tf.transpose(self.ctc_input, perm=[1, 0, 2])
             self.softmax = tf.nn.softmax(self.ctc_input, name='softmax')
-            self.ctc_decode_input = tf.log(self.softmax)
-            self.ctc_decode_result, self.ctc_decode_log_prob = tf.nn.ctc_beam_search_decoder(
-                self.ctc_decode_input, self.seqLengths,
-                beam_width=config.beam_size, top_paths=1)
-            self.dense_output = tf.sparse_tensor_to_dense(
-                self.ctc_decode_result[0], default_value=-1)
+            # self.ctc_decode_input = tf.log(self.softmax)
+            # self.ctc_decode_result, self.ctc_decode_log_prob = tf.nn.ctc_beam_search_decoder(
+            #     self.ctc_decode_input, self.seqLengths,
+            #     beam_width=config.beam_size, top_paths=1)
+            # self.dense_output = tf.sparse_tensor_to_dense(
+            #     self.ctc_decode_result[0], default_value=-1)
 
 
 class DeployModel(object):
@@ -171,19 +173,19 @@ class DeployModel(object):
                                                      is_training=False,
                                                      initial_state=rnn_initial_states)
             self.rnn_states = tf.stack(rnn_states, name="rnn_states")
-            rnn_outputs = tf.transpose(self.nn_outputs, perm=[1, 0, 2])
+            self.linear_output = inference2(self.nn_outputs, config, 1)
 
-            self.softmax = tf.nn.softmax(rnn_outputs)
-            ctc_decode_input = tf.log(self.softmax)
-            self.ctc_decode_input = tf.concat(
-                [self._prev_ctc_decode_inputs, ctc_decode_input], axis=1,
-                name="ctc_decode_inputs")
-            self.ctc_decode_result, self.ctc_decode_log_prob = tf.nn.ctc_beam_search_decoder(
-                self.ctc_decode_input, self.seqLengths,
-                beam_width=config.beam_size, top_paths=1)
-            self.dense_output = tf.sparse_tensor_to_dense(
-                self.ctc_decode_result[0], default_value=-1,
-                name='dense_output')
+            self.softmax = tf.nn.softmax(self.linear_output, name='softmax')
+            # ctc_decode_input = tf.log(self.softmax)
+            # self.ctc_decode_input = tf.concat(
+            #     [self._prev_ctc_decode_inputs, ctc_decode_input], axis=1,
+            #     name="ctc_decode_inputs")
+            # self.ctc_decode_result, self.ctc_decode_log_prob = tf.nn.ctc_beam_search_decoder(
+            #     self.ctc_decode_input, self.seqLengths,
+            #     beam_width=config.beam_size, top_paths=1)
+            # self.dense_output = tf.sparse_tensor_to_dense(
+            #     self.ctc_decode_result[0], default_value=-1,
+            #     name='dense_output')
 
 
 def get_cell(config, is_training):
@@ -193,15 +195,9 @@ def get_cell(config, is_training):
                    activation=tf.tanh,
                    reuse=tf.get_variable_scope().reuse
                    )
-    # cell = cell_fn(num_units=config.hidden_size,
-    #                use_peepholes=True,
-    #                cell_clip=config.cell_clip,
-    #                initializer=tf.contrib.layers.xavier_initializer(),
-    #                forget_bias=1.0,
-    #                state_is_tuple=True,
-    #                activation=tf.tanh,
-    #                reuse=tf.get_variable_scope().reuse
-    #                )
+    # add wrappers: ln -> dropout -> residual
+    if config.use_layer_norm:
+        cell = LayerNormalizer(cell)
     if is_training:
         if config.keep_prob < 1:
             cell = tf.contrib.rnn.DropoutWrapper(cell,
@@ -209,6 +205,8 @@ def get_cell(config, is_training):
                                                  dtype=tf.float32,
                                                  variational_recurrent=config.variational_recurrent
                                                  )
+    if config.use_residual:
+        cell = ResidualWrapper(cell)
 
     return cell
 
@@ -239,18 +237,17 @@ def inference1(config,
                      each Tensor has the shape [batch_size, hidden_size]
                      the final states of rnn cell
     """
-    with tf.variable_scope('rnn_cell',
-                           initializer=tf.contrib.layers.xavier_initializer(
-                               uniform=False)):
-        if config.num_layers > 1:
-            print('building multi layer LSTM')
-            cell = tf.contrib.rnn.MultiRNNCell(
-                [get_cell(config, is_training) for _ in
-                 range(config.num_layers)])
-        else:
-            # cell = tf.contrib.rnn.MultiRNNCell([get_cell(config)])
-            cell = get_cell(config, is_training)
-    outputs, states = dynamic_rnn(cell,
+    rnn_cells = []
+    for i in range(config.num_layers):
+        with tf.variable_scope('rnn_cell%d' % i,
+                               initializer=tf.contrib.layers.xavier_initializer(
+                                   uniform=False)):
+            print('building RNN layer')
+            rnn_cells.append(get_cell(config, is_training))
+
+    rnn_cells = tf.contrib.rnn.MultiRNNCell(rnn_cells)
+
+    outputs, states = dynamic_rnn(rnn_cells,
                                   inputs=inputX,
                                   sequence_length=seqLengths,
                                   initial_state=initial_state,
@@ -259,7 +256,7 @@ def inference1(config,
     return outputs, states
 
 
-def inference2(rnn_outputs, config):
+def inference2(rnn_outputs, config, batch_size=None):
     """
       The model is splited into two parts in order to support streaming.
       This part contains the lookahead layer and the full connect layer.
@@ -274,21 +271,71 @@ def inference2(rnn_outputs, config):
                         [batch_size,time_step,  num_tokens+1]
                         the outputs of the full connect layer
       """
+    if batch_size is None:
+        batch_size = config.batch_size
     with tf.name_scope('fc-layer'):
-        weightsClasses = tf.get_variable(name='weightsClasses',
-                                         initializer=tf.truncated_normal(
-                                             [config.hidden_size,
-                                              config.num_classes]))
-        flatten_outputs = tf.reshape(rnn_outputs,
-                                     (-1, config.hidden_size))
-        biasesClasses = tf.get_variable(name='biasesClasses',
-                                        initializer=tf.zeros(
-                                            [config.num_classes]))
+        origin_linear_weights = tf.get_variable(
+            name='origin_linear_weights', initializer=tf.truncated_normal(
+                [config.hidden_size,
+                 config.origin_num_classes]))
+        origin_linear_biases = tf.get_variable(
+            name='origin_linear_biases', initializer=tf.zeros(
+                [config.origin_num_classes]))
+        others_linear_weights = tf.get_variable(
+            name='others_linear_weights', initializer=tf.truncated_normal(
+                [config.hidden_size,
+                 1]))
+        others_linear_biases = tf.get_variable(
+            name='others_linear_biases', initializer=tf.zeros(
+                [1]))
+        blank_linear_weights = tf.get_variable(
+            name='blank_linear_weights', initializer=tf.truncated_normal(
+                [config.hidden_size,
+                 1]))
+        blank_linear_biases = tf.get_variable(
+            name='blank_linear_biases', initializer=tf.zeros(
+                [1]))
+        if config.customize:
+            customize_weights = tf.get_variable('new_weights',
+                                                initializer=tf.truncated_normal(
+                                                    [config.hidden_size,
+                                                     config.num_customize]))
 
-    flatten_logits = tf.matmul(flatten_outputs,
-                               weightsClasses) + biasesClasses
-    logits = tf.reshape(flatten_logits,
-                        [config.batch_size, -1, config.num_classes])
+            output_linear_weights = tf.concat(
+                [origin_linear_weights, others_linear_weights,
+                 customize_weights,
+                 blank_linear_weights], 1,
+                name='output_linear_weights')
+
+            customize_bias = tf.get_variable('new_bias',
+                                             initializer=tf.zeros(
+                                                 [config.num_customize]))
+            output_linear_biases = tf.concat(
+                [origin_linear_biases, others_linear_biases, customize_bias,
+                 blank_linear_biases], 0,
+                name='output_linear_biases')
+        else:
+            output_linear_weights = tf.concat(
+                [origin_linear_weights, others_linear_weights,
+                 blank_linear_weights], 1,
+                name='output_linear_weights')
+            output_linear_biases = tf.concat(
+                [origin_linear_biases, others_linear_biases,
+                 blank_linear_biases], 0,
+                name='output_linear_biases')
+
+        linear_input = tf.reshape(rnn_outputs, [-1, config.hidden_size],
+                                  'linear_input')
+
+        flatten_logits = tf.add(tf.matmul(linear_input,
+                                          output_linear_weights),
+                                output_linear_biases,
+                                name='linear_add')
+        logits = tf.reshape(flatten_logits,
+                            [batch_size, -1, config.num_classes])
+        if config.use_relu:
+            logits = tf.nn.relu(logits, name='relu')
+            logits = tf.clip_by_value(logits, 0, 20)
     return logits
 
 

@@ -177,7 +177,8 @@ def inference(inputs, seqLengths, config, is_training, batch_size=None):
     # outputs = tf.Print(outputs, [tf.shape(outputs), 'outputs shape:'])
     if config.use_relu:
         outputs = tf.nn.relu(outputs)
-        outputs = tf.clip_by_value(outputs, 0, 20)
+        if config.value_clip > 0:
+            outputs = tf.clip_by_value(outputs, 0, config.value_clip)
     outputs = tf.reshape(outputs, [batch_size, -1,
                                    config.num_classes])
     return outputs, seqLengths
