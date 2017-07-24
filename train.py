@@ -144,7 +144,7 @@ class Runner(object):
                 signal.signal(signal.SIGTERM, handler_stop_signals)
 
                 best_list = []
-                best_threshold = 0.08
+                best_threshold = 0.05
                 best_count = 0
                 custom_best_count = 0
                 # (miss,false,step,best_count)
