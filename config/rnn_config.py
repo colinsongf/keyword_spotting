@@ -62,7 +62,7 @@ class Config(object):
         self.optimizer = 'adam'  # adam sgd nesterov
 
         self.fft_size = 400
-        self.step_size = 160
+        self.hop_size = 160
         self.samplerate = 16000
         self.max_sequence_length = 2000
         self.power = 1
@@ -79,13 +79,15 @@ class Config(object):
         self.bg_decay_min_db = -20
         self.bg_noise_prob = 0.5
 
-
         # model params
         self.num_layers = 2
         self.max_grad_norm = -1
+        self.use_layer_norm = False
+        self.use_residual = False
         self.value_clip = 20
         self.keep_prob = 0.7
         self.variational_recurrent = False
+        self.use_relu = True
         self.hidden_size = 128
         self.cell_clip = 3.
 
