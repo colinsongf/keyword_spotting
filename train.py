@@ -20,7 +20,7 @@ import sys
 import time
 import pickle
 import signal
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from tensorflow.python.ops import variables
 import traceback
 from args import parse_args
@@ -233,24 +233,24 @@ class Runner(object):
                                           for seq in
                                           decode_output]
 
-                                if config.customize:
-                                    np.set_printoptions(precision=4,
-                                                        threshold=np.inf,
-                                                        suppress=True)
-                                    colors = ['r', 'b', 'g', 'm', 'y', 'k', 'b',
-                                              'r']
-                                    y = softmax[0]
-                                    print(y)
-                                    x = range(len(y))
-                                    plt.figure(figsize=(10, 4))  # 创建绘图对象
-
-                                    for i in range(0, y.shape[1]):
-                                        plt.plot(x, y[:, i], colors[i],
-                                                 linewidth=1,
-                                                 label=str(i))
-                                    plt.legend(loc='upper right')
-                                    plt.savefig('temp.png')
-                                    print(decode_output)
+                                # if config.customize:
+                                #     np.set_printoptions(precision=4,
+                                #                         threshold=np.inf,
+                                #                         suppress=True)
+                                #     colors = ['r', 'b', 'g', 'm', 'y', 'k', 'b',
+                                #               'r']
+                                #     y = softmax[0]
+                                #     print(y)
+                                #     x = range(len(y))
+                                #     plt.figure(figsize=(10, 4))  # 创建绘图对象
+                                #
+                                #     for i in range(0, y.shape[1]):
+                                #         plt.plot(x, y[:, i], colors[i],
+                                #                  linewidth=1,
+                                #                  label=str(i))
+                                #     plt.legend(loc='upper right')
+                                #     plt.savefig('temp.png')
+                                #     print(decode_output)
 
                                 miss, target, false_accept = evaluate(
                                     result, correctness.tolist())
