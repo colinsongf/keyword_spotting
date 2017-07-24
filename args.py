@@ -107,6 +107,8 @@ def get_args():
     parser.add_argument('-res', '--ues_residual',
                         help='use residual wrapper', type=int,
                         default=None)
+    parser.add_argument('--value_clip', help='nn outputs value clip', type=int,
+                        default=None)
     parser.add_argument('-bgmax', '--bg_decay_max_db',
                         help='bg_decay_max_db', type=int,
                         default=None)
@@ -120,6 +122,13 @@ def get_args():
 
 flags = get_args()
 model = flags['model']
+if model == 'rnn':
+    config = rnn_config.get_config()
+
+elif model == 'attention':
+    config = attention_config.get_config()
+else:
+    raise Exception('model %s not defined!' % model)
 
 del (flags['model'])
 
@@ -129,6 +138,36 @@ if not flags['ktq']:
 del (flags['ktq'])
 del (flags['gpu'])
 
+print(flags)
+
 
 def parse_args():
-    return flags, model
+    for key in flags:
+        if key == '_customize_dict' and flags[key]:
+            custom_dict = {}
+            custom_keyword = ''
+            for i, word in enumerate(flags[key]):
+                # 0 for space, 1,2,3 for ni hao le, 4 for other words
+                custom_dict[word] = i + 5
+                custom_keyword += word
+
+            if not hasattr(config, '_customize_dict'):
+                print(
+                    "WARNING: Invalid override with attribute _customize_dict ")
+            else:
+                setattr(config, '_customize_dict', custom_dict)
+            if not hasattr(config, 'custom_keyword'):
+                print(
+                    "WARNING: Invalid override with attribute custom_keyword ")
+            else:
+                setattr(config, 'custom_keyword', custom_keyword)
+        if flags[key] is not None:
+            if not hasattr(config, key):
+                print("WARNING: Invalid override with attribute %s" % (key))
+            else:
+                setattr(config, key, flags[key])
+    return config, model
+
+
+if __name__ == '__main__':
+    parse_args()

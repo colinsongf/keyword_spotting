@@ -368,24 +368,16 @@ class Runner(object):
 
 if __name__ == '__main__':
 
-    flags, model = parse_args()
-    print(flags)
+    config, model = parse_args()
+
     if model == 'rnn':
-        config = rnn_config.get_config()
         TrainingModel = rnn_ctc.GRU
         DeployModel = rnn_ctc.DeployModel
     elif model == 'attention':
-        config = attention_config.get_config()
         TrainingModel = attention_ctc.Attention
         DeployModel = attention_ctc.DeployModel
     else:
         raise Exception('model %s not defined!' % model)
-    for key in flags:
-        if flags[key] is not None:
-            if not hasattr(config, key):
-                print("WARNING: Invalid override with attribute %s" % (key))
-            else:
-                setattr(config, key, flags[key])
 
     runner = Runner(config)
     if config.mode == 'build':
