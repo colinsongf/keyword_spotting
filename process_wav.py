@@ -32,10 +32,6 @@ save_noise_dir = config.noise_path
 save_custom_dir = config.custom_path
 save_custom_valid_dir = config.custom_valid_path
 
-global_len = []
-temp_list = []
-error_list = []
-
 label_dict = config.label_dict
 custom_dict = config.customize_dict
 
@@ -101,7 +97,7 @@ def make_record(f, label, dic=label_dict):
     # print(text)
     spectrogram, wave = process_stft(f)
     seq_len = spectrogram.shape[0]
-    label_values, label_indices, label_shape = convert_label(label,dic)
+    label_values, label_indices, label_shape = convert_label(label, dic)
 
     return spectrogram, seq_len, label_values, label_indices, label_shape
 
@@ -296,66 +292,21 @@ def generate_noise_data(path):
 def generate_customize_data(path):
     check_dir(save_custom_dir)
     with open(path, 'rb') as f:
-        # (audio_name,pinyin)
+        # (audio_name,pinyin,text)
         wav_list = pickle.load(f)
         print('read pkl from ', f)
     audio_list = [i[0] for i in wav_list]
     label_list = [i[1] for i in wav_list]
     text_list = [i[2] for i in wav_list]
     tuple_list = []
-    import os
     for i, audio_name in enumerate(audio_list):
-        slow = audio_name.replace('.wav', '_slow.wav')
-        fast = audio_name.replace('.wav', '_fast.wav')
-        loud = audio_name.replace('.wav', '_loud.wav')
-        silent = audio_name.replace('.wav', 'slient.wav')
-        os.system(
-            'ffmpeg -i "%s" -filter:a "atempo=0.8" -vn -y -loglevel 0 "%s"' % (
-                path_join(wav_customize_dir, audio_name),
-                path_join(wav_customize_dir, slow)))
-        os.system(
-            'ffmpeg -i "%s" -filter:a "atempo=1.2" -vn -y -loglevel 0 "%s"' % (
-                path_join(wav_customize_dir, audio_name),
-                path_join(wav_customize_dir, fast)))
-        os.system(
-            'ffmpeg -y -i "%s" -vn -sn -filter:a volume=2.0dB -ar 16000 -loglevel 0 "%s"' % (
-                path_join(wav_customize_dir, audio_name),
-                path_join(wav_customize_dir, loud)))
-        os.system(
-            'ffmpeg -y -i "%s" -vn -sn -filter:a volume=-2.0dB -ar 16000 -loglevel 0 "%s"' % (
-                path_join(wav_customize_dir, audio_name),
-                path_join(wav_customize_dir, silent)))
         spec, seq_len, label_values, label_indices, label_shape = make_record(
             path_join(wav_customize_dir, audio_name),
             label_list[i], custom_dict)
         print(label_values)
-        slow_spec, _ = process_stft(path_join(wav_customize_dir, slow))
-        fast_spec, _ = process_stft(path_join(wav_customize_dir, fast))
-        loud_spec, _ = process_stft(path_join(wav_customize_dir, loud))
-        silent_spec, _ = process_stft(path_join(wav_customize_dir, silent))
 
         tuple_list.append(
             (spec, seq_len, label_values, label_indices, label_shape))
-        tuple_list.append(
-            (slow_spec, len(slow_spec), label_values, label_indices,
-             label_shape))
-        tuple_list.append(
-            (fast_spec, len(fast_spec), label_values, label_indices,
-             label_shape))
-        tuple_list.append(
-            (loud_spec, len(loud_spec), label_values, label_indices,
-             label_shape))
-        tuple_list.append(
-            (silent_spec, len(silent_spec), label_values, label_indices,
-             label_shape))
-
-    tuple_list.append(tuple_list[0])
-    for i in tuple_list:
-        print(i[2])
-        print(str(i[3]))
-
-    # 16 records
-    tuple_list.extend(tuple_list)
 
     tuple_list = batch_padding_trainning(tuple_list)
     print(len(tuple_list))
@@ -377,8 +328,6 @@ def generate_custom_valid_data(pkl_path):
     check_dir(save_custom_valid_dir)
     with open(pkl_path, 'rb') as f:
         wav_list = pickle.load(f)
-    wav_list.extend(wav_list * 10)
-    wav_list = wav_list[:32]
     print('read pkl from %s' % f)
     audio_list = [i[0] for i in wav_list]
     correctness_list = [i[1] for i in wav_list]
@@ -392,7 +341,7 @@ def generate_custom_valid_data(pkl_path):
         spectrogram, wave = process_stft(
             path_join(wav_customize_valid_dir, audio_name))
         seq_len = spectrogram.shape[0]
-        label_values, _, _ = convert_label(label,custom_dict)
+        label_values, _, _ = convert_label(label, custom_dict)
 
         tuple_list.append(
             (spectrogram, seq_len, correctness, label_values, audio_name))

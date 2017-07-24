@@ -106,22 +106,59 @@ def get_args():
                         default=None)
     parser.add_argument('-custom', '--customize', help='customize', type=int,
                         default=None)
+    parser.add_argument('-dict', '--_customize_dict', help='customize',
+                        nargs='*',
+                        default=None)
+    parser.add_argument('--value_clip', help='nn outputs value clip', type=int,
+                        default=None)
 
     flags = parser.parse_args().__dict__
     return flags
 
 
-flags = get_args()
-model = flags['model']
-
-del (flags['model'])
-
-if not flags['ktq']:
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(flags['gpu'])
-
-del (flags['ktq'])
-del (flags['gpu'])
-
-
 def parse_args():
-    return flags, model
+    flags = get_args()
+    model = flags['model']
+    if model == 'rnn':
+        config = rnn_config.get_config()
+
+    elif model == 'attention':
+        config = attention_config.get_config()
+    else:
+        raise Exception('model %s not defined!' % model)
+
+    del (flags['model'])
+
+    if not flags['ktq']:
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(flags['gpu'])
+
+    del (flags['ktq'])
+    del (flags['gpu'])
+
+    print(flags)
+
+    for key in flags:
+        if key == '_customize_dict' and len(flags[key]) > 0:
+            custom_dict = {}
+            custom_keyword = ''
+            for i, word in enumerate(flags[key]):
+                # 0 for space, 1,2,3 for ni hao le, 4 for other words
+                custom_dict[word] = i + 5
+                custom_keyword += word
+
+            if not hasattr(config, '_customize_dict'):
+                print(
+                    "WARNING: Invalid override with attribute _customize_dict ")
+            else:
+                setattr(config, '_customize_dict', custom_dict)
+            if not hasattr(config, 'custom_keyword'):
+                print(
+                    "WARNING: Invalid override with attribute custom_keyword ")
+            else:
+                setattr(config, 'custom_keyword', custom_keyword)
+        if flags[key] is not None:
+            if not hasattr(config, key):
+                print("WARNING: Invalid override with attribute %s" % (key))
+            else:
+                setattr(config, key, flags[key])
+    return config, model

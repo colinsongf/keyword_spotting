@@ -221,7 +221,6 @@ class Runner(object):
                                      self.valid_model.stage_op,
                                      self.valid_model.input_filequeue_enqueue_op])
 
-
                                 decode_output = [
                                     ctc_decode_strict(s, config.num_classes) for
                                     s in
@@ -246,12 +245,12 @@ class Runner(object):
                                     plt.figure(figsize=(10, 4))  # 创建绘图对象
 
                                     for i in range(0, y.shape[1]):
-                                        plt.plot(x, y[:, i], colors[i], linewidth=1,
+                                        plt.plot(x, y[:, i], colors[i],
+                                                 linewidth=1,
                                                  label=str(i))
                                     plt.legend(loc='upper right')
                                     plt.savefig('temp.png')
                                     print(decode_output)
-
 
                                 miss, target, false_accept = evaluate(
                                     result, correctness.tolist())
@@ -424,24 +423,16 @@ class Runner(object):
 
 if __name__ == '__main__':
 
-    flags, model = parse_args()
-    print(flags)
+    config, model = parse_args()
+
     if model == 'rnn':
-        config = rnn_config.get_config()
         TrainingModel = rnn_ctc.GRU
         DeployModel = rnn_ctc.DeployModel
     elif model == 'attention':
-        config = attention_config.get_config()
         TrainingModel = attention_ctc.Attention
         DeployModel = attention_ctc.DeployModel
     else:
         raise Exception('model %s not defined!' % model)
-    for key in flags:
-        if flags[key] is not None:
-            if not hasattr(config, key):
-                print("WARNING: Invalid override with attribute %s" % (key))
-            else:
-                setattr(config, key, flags[key])
 
     runner = Runner(config)
     if config.mode == 'build':

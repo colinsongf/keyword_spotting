@@ -27,11 +27,12 @@ class Config(object):
         self.label_dict = {'ni3': 1, 'hao3': 2,
                            'le4': 3}  # 0 for space 4 for other
         self._customize_dict = {'ping2': 5, 'guo3': 6}
+        self.custom_keyword = 'ping2guo3'
         self._origin_label_seq = '1233'
         self._customize_label_seq = '56'
 
-        self.model_path = './params/ctc2/'
-        self.save_path = './params/ctc2/'
+        self.model_path = './params/ctc3/'
+        self.save_path = './params/ctc3/'
         self.graph_path = './graph/23w/'
         self.graph_name = 'graph.pb'
 
@@ -85,6 +86,7 @@ class Config(object):
         self.combine_frame = 2
         self.num_layers = 3
         self.max_grad_norm = -1
+        self.value_clip = 20
         self.feed_forward_inner_size = 512
         self.keep_prob = 0.9
         self.multi_head_num = 8
@@ -98,8 +100,6 @@ class Config(object):
         else:
             return len(
                 self.label_dict) + 3  # 0 for space 4 for others, 5 for ctc blank
-
-
 
     @property
     def origin_num_classes(self):
@@ -125,6 +125,7 @@ class Config(object):
     @property
     def label_seqs(self):
         if self.customize:
+            self._customize_label_seq = range(5, 5 + len(self._customize_dict))
             return [self._origin_label_seq, self._customize_label_seq]
         else:
             return [self._origin_label_seq]
