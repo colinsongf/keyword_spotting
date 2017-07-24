@@ -287,6 +287,9 @@ def inference2(rnn_outputs, config, batch_size=None):
                             name='linear_add')
     logits = tf.reshape(flatten_logits,
                         [batch_size, -1, config.num_classes])
+    if config.use_relu:
+        logits = tf.nn.relu(logits, name='relu')
+        logits = tf.clip_by_value(logits, 0, 20)
     return logits
 
 
