@@ -338,10 +338,10 @@ class Runner(object):
                 model = DeployModel(config=config)
 
             print('Graph build finished')
-            variable_names = [n.name for n in
-                              tf.get_default_graph().as_graph_def().node]
-            for n in variable_names:
-                print(n)
+            # variable_names = [n.name for n in
+            #                   tf.get_default_graph().as_graph_def().node]
+            # for n in variable_names:
+            #     print(n)
 
             saver = tf.train.Saver()
             saver.restore(session, save_path=path_join(self.config.model_path,
@@ -351,7 +351,7 @@ class Runner(object):
             frozen_graph_def = graph_util.convert_variables_to_constants(
                 session, session.graph.as_graph_def(),
                 ['model/inputX', 'model/rnn_initial_states',
-                 'model/rnn_states','model/softmax'])
+                 'model/rnn_states', 'model/softmax', 'model/logit'])
             tf.train.write_graph(
                 frozen_graph_def,
                 os.path.dirname(graph_path),

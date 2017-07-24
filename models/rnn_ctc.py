@@ -172,6 +172,7 @@ class DeployModel(object):
                                                      initial_state=rnn_initial_states)
             self.rnn_states = tf.stack(rnn_states, name="rnn_states")
             self.linear_output = inference2(self.nn_outputs, config, 1)
+            self.logits = tf.identity(self.linear_output,name='logit')
 
             self.softmax = tf.nn.softmax(self.linear_output, name='softmax')
             # ctc_decode_input = tf.log(self.softmax)
@@ -286,7 +287,7 @@ def inference2(rnn_outputs, config, batch_size=None):
                                       weightsClasses), biasesClasses,
                             name='linear_add')
     logits = tf.reshape(flatten_logits,
-                        [batch_size, -1, config.num_classes])
+                        [batch_size, -1, config.num_classes],name='test')
     if config.use_relu:
         logits = tf.nn.relu(logits, name='relu')
         logits = tf.clip_by_value(logits, 0, 20)

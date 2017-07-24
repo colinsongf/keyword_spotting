@@ -129,6 +129,7 @@ class HotwordDetector(object):
                                              n_mels=config.freq_size).T
         self.seg_count = 0
         self.prev_speech = True
+        self.logits = []
 
         self.graph_def = tf.GraphDef()
         self.config = config
@@ -190,7 +191,6 @@ class HotwordDetector(object):
                     self.clean_state()
                     self.prob_queue.clear()
 
-
                 data = np.concatenate((self.res, data), 0)
 
                 res = (len(data) - config.fft_size) % config.hop_size + (
@@ -232,8 +232,8 @@ class HotwordDetector(object):
             librosa.stft(y, config.fft_size, config.hop_size,
                          config.fft_size, center=False)).T
         mel = np.dot(linearspec, self.mel_basis)
-        softmax, state = self.sess.run(
-            ['model/softmax:0', 'model/rnn_states:0'],
+        softmax, logits, state = self.sess.run(
+            ['model/softmax:0', 'model/logit:0', 'model/rnn_states:0'],
             feed_dict={'model/inputX:0': mel,
                        'model/rnn_initial_states:0': self.state})
         result = ctc_decode(softmax)
@@ -241,13 +241,23 @@ class HotwordDetector(object):
         if ctc_predict(result):
             detected_callback()
         colors = ['r', 'b', 'g', 'm', 'y', 'k']
+
         y = softmax
         x = range(len(y))
-        plt.figure(figsize=(10, 4))  # 创建绘图对象
+        plt.figure(figsize=(20, 15), dpi=120)  # 创建绘图对象
+        plt.xticks(fontsize=40)
+        plt.yticks(fontsize=40)
+        p1 = plt.subplot(211)
+        p2 = plt.subplot(212)
 
-        for i in range(1, y.shape[1]):
-            plt.plot(x, y[:, i], colors[i], linewidth=1, label=str(i))
-        plt.legend(loc='upper right')
+        for i in range(0, y.shape[1]):
+            p1.plot(x, y[:, i], colors[i], linewidth=2, label=str(i))
+        p1.legend(loc='upper right', fontsize=20)
+        # p1.figure(figsize=(20, 4))  # 创建绘图对象
+
+        for i in range(0, logits.shape[2]):
+            p2.plot(x, logits[0][:, i], colors[i], linewidth=2, label=str(i))
+        p2.legend(loc='upper right', fontsize=20)
         plt.savefig('./test.png')
 
     def plot(self, softmax, name='figure.png'):
@@ -286,10 +296,10 @@ if __name__ == '__main__':
 
     # main loop
 
-    detector.start(detected_callback=play_audio_file,
-                   interrupt_check=interrupt_callback,
-                   sleep_time=0.03)
+    # detector.start(detected_callback=play_audio_file,
+    #                interrupt_check=interrupt_callback,
+    #                sleep_time=0.03)
+    #
 
 
-
-    # detector.test('temp.wav')
+    detector.test('trigger.wav')
