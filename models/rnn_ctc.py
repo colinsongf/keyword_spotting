@@ -188,8 +188,6 @@ def get_cell(config, is_training):
                    reuse=tf.get_variable_scope().reuse
                    )
     # add wrappers: ln -> dropout -> residual
-    if config.use_layer_norm:
-        cell = LayerNormalizer(cell)
     if is_training:
         if config.keep_prob < 1:
             cell = tf.contrib.rnn.DropoutWrapper(cell,

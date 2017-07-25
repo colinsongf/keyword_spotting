@@ -30,8 +30,8 @@ class Config(object):
         self._origin_label_seq = '1233'
         self._customize_label_seq = '56'
 
-        self.model_path = './params/rnnctc/'
-        self.save_path = './params/rnnctc/'
+        self.model_path = './params/rnnctc2/'
+        self.save_path = './params/rnnctc2/'
         self.graph_path = './graph/mel/'
         self.graph_name = 'graph.pb'
 
@@ -82,7 +82,6 @@ class Config(object):
         # model params
         self.num_layers = 2
         self.max_grad_norm = -1
-        self.use_layer_norm = False
         self.use_residual = False
         self.value_clip = 20
         self.keep_prob = 0.7
