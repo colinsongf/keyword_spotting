@@ -104,6 +104,9 @@ def get_args():
     parser.add_argument('-res', '--use_residual',
                         help='use residual wrapper', type=int,
                         default=None)
+    parser.add_argument('-ln', '--use_layer_norm',
+                        help='use_layer_norm wrapper', type=int,
+                        default=None)
     parser.add_argument('--value_clip', help='nn outputs value clip', type=int,
                         default=None)
     parser.add_argument('-bgmax', '--bg_decay_max_db',

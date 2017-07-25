@@ -83,6 +83,7 @@ class Config(object):
         self.num_layers = 2
         self.max_grad_norm = -1
         self.use_residual = False
+        self.use_layer_norm = False
         self.value_clip = 20
         self.keep_prob = 0.7
         self.variational_recurrent = False
