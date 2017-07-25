@@ -30,8 +30,8 @@ class Config(object):
         self._origin_label_seq = '1233'
         self._customize_label_seq = '56'
 
-        self.model_path = './params/ctc0/'
-        self.save_path = './params/ctc0/'
+        self.model_path = './params/ctc1/'
+        self.save_path = './params/ctc1/'
         self.graph_path = './graph/23w/'
         self.graph_name = 'graph.pb'
 
