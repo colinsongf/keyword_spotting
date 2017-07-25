@@ -179,16 +179,16 @@ class DeployModel(object):
             #     name='dense_output')
 
 
-def get_cell(config, is_training):
+def get_cell(config, is_training, layer):
     print(tf.get_variable_scope().reuse)
     cell = cell_fn(num_units=config.hidden_size,
                    # kernel_initializer=tf.contrib.layers.xavier_initializer,
                    activation=tf.tanh,
                    reuse=tf.get_variable_scope().reuse
                    )
-    # add wrappers: ln -> dropout -> residual
     if config.use_layer_norm:
         cell = LayerNormalizer(cell)
+    # add wrappers: ln -> dropout -> residual
     if is_training:
         if config.keep_prob < 1:
             cell = tf.contrib.rnn.DropoutWrapper(cell,
@@ -196,7 +196,7 @@ def get_cell(config, is_training):
                                                  dtype=tf.float32,
                                                  variational_recurrent=config.variational_recurrent
                                                  )
-    if config.use_residual:
+    if config.use_residual and layer > 0:
         cell = ResidualWrapper(cell)
 
     return cell
@@ -234,7 +234,7 @@ def inference1(config,
                                initializer=tf.contrib.layers.xavier_initializer(
                                    uniform=False)):
             print('building RNN layer')
-            rnn_cells.append(get_cell(config, is_training))
+            rnn_cells.append(get_cell(config, is_training, i))
 
     rnn_cells = tf.contrib.rnn.MultiRNNCell(rnn_cells)
 
