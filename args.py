@@ -166,7 +166,7 @@ def parse_args():
                 print("WARNING: Invalid override with attribute %s" % (key))
             else:
                 setattr(config, key, flags[key])
-    print(config.__dict__)
+    # print(config.__dict__)
     return config, model
 
 

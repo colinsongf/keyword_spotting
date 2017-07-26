@@ -30,8 +30,8 @@ class Config(object):
         self._origin_label_seq = '1233'
         self._customize_label_seq = '56'
 
-        self.model_path = './params/rnnctc2/'
-        self.save_path = './params/rnnctc2/'
+        self.model_path = './params/rnnctc1/'
+        self.save_path = './params/rnnctc1/'
         self.graph_path = './graph/mel/'
         self.graph_name = 'graph.pb'
 

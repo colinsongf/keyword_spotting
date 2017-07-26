@@ -151,12 +151,12 @@ class Runner(object):
 
                 last_time = time.time()
 
-                print('savable...')
-                for v in variables._all_saveable_objects():
-                    print(v.name)
-                print('restorable...')
-                for v in tf.contrib.slim.get_variables_to_restore():
-                    print(v.name)
+                # print('savable...')
+                # for v in variables._all_saveable_objects():
+                #     print(v.name)
+                # print('restorable...')
+                # for v in tf.contrib.slim.get_variables_to_restore():
+                #     print(v.name)
 
                 try:
                     sess.run([self.data.noise_stage_op,
