@@ -123,7 +123,6 @@ class DeployModel(object):
         config.use_bg_noise = False
         config.use_white_noise = False
         config.keep_prob = 1
-
         with tf.device('/cpu:0'):
             self._rnn_initial_states = tf.placeholder(
                 tf.float32,
@@ -131,30 +130,30 @@ class DeployModel(object):
                  1,
                  config.hidden_size],
                 name='rnn_initial_states')
-            # self.inputX = tf.placeholder(dtype=tf.float32,
-            #                              shape=[None, ],
-            #                              name='inputX')
-            #
-            # self.inputX = tf.expand_dims(self.inputX, 0)
-            # self.frames = tf_frame(self.inputX, 400, 160, name='frame')
-            #
-            # self.linearspec = tf.abs(tf.spectral.rfft(self.frames, [400]))
-            #
-            # self.mel_basis = librosa.filters.mel(
-            #     sr=config.samplerate,
-            #     n_fft=config.fft_size,
-            #     fmin=config.fmin,
-            #     fmax=config.fmax,
-            #     n_mels=config.freq_size).T
-            # self.mel_basis = tf.constant(value=self.mel_basis, dtype=tf.float32)
-            # self.mel_basis = tf.expand_dims(self.mel_basis, 0)
-            #
-            # self.melspec = tf.matmul(self.linearspec, self.mel_basis,
-            #                          name='mel')
             self.inputX = tf.placeholder(dtype=tf.float32,
-                                         shape=[None, config.freq_size],
+                                         shape=[None, ],
                                          name='inputX')
-            self.melspec = tf.expand_dims(self.inputX, 0)
+
+            self.inputX = tf.expand_dims(self.inputX, 0)
+            self.frames = tf_frame(self.inputX, 400, 160, name='frame')
+
+            self.linearspec = tf.abs(tf.spectral.rfft(self.frames, [400]))
+
+            self.mel_basis = librosa.filters.mel(
+                sr=config.samplerate,
+                n_fft=config.fft_size,
+                fmin=config.fmin,
+                fmax=config.fmax,
+                n_mels=config.freq_size).T
+            self.mel_basis = tf.constant(value=self.mel_basis, dtype=tf.float32)
+            self.mel_basis = tf.expand_dims(self.mel_basis, 0)
+
+            self.melspec = tf.matmul(self.linearspec, self.mel_basis,
+                                     name='mel')
+            # self.inputX = tf.placeholder(dtype=tf.float32,
+            #                              shape=[None, config.freq_size],
+            #                              name='inputX')
+            # self.melspec = tf.expand_dims(self.inputX, 0)
 
             self.seqLengths = tf.expand_dims(tf.shape(self.melspec)[1], 0)
             rnn_initial_states = tuple(tf.unstack(self._rnn_initial_states))
@@ -167,16 +166,17 @@ class DeployModel(object):
             self.logits = tf.identity(self.linear_output,name='logit')
 
             self.softmax = tf.nn.softmax(self.linear_output, name='softmax')
-            # ctc_decode_input = tf.log(self.softmax)
-            # self.ctc_decode_input = tf.concat(
-            #     [self._prev_ctc_decode_inputs, ctc_decode_input], axis=1,
-            #     name="ctc_decode_inputs")
-            # self.ctc_decode_result, self.ctc_decode_log_prob = tf.nn.ctc_beam_search_decoder(
-            #     self.ctc_decode_input, self.seqLengths,
-            #     beam_width=config.beam_size, top_paths=1)
-            # self.dense_output = tf.sparse_tensor_to_dense(
-            #     self.ctc_decode_result[0], default_value=-1,
-            #     name='dense_output')
+            ctc_decode_input = tf.log(self.softmax)
+
+        # self.ctc_decode_input = tf.concat(
+        #     [self._prev_ctc_decode_inputs, ctc_decode_input], axis=1,
+        #     name="ctc_decode_inputs")
+        # self.ctc_decode_result, self.ctc_decode_log_prob = tf.nn.ctc_beam_search_decoder(
+        #     self.ctc_decode_input, self.seqLengths,
+        #     beam_width=config.beam_size, top_paths=1)
+        # self.dense_output = tf.sparse_tensor_to_dense(
+        #     self.ctc_decode_result[0], default_value=-1,
+        #     name='dense_output')
 
 
 def get_cell(config, is_training, layer):

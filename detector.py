@@ -243,6 +243,12 @@ class HotwordDetector(object):
         colors = ['r', 'b', 'g', 'm', 'y', 'k']
 
         y = softmax
+        np.set_printoptions(precision=4,
+                            threshold=np.inf,
+                            suppress=True)
+        test = y.flatten()
+        print(softmax.shape)
+        print(test.tolist())
         x = range(len(y))
         plt.figure(figsize=(20, 15), dpi=120)  # 创建绘图对象
         plt.xticks(fontsize=40)

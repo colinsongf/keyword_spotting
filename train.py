@@ -337,10 +337,10 @@ class Runner(object):
                 model = DeployModel(config=config)
 
             print('Graph build finished')
-            # variable_names = [n.name for n in
-            #                   tf.get_default_graph().as_graph_def().node]
-            # for n in variable_names:
-            #     print(n)
+            variable_names = [n.name for n in
+                              tf.get_default_graph().as_graph_def().node]
+            for n in variable_names:
+                print(n)
 
             saver = tf.train.Saver()
             saver.restore(session, save_path=path_join(self.config.model_path,
