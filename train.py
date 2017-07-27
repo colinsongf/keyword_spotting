@@ -111,14 +111,15 @@ class Runner(object):
             st_time = time.time()
             epoch_step = config.tfrecord_size * self.data.train_file_size // config.batch_size
             if config.customize:
-                epoch_step *= 60
-            if os.path.exists(path_join(self.config.save_path, 'best.pkl')):
-                with open(path_join(self.config.save_path, 'best.pkl'),
-                          'rb') as f:
-                    best_miss, best_false = pickle.load(f)
-                    print('best miss', best_miss, 'best false', best_false)
-            else:
-                print('best not exist')
+                epoch_step *= 160
+            if not config.customize:
+                if os.path.exists(path_join(self.config.save_path, 'best.pkl')):
+                    with open(path_join(self.config.save_path, 'best.pkl'),
+                              'rb') as f:
+                        best_miss, best_false = pickle.load(f)
+                        print('best miss', best_miss, 'best false', best_false)
+                else:
+                    print('best not exist')
 
             check_dir(self.config.save_path)
 
@@ -220,9 +221,9 @@ class Runner(object):
                                      self.valid_model.labels,
                                      self.valid_model.stage_op,
                                      self.valid_model.input_filequeue_enqueue_op])
-
+                                decode_fn = ctc_decode_strict if config.customize else ctc_decode
                                 decode_output = [
-                                    ctc_decode_strict(s, config.num_classes) for
+                                    decode_fn(s, config.num_classes) for
                                     s in
                                     softmax]
                                 for i in decode_output:
@@ -232,6 +233,9 @@ class Runner(object):
                                 result = [ctc_predict(seq, config.label_seqs)
                                           for seq in
                                           decode_output]
+                                if config.customize:
+                                    for r in decode_output:
+                                        print(r)
 
                                 # if config.customize:
                                 #     np.set_printoptions(precision=4,
@@ -406,7 +410,8 @@ class Runner(object):
 
             frozen_graph_def = graph_util.convert_variables_to_constants(
                 session, session.graph.as_graph_def(),
-                ['model/inputX', 'model/softmax', 'model/nn_outputs'])
+                ['model/inputX', 'model/softmax1', 'model/softmax2',
+                 'model/nn_outputs'])
             tf.train.write_graph(
                 frozen_graph_def,
                 os.path.dirname(graph_path),

@@ -40,6 +40,7 @@ class DataSet(object):
         self.mel_basis = tf.tile(tf.expand_dims(self.mel_basis, 0),
                                  [config.batch_size, 1, 1])
         if mode == 'train':
+            print(train_dir)
             self.train_filename = glob(path_join(train_dir, '*.tfrecords'))
             # self.train_filename = sorted(self.train_filename)
             self.train_file_size = len(self.train_filename)
@@ -334,7 +335,7 @@ class DataSet(object):
 
 def read_dataset(config):
     save_train_dir = config.custom_path if config.customize else config.train_path
-    save_valid_dir = config.custom_valid_path if config.customize else config.valid_path
+    save_valid_dir = config.custom_valid_path  if config.customize else config.valid_path
     save_noise_dir = config.noise_path
 
     return DataSet(config=config, train_dir=save_train_dir,

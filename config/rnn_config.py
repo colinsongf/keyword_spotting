@@ -124,7 +124,8 @@ class Config(object):
     @property
     def label_seqs(self):
         if self.customize:
-            self._customize_label_seq = range(5, 5 + len(self._customize_dict))
+            self._customize_label_seq = ''.join(
+                [str(s) for s in range(5, 5 + len(self._customize_dict))])
             return [self._origin_label_seq, self._customize_label_seq]
         else:
             return [self._origin_label_seq]

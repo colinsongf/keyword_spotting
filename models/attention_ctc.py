@@ -241,7 +241,8 @@ class Attention(object):
             if config.customize:
                 to_train = []
                 for v in vs:
-                    if 'new_' in v.name or 'others_' in v.name:
+                    # if 'new_' in v.name or 'others_' in v.name:
+                    if 'new_' in v.name:
                         to_train.append(v)
                 print('training variable:')
                 for i in to_train:
@@ -319,7 +320,12 @@ class DeployModel(object):
                                                          batch_size=1)
         self.nn_outputs = tf.squeeze(self.nn_outputs, 0, name='nn_outputs')
 
-        self.softmax = tf.nn.softmax(self.nn_outputs, name='softmax')
+        self.softmax1 = tf.nn.softmax(self.nn_outputs, name='softmax1')
+        origin, custom, blank = tf.split(self.nn_outputs,
+                                         [config.origin_num_classes + 1,
+                                          config.num_customize, 1], 1)
+        self.softmax2 = tf.nn.softmax(tf.concat([origin, blank], 1),
+                                      name='softmax2')
 
 
 if __name__ == "__main__":

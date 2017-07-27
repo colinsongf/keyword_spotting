@@ -41,7 +41,7 @@ def collect_customize_data(valid=False):
     records = j['Detail'][:3]
     pkl = []
     for record in records:
-        download_url = base_url + 'audio/' + record['awskey']
+        download_url = base_url + 'audio?key=' + record['awskey']
         label = record['nires']
         print(download_url)
         wave = requests.get(download_url).content
@@ -55,35 +55,39 @@ def collect_customize_data(valid=False):
         with open(path, 'wb') as f:
             f.write(wave)
 
-        slow = audio_name.replace('.wav', '_slow.wav')
-        fast = audio_name.replace('.wav', '_fast.wav')
-        loud = audio_name.replace('.wav', '_loud.wav')
-        silent = audio_name.replace('.wav', 'slient.wav')
+        slow = path.replace('.wav', '_slow.wav')
+        fast = path.replace('.wav', '_fast.wav')
+        loud = path.replace('.wav', '_loud.wav')
+        silent = path.replace('.wav', 'slient.wav')
         os.system(
             'ffmpeg -i "%s" -filter:a "atempo=0.8" -vn -y -loglevel 0 "%s"' % (
-                path_join(wav_customize_dir, audio_name),
-                path_join(wav_customize_dir, slow)))
+                path, slow))
         os.system(
             'ffmpeg -i "%s" -filter:a "atempo=1.2" -vn -y -loglevel 0 "%s"' % (
-                path_join(wav_customize_dir, audio_name),
-                path_join(wav_customize_dir, fast)))
+                path, fast))
         os.system(
             'ffmpeg -y -i "%s" -vn -sn -filter:a volume=2.0dB -ar 16000 -loglevel 0 "%s"' % (
-                path_join(wav_customize_dir, audio_name),
-                path_join(wav_customize_dir, loud)))
+                path, loud))
+        print(path)
+        print(loud)
         os.system(
             'ffmpeg -y -i "%s" -vn -sn -filter:a volume=-2.0dB -ar 16000 -loglevel 0 "%s"' % (
-                path_join(wav_customize_dir, audio_name),
-                path_join(wav_customize_dir, silent)))
+                path, silent))
 
-        file_names = [audio_name, fast, slow, loud, silent]
+        file_names = [audio_name, fast.split('/')[-1], slow.split('/')[-1],
+                      loud.split('/')[-1], silent.split('/')[-1]]
         for name in file_names:
             if valid:
                 pkl.append((name, 1, ret))
             else:
                 pkl.append((name, ret, label))
-
+    pkl.extend(pkl)
     pkl.extend(pkl[:2])
+    if not valid:
+        pkl.extend(pkl)
+    for p in pkl:
+        print(p)
+    print(len(pkl))
 
     if valid:
         pkl_path = path_join(wav_customize_valid_dir, 'valid.pkl')

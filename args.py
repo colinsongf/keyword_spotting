@@ -115,7 +115,9 @@ def get_args():
     parser.add_argument('-bgmin', '--bg_decay_min_db',
                         help='bg_decay_min_db', type=int,
                         default=None)
-
+    parser.add_argument('-custom', '--customize',
+                        help='customize mode', type=int,
+                        default=None)
     flags = parser.parse_args().__dict__
     return flags
 

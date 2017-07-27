@@ -23,8 +23,8 @@ config = get_config()
 wave_train_dir = config.rawdata_path + 'train/'
 wave_valid_dir = config.rawdata_path + 'valid/'
 wave_noise_dir = config.rawdata_path + 'noise/'
-wav_customize_dir = config.rawdata_path + 'customize/'
-wav_customize_valid_dir = config.rawdata_path + 'customize_valid/'
+wav_customize_dir = config.rawdata_path + 'customize/' + config.custom_keyword
+wav_customize_valid_dir = config.rawdata_path + 'customize_valid/' + config.custom_keyword
 
 save_train_dir = config.train_path
 save_valid_dir = config.valid_path
@@ -299,6 +299,8 @@ def generate_customize_data(path):
     label_list = [i[1] for i in wav_list]
     text_list = [i[2] for i in wav_list]
     tuple_list = []
+    counter = 0
+    record_count = 0
     for i, audio_name in enumerate(audio_list):
         spec, seq_len, label_values, label_indices, label_shape = make_record(
             path_join(wav_customize_dir, audio_name),
@@ -307,21 +309,73 @@ def generate_customize_data(path):
 
         tuple_list.append(
             (spec, seq_len, label_values, label_indices, label_shape))
+        counter += 1
+        if counter == config.tfrecord_size:
 
-    tuple_list = batch_padding_trainning(tuple_list)
-    print(len(tuple_list))
-    fname = 'custom.tfrecords'
-    ex_list = [make_trainning_example(spec, seq_len, label_values,
-                                      label_indices, label_shape) for
-               spec, seq_len, label_values, label_indices, label_shape
-               in tuple_list]
-    writer = tf.python_io.TFRecordWriter(
-        path_join(save_custom_dir, fname))
-    for ex in ex_list:
-        writer.write(ex.SerializeToString())
-    writer.close()
-    print(fname, 'created')
+            tuple_list = batch_padding_trainning(tuple_list)
+            print(len(tuple_list))
+            fname = 'custom%d.tfrecords'%record_count
+            ex_list = [make_trainning_example(spec, seq_len, label_values,
+                                              label_indices, label_shape) for
+                       spec, seq_len, label_values, label_indices, label_shape
+                       in tuple_list]
+            writer = tf.python_io.TFRecordWriter(
+                path_join(save_custom_dir, fname))
+            for ex in ex_list:
+                writer.write(ex.SerializeToString())
+            writer.close()
+            print(fname, 'created')
+            tuple_list.clear()
+            record_count += 1
+            counter = 0
+
     print('save in %s' % save_custom_dir)
+
+
+def temp(path):
+    d = '/ssd/liuziqi/ctc_23w/custom/'
+    with open(path, 'rb') as f:
+        # (audio_name,pinyin,text)
+        wav_list = pickle.load(f)
+        print('read pkl from ', f)
+    for w in wav_list:
+        print(w)
+    audio_list = [i[0] for i in wav_list]
+    label_list = [i[1] for i in wav_list]
+    text_list = [i[2] for i in wav_list]
+    tuple_list = []
+    counter = 0
+    record_count = 0
+    for i, audio_name in enumerate(audio_list):
+        spec, seq_len, label_values, label_indices, label_shape = make_record(
+            path_join(wave_train_dir, audio_name),
+            label_list[i], custom_dict)
+        print(label_values)
+
+        tuple_list.append(
+            (spec, seq_len, label_values, label_indices, label_shape))
+        counter += 1
+        if counter == config.tfrecord_size:
+
+            tuple_list = batch_padding_trainning(tuple_list)
+            print(len(tuple_list))
+            fname = 'custom%d.tfrecords' % (record_count)
+            ex_list = [make_trainning_example(spec, seq_len, label_values,
+                                              label_indices, label_shape) for
+                       spec, seq_len, label_values, label_indices, label_shape
+                       in tuple_list]
+            writer = tf.python_io.TFRecordWriter(
+                path_join(d, fname))
+            for ex in ex_list:
+                writer.write(ex.SerializeToString())
+            writer.close()
+            print(fname, 'created')
+            tuple_list.clear()
+            record_count += 1
+            counter=0
+
+
+    print('save in %s' % d)
 
 
 def generate_custom_valid_data(pkl_path):
@@ -503,7 +557,9 @@ if __name__ == '__main__':
     # generate_noise_data(wave_noise_dir + 'noise.pkl')
 
     # collect_customize_data(valid=True)
+    # temp(path_join(config.rawdata_path + 'customize/', 'positive.pkl'))
+    # temp(path_join(config.rawdata_path + 'customize/', 'negative.pkl'))
 
-    generate_customize_data(wav_customize_dir + 'data.pkl')
+    generate_customize_data(path_join(wav_customize_dir, 'data.pkl'))
     #
-    generate_custom_valid_data(wav_customize_valid_dir + 'valid.pkl')
+    generate_custom_valid_data(path_join(wav_customize_valid_dir, 'valid.pkl'))
