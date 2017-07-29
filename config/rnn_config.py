@@ -84,10 +84,10 @@ class Config(object):
         self.max_grad_norm = -1
         self.use_residual = False
         self.use_layer_norm = False
-        self.value_clip = 20
-        self.keep_prob = 0.7
+        self.value_clip = -1
+        self.keep_prob = 0.6
         self.variational_recurrent = False
-        self.use_relu = True
+        self.use_relu = False
         self.hidden_size = 128
         self.cell_clip = 3.
 
