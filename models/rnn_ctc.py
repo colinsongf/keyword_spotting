@@ -123,23 +123,16 @@ class DeployModel(object):
         config.use_bg_noise = False
         config.use_white_noise = False
         config.keep_prob = 1
-
         with tf.device('/cpu:0'):
-            self.inputX = tf.placeholder(dtype=tf.float32,
-                                         shape=[None, ],
-                                         name='inputX')
             self._rnn_initial_states = tf.placeholder(
                 tf.float32,
                 [config.num_layers,
-                 config.batch_size,
+                 1,
                  config.hidden_size],
                 name='rnn_initial_states')
-            self._prev_ctc_decode_inputs = tf.placeholder(
-                tf.float32,
-                [None,
-                 config.batch_size,
-                 config.num_classes],
-                name='prev_ctc_decode_inputs')
+            self.inputX = tf.placeholder(dtype=tf.float32,
+                                         shape=[None, ],
+                                         name='inputX')
 
             self.inputX = tf.expand_dims(self.inputX, 0)
             self.frames = tf_frame(self.inputX, 400, 160, name='frame')
@@ -160,24 +153,26 @@ class DeployModel(object):
 
             self.seqLengths = tf.expand_dims(tf.shape(self.melspec)[1], 0)
             rnn_initial_states = tuple(tf.unstack(self._rnn_initial_states))
-            self.nn_outputs, rnn_states = inference1(config, self.inputX,
+            self.nn_outputs, rnn_states = inference1(config, self.melspec,
                                                      self.seqLengths,
                                                      is_training=False,
                                                      initial_state=rnn_initial_states)
             self.rnn_states = tf.stack(rnn_states, name="rnn_states")
             self.linear_output = inference2(self.nn_outputs, config, 1)
+            self.logits = tf.identity(self.linear_output,name='logit')
 
             self.softmax = tf.nn.softmax(self.linear_output, name='softmax')
-            # ctc_decode_input = tf.log(self.softmax)
-            # self.ctc_decode_input = tf.concat(
-            #     [self._prev_ctc_decode_inputs, ctc_decode_input], axis=1,
-            #     name="ctc_decode_inputs")
-            # self.ctc_decode_result, self.ctc_decode_log_prob = tf.nn.ctc_beam_search_decoder(
-            #     self.ctc_decode_input, self.seqLengths,
-            #     beam_width=config.beam_size, top_paths=1)
-            # self.dense_output = tf.sparse_tensor_to_dense(
-            #     self.ctc_decode_result[0], default_value=-1,
-            #     name='dense_output')
+            ctc_decode_input = tf.log(self.softmax)
+
+        # self.ctc_decode_input = tf.concat(
+        #     [self._prev_ctc_decode_inputs, ctc_decode_input], axis=1,
+        #     name="ctc_decode_inputs")
+        # self.ctc_decode_result, self.ctc_decode_log_prob = tf.nn.ctc_beam_search_decoder(
+        #     self.ctc_decode_input, self.seqLengths,
+        #     beam_width=config.beam_size, top_paths=1)
+        # self.dense_output = tf.sparse_tensor_to_dense(
+        #     self.ctc_decode_result[0], default_value=-1,
+        #     name='dense_output')
 
 
 def get_cell(config, is_training, layer):
