@@ -189,14 +189,7 @@ class Runner(object):
                                 np.set_printoptions(precision=4,
                                                     threshold=np.inf,
                                                     suppress=True)
-                                # print('-----------------')
-                                #
-                                # print(labels[0])
-                                # print(names[0].decode())
-                                # print(self.valid_set[i * config.batch_size])
-                                # for i in names:
-                                #     print(i.decode())
-                                # print(softmax.shape)
+
                                 decode_output = [ctc_decode(s) for s in softmax]
                                 for i in decode_output:
                                     text += str(i) + '\n'
@@ -294,11 +287,7 @@ class Runner(object):
                     np.set_printoptions(precision=4,
                                         threshold=np.inf,
                                         suppress=True)
-                    # for output, lab, name in zip(ctc_output, labels, names):
-                    #     print('-' * 20)
-                    #     print(name.decode())
-                    #     print('output', output.tolist())
-                    #     print('golden', lab.tolist())
+
                     correctness = correctness.tolist()
                     result = [ctc_predict(seq) for seq in
                               ctc_output]
@@ -316,8 +305,6 @@ class Runner(object):
                     target_count += target
                     false_count += false_accept
 
-                # miss_rate = miss_count / target_count
-                # false_accept_rate = false_count / total_count
                 print('--------------------------------')
                 print('miss rate: %d/%d' % (miss_count, target_count))
                 print('flase_accept_rate: %d/%d' % (
@@ -370,10 +357,12 @@ if __name__ == '__main__':
 
     if model == 'rnn':
         from models import rnn_ctc
+
         TrainingModel = rnn_ctc.GRU
         DeployModel = rnn_ctc.DeployModel
     elif model == 'attention':
         from models import attention_ctc
+
         TrainingModel = attention_ctc.Attention
         DeployModel = attention_ctc.DeployModel
     else:
