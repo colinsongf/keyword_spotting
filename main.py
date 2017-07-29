@@ -5,7 +5,7 @@
 @author: ZiqiLiu
 
 
-@file: train.py
+@file: main.py
 
 @time: 2017/5/18 上午11:03
 
