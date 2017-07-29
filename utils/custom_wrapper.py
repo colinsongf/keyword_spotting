@@ -36,6 +36,7 @@ class HighwayWrapper(RNNWrapper):
     """Implementing https://arxiv.org/pdf/1505.00387v2.pdf, need to making
     sure this is shared from all layers.
     """
+
     def __init__(self, cell, weights):
         self._cell = cell
         self._weights = weights
@@ -43,7 +44,7 @@ class HighwayWrapper(RNNWrapper):
     def __call__(self, inputs, state, scope=None):
         t = tf.sigmoid(tf.matmul(inputs, self._weights))
         output, new_state = self._cell(inputs, state, scope)
-        output = output*t + (1.0 - t)*inputs
+        output = output * t + (1.0 - t) * inputs
         return output, new_state
 
 
@@ -95,6 +96,7 @@ class ResidualWrapper(RNNWrapper):
     """
     This add residual support to any rnn: simply add input to output.
     """
+
     def __init__(self, cell):
         """
         Create a cell with residue.
@@ -111,7 +113,7 @@ class ResidualWrapper(RNNWrapper):
     def __call__(self, inputs, state, scope=None):
         """Run the cell with the clockwork state."""
         output, new_state = self._cell(inputs, state, scope)
-        return 0.7071067811865475*(output + inputs), new_state
+        return 0.7071067811865475 * (output + inputs), new_state
 
 
 class LayerNormalizer(RNNWrapper):
@@ -127,7 +129,7 @@ class LayerNormalizer(RNNWrapper):
         normalised_input = (input - m) / tf.sqrt(v + epsilon)
         return normalised_input * s + b
 
-    def __init__(self, cell, norm_state=False):
+    def __init__(self, cell):
         """
         Create a cell with layer normalization.
         Args:
@@ -139,26 +141,18 @@ class LayerNormalizer(RNNWrapper):
             raise TypeError("The parameter cell is not a RNNCell.")
 
         self._cell = cell
-        self.norm_state = norm_state
-        with tf.variable_scope(type(self).__name__), tf.device('/cpu:0'):
-            self.ibeta = tf.get_variable(
-                initializer=tf.constant(0.0, shape=[cell.input_size]),
-                name='ibeta', trainable=True)
-            self.igamma = tf.get_variable(
-                initializer=tf.constant(1.0, shape=[cell.input_size]),
-                name='igamma', trainable=True)
-            if norm_state:
-                self.sbeta = tf.get_variable(
-                    initializer=tf.constant(0.0, shape=[cell.state_size]),
-                    name='ibeta', trainable=True)
-                self.sgamma = tf.get_variable(
-                    initializer=tf.constant(1.0, shape=[cell.state_size]),
-                    name='igamma', trainable=True)
 
     def __call__(self, inputs, state, scope=None):
         """Run the cell with the layer normalization."""
+        with tf.variable_scope(type(self).__name__), tf.device('/cpu:0'):
+            self.ibeta = tf.get_variable(
+                initializer=tf.constant(0.0, shape=[]),
+                name='ibeta', trainable=True)
+            self.igamma = tf.get_variable(
+                initializer=tf.constant(1.0, shape=[inputs.get_shape()[1]]),
+                name='igamma', trainable=True)
+
         inputs = LayerNormalizer._ln(inputs, self.ibeta, self.igamma)
-        if self.norm_state:
-            state = LayerNormalizer._ln(state, self.sbeta, self.sgamma)
+
         output, new_state = self._cell(inputs, state, scope)
         return output, new_state

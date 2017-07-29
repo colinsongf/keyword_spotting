@@ -26,7 +26,6 @@ import numpy as np
 import tensorflow as tf
 from glob import glob
 from tensorflow.python.framework import graph_util
-from models import attention_ctc, rnn_ctc
 from reader import read_dataset
 from utils.common import check_dir, path_join
 from utils.prediction import evaluate, ctc_predict, ctc_decode
@@ -370,9 +369,11 @@ if __name__ == '__main__':
     config, model = parse_args()
 
     if model == 'rnn':
+        from models import rnn_ctc
         TrainingModel = rnn_ctc.GRU
         DeployModel = rnn_ctc.DeployModel
     elif model == 'attention':
+        from models import attention_ctc
         TrainingModel = attention_ctc.Attention
         DeployModel = attention_ctc.DeployModel
     else:

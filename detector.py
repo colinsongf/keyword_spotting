@@ -196,15 +196,15 @@ class HotwordDetector(object):
                 res = (len(data) - config.fft_size) % config.hop_size + (
                     config.fft_size - config.hop_size)
                 self.res = data[-res:]
-
-                linearspec = np.abs(
-                    librosa.stft(data, config.fft_size, config.hop_size,
-                                 config.fft_size, center=False)).T
-                mel = np.dot(linearspec, self.mel_basis)
+                #
+                # linearspec = np.abs(
+                #     librosa.stft(data, config.fft_size, config.hop_size,
+                #                  config.fft_size, center=False)).T
+                # mel = np.dot(linearspec, self.mel_basis)
 
                 softmax, state = sess.run(
                     ['model/softmax:0', 'model/rnn_states:0'],
-                    feed_dict={'model/inputX:0': mel,
+                    feed_dict={'model/inputX:0': data,
                                'model/rnn_initial_states:0': self.state})
 
                 self.prob_queue.add(softmax)
@@ -234,7 +234,7 @@ class HotwordDetector(object):
         mel = np.dot(linearspec, self.mel_basis)
         softmax, logits, state = self.sess.run(
             ['model/softmax:0', 'model/logit:0', 'model/rnn_states:0'],
-            feed_dict={'model/inputX:0': mel,
+            feed_dict={'model/inputX:0': y,
                        'model/rnn_initial_states:0': self.state})
         result = ctc_decode(softmax)
         print(result)
@@ -265,6 +265,43 @@ class HotwordDetector(object):
             p2.plot(x, logits[0][:, i], colors[i], linewidth=2, label=str(i))
         p2.legend(loc='upper right', fontsize=20)
         plt.savefig('./test.png')
+
+    def test2(self, name, detected_callback=play_audio_file):
+        np.set_printoptions(precision=4,
+                            threshold=np.inf,
+                            suppress=True)
+        y, sr = librosa.load(name, 16000)
+        print(len(y))
+        seg_len = 3600
+        seg_num = len(y) // seg_len
+        res = np.zeros([0], np.float32)
+        origin_state = np.zeros([2, 1, 128], np.float32)
+        data = []
+        accu=np.zeros([0,6],np.float32)
+        print(seg_num)
+        for i in range(seg_num + 1):
+            print(i)
+            if i == seg_num:
+                feed = y[i * seg_len:]
+            else:
+                feed = y[i * seg_len:(i + 1) * seg_len]
+            data = np.concatenate((res, feed))
+            reslen = (len(
+                data) - self.config.fft_size) % self.config.hop_size + 240
+            res = data[-reslen:]
+            floatlen = len(data) - (len(
+                data) - self.config.fft_size) % self.config.hop_size
+            data = data[:floatlen]
+            softmax, logits, state = self.sess.run(
+                ['model/softmax:0', 'model/logit:0', 'model/rnn_states:0'],
+                feed_dict={'model/inputX:0': data,
+                           'model/rnn_initial_states:0': origin_state})
+            origin_state = state
+            accu = np.concatenate((accu,softmax),0)
+            print(softmax.flatten().tolist())
+
+        a=ctc_decode(accu)
+        print(a)
 
     def plot(self, softmax, name='figure.png'):
         colors = ['r', 'b', 'g', 'm', 'y', 'k']
@@ -308,4 +345,4 @@ if __name__ == '__main__':
     #
 
 
-    detector.test('trigger.wav')
+    detector.test2('trigger.wav')

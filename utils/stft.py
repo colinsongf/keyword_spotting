@@ -56,12 +56,12 @@ def tf_frame(signal, frame_length, frame_step, name=None):
 
         signal_length = array_ops.shape(signal)[1]
 
-        num_frames = math_ops.ceil((signal_length - frame_length) / frame_step)
+        num_frames = math_ops.floor((signal_length - frame_length) / frame_step)
         num_frames = 1 + math_ops.cast(num_frames, dtypes.int32)
 
-        pad_length = (num_frames - 1) * frame_step + frame_length
-        pad_signal = array_ops.pad(signal, [[0, 0], [0,
-                                                     pad_length - signal_length]])
+        # crop_len = frame_length+frame_step*(num_frames-1)
+        # cropped_signal = tf.slice(signal,[0,0],[-1,crop_len]);
+
 
         indices_frame = array_ops.expand_dims(math_ops.range(frame_length), 0)
         indices_frames = array_ops.tile(indices_frame, [num_frames, 1])
@@ -73,8 +73,8 @@ def tf_frame(signal, frame_length, frame_step, name=None):
         indices = indices_frames + indices_steps
 
         # TODO(androbin): remove `transpose` when `gather` gets `axis` support
-        pad_signal = array_ops.transpose(pad_signal)
-        signal_frames = array_ops.gather(pad_signal, indices)
+        signal = array_ops.transpose(signal)
+        signal_frames = array_ops.gather(signal, indices)
         signal_frames = array_ops.transpose(signal_frames, perm=[2, 0, 1])
 
         return signal_frames
