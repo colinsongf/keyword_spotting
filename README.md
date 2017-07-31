@@ -24,7 +24,7 @@ I've tried mfcc, worse than mel.
 ##label
 using CTC, the label is just text.
 
-We use pinyin to represent words, because some Chinese words have multiple phoneme, for example, one of our keyword 乐 has two pronounce: yue4 and le4, but we only want le4.
+We use pinyin to represent words(using the marker), because some Chinese words have multiple phoneme, for example, one of our keyword 乐 has two pronounce: yue4 and le4, but we only want le4.
 
 Our label space consist of keywords and garbage word(all other words except keyword)
 
