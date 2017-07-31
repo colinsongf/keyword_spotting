@@ -10,7 +10,7 @@ keyword for experiment: 你好乐乐
 
 basic structure: preprocessing -> rnn ->decode
 
-##preprocessing
+## preprocessing
 
 signal -> stft(linear spectrogram) -> mel spectrogram
 
@@ -22,7 +22,7 @@ Maybe larger hidden size and deeper network can perform better. But in our case,
 
 I've tried mfcc, worse than mel.
 
-##label
+## label
 
 using CTC, the label is just text.
 
@@ -47,7 +47,7 @@ Sentence **你好乐乐** will be labeled as **010203030**
 
 Actually we've tried frame-wise label with alignment for word(phoneme), but there is some difficulty and the outcome is not desirable. I will dicuss this in the loss function, later.
 
-##model
+## model
 
 RNN -> fully-connection layer -> CTC_loss(CTC_decode)
 
@@ -91,7 +91,7 @@ We add a simple VAD function (based on volume) to detect voice activity.
 
 A major drawback of this RNN model is that it will toally mess up when carrying the state of a long speech. (The reason, I guess, is that our training data are mostly short speech segment.) **So we clear the rnn state after each trigger and each non-speech segment detected by the VAD.** The VAD must be carefully tuned, otherwise it will cut off unfinished speech and clean the rnn state.
 
-##Pipeline and Data
+## Pipeline and Data
 
 The data is about 80GB (linear spectrogram), which is too large to load into memory. So I save the data in tfrecords and feed into training model in streaming.
 
@@ -106,7 +106,7 @@ One more thing I would like to mention: the usage of tfrecord is also tricky, an
 
 Also the ctc function require sparse tensor as label, please be familiar with the operation of sparse tensor.
 
-##Customize keyword
+## Customize keyword
 
 In the customize branch, I implement a new feature which enable customized keyword by recording only 3 speech utterances. The new model is trained on original pre-trained model, with few data and fast training.
 
@@ -132,7 +132,7 @@ The ideal way is to train the garbage words weight but with as less change as po
 Another problem is that logits scale of RNN outputs is not comparable between old weights and new weights. When doing softmax, this might cause problem, for example, the original keyword ni3 will be recognized as ping2. Still, I haven't figure out a way to fix this. The strategy I use now is to keep two fully-connection matrix, i.e., [128,6] and [128,8], and do softmax and decode respectively.
 
 
-##Attention
+## Attention
 
 Inspired by [https://arxiv.org/abs/1706.03762
 ](), I've tried to use self-Attention to replace RNN in the model structure, with other parts unchange.
