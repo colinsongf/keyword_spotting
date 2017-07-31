@@ -44,9 +44,6 @@ def get_args():
     parser.add_argument('-m', '--model_path',
                         help='The  model path for restoring',
                         default=None)
-    parser.add_argument('-s', '--save_path',
-                        help='The  model path for  saving',
-                        default=None)
     parser.add_argument('-graph', '--graph_path',
                         help='The  path for saving graph proto',
                         default=None)

@@ -27,7 +27,6 @@ class Config(object):
                            'le4': 3}  # 0 for space 4 for other
 
         self.model_path = './params/mel40/'
-        self.save_path = './params/mel40/'
         self.graph_path = './graph/mel40/'
         self.graph_name = 'graph.pb'
 
@@ -58,7 +57,7 @@ class Config(object):
         self.fft_size = 400
         self.hop_size = 160
         self.samplerate = 16000
-        self.max_sequence_length = 2000
+        self.max_sequence_length = 2000 #for noise data
         self.power = 1
         self.n_mfcc = 13
         self.n_mel = 60

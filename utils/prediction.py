@@ -15,7 +15,6 @@
 import numpy as np
 
 
-
 def ctc_decode(softmax, lockout=3, thres=0.5, loose_thres=0.2):
     np.set_printoptions(precision=4, threshold=np.inf,
                         suppress=True)
@@ -60,20 +59,43 @@ def ctc_decode(softmax, lockout=3, thres=0.5, loose_thres=0.2):
     for i in result:
         new_result.append(i[0])
         new_result.append(0)
-    return np.asarray(new_result,dtype=np.int32)
+    return np.asarray(new_result, dtype=np.int32)
 
 
-def ctc_predict(seq):
+def ctc_decode_strict(softmax, classnum, lockout=4, thres=0.5):
+    np.set_printoptions(precision=4, threshold=np.inf,
+                        suppress=True, )
+    softmax = softmax[:, 1:classnum - 1]
+    i = 0
+    result = []
+    length = softmax.shape[0]
+
+    while (i < length):
+
+        if (softmax[i, :].max() > thres):
+            result.append((softmax[i, :].argmax() + 1, i))
+            i += lockout
+            continue
+        i += 1
+    new_result = [0]
+    for i in result:
+        new_result.append(i[0])
+        new_result.append(0)
+    return np.asarray(new_result, dtype=np.int32)
+
+
+def ctc_predict(seq, label):
     text = ''
     for i in seq:
         if i < 0:
             break
         if i > 0:
             text += str(i)
-    return 1 if '1233' in text else 0
+    return 1 if label in text else 0
     # return 1 if '1233' in text else 0
 
 
+# deprecated
 def predict(moving_avg, threshold, lockout, f=None):
     if f is not None:
         print(f)
@@ -95,6 +117,7 @@ def predict(moving_avg, threshold, lockout, f=None):
     return prediction
 
 
+# deprecated
 def decode(prediction, word_interval, golden):
     raw = golden
     keyword = list(raw)

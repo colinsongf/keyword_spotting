@@ -25,6 +25,7 @@ class Config(object):
         self.spectrogram = 'mel'  # mfcc,mel
         self.label_dict = {'ni3': 1, 'hao3': 2,
                            'le4': 3}  # 0 for space 4 for other
+        self.label_seqs = "1233"
 
         self.model_path = './params/mfcc/'
         self.save_path = './params/mfcc/'
@@ -66,7 +67,6 @@ class Config(object):
         self.n_mfcc = 20
         self.n_mel = 60
         self.pre_emphasis = False
-
 
         # noise flags
         self.use_white_noise = False

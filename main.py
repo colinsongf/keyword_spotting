@@ -87,15 +87,15 @@ class Runner(object):
             accu_loss = 0
             st_time = time.time()
             epoch_step = config.tfrecord_size * self.data.train_file_size // config.batch_size
-            if os.path.exists(path_join(self.config.save_path, 'best.pkl')):
-                with open(path_join(self.config.save_path, 'best.pkl'),
+            if os.path.exists(path_join(self.config.model_path, 'best.pkl')):
+                with open(path_join(self.config.model_path, 'best.pkl'),
                           'rb') as f:
                     best_miss, best_false = pickle.load(f)
                     print('best miss', best_miss, 'best false', best_false)
             else:
                 print('best not exist')
 
-            check_dir(self.config.save_path)
+            check_dir(self.config.model_path)
 
             if self.config.mode == 'train':
 
@@ -108,9 +108,9 @@ class Runner(object):
                     if not DEBUG:
                         print(
                             'training shut down, total setp %s, the model will be save in %s' % (
-                                step, self.config.save_path))
+                                step, self.config.model_path))
                         saver.save(sess, save_path=(
-                            path_join(self.config.save_path, 'latest.ckpt')))
+                            path_join(self.config.model_path, 'latest.ckpt')))
                         print('best miss rate:%f\tbest false rate %f' % (
                             best_miss, best_false))
                     sys.exit(0)
@@ -163,10 +163,10 @@ class Runner(object):
                             self.epoch = epoch
                             print('accumulated loss', accu_loss)
                             saver.save(sess, save_path=(
-                                path_join(self.config.save_path,
+                                path_join(self.config.model_path,
                                           'latest.ckpt')))
                             print('latest.ckpt save in %s' % (
-                                path_join(self.config.save_path,
+                                path_join(self.config.model_path,
                                           'latest.ckpt')))
                             accu_loss = 0
                         if step % config.valid_step == 0:
@@ -195,7 +195,8 @@ class Runner(object):
                                     text += str(i) + '\n'
                                     text += str(labels) + '\n'
                                     text += '=' * 20 + '\n'
-                                result = [ctc_predict(seq) for seq in
+                                result = [ctc_predict(seq, config.label_seqs)
+                                          for seq in
                                           decode_output]
                                 miss, target, false_accept = evaluate(
                                     result, correctness.tolist())
@@ -227,10 +228,10 @@ class Runner(object):
                                 best_false = false_accept_rate
                                 saver.save(sess,
                                            save_path=(path_join(
-                                               self.config.save_path,
+                                               self.config.model_path,
                                                'best.ckpt')))
                                 with open(path_join(
-                                        self.config.save_path, 'best.pkl'),
+                                        self.config.model_path, 'best.pkl'),
                                         'wb') as f:
                                     best_tuple = (best_miss, best_false)
                                     pickle.dump(best_tuple, f)
@@ -242,15 +243,15 @@ class Runner(object):
                                                   best_count))
                                 saver.save(sess,
                                            save_path=(path_join(
-                                               self.config.save_path,
+                                               self.config.model_path,
                                                'best' + str(
                                                    best_count) + '.ckpt')))
 
                     print(
                         'training finished, total epoch %d, the model will be save in %s' % (
-                            self.epoch, self.config.save_path))
+                            self.epoch, self.config.model_path))
                     saver.save(sess, save_path=(
-                        path_join(self.config.save_path, 'latest.ckpt')))
+                        path_join(self.config.model_path, 'latest.ckpt')))
                     print('best miss rate:%f\tbest false rate"%f' % (
                         best_miss, best_false))
 
@@ -289,7 +290,7 @@ class Runner(object):
                                         suppress=True)
 
                     correctness = correctness.tolist()
-                    result = [ctc_predict(seq) for seq in
+                    result = [ctc_predict(seq, config.label_seqs) for seq in
                               ctc_output]
                     for k, r in enumerate(result):
                         if r != correctness[k]:
