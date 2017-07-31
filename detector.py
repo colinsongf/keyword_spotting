@@ -27,7 +27,7 @@ import pyaudio
 import tensorflow as tf
 
 from config.rnn_config import get_config
-from utils.myvad import vad
+from utils.basic_vad import vad
 from utils.prediction import ctc_predict, ctc_decode
 from utils.queue import SimpleQueue
 

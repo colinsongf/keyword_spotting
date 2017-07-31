@@ -5,7 +5,7 @@
 @author: ZiqiLiu
 
 
-@file: myvad.py
+@file: basic_vad.py
 
 @time: 2017/7/18 上午10:46
 
