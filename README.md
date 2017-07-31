@@ -11,6 +11,7 @@ keyword for experiment: 你好乐乐
 basic structure: preprocessing -> rnn ->decode
 
 ##preprocessing
+
 signal -> stft(linear spectrogram) -> mel spectrogram
 
 in my experiment, we use **fft_size=25ms** and **hop_size=10ms** for stft, **n_mel=40** for mel filter bank with RNN **hidden_size=128**  is enough.
@@ -22,6 +23,7 @@ Maybe larger hidden size and deeper network can perform better. But in our case,
 I've tried mfcc, worse than mel.
 
 ##label
+
 using CTC, the label is just text.
 
 We use pinyin to represent words(using the marker), because some Chinese words have multiple phoneme, for example, one of our keyword 乐 has two pronounce: yue4 and le4, but we only want le4.
@@ -46,6 +48,7 @@ Sentence **你好乐乐** will be labeled as **010203030**
 Actually we've tried frame-wise label with alignment for word(phoneme), but there is some difficulty and the outcome is not desirable. I will dicuss this in the loss function, later.
 
 ##model
+
 RNN -> fully-connection layer -> CTC_loss(CTC_decode)
 
 ***Training model***
@@ -89,6 +92,7 @@ We add a simple VAD function (based on volume) to detect voice activity.
 A major drawback of this RNN model is that it will toally mess up when carrying the state of a long speech. (The reason, I guess, is that our training data are mostly short speech segment.) **So we clear the rnn state after each trigger and each non-speech segment detected by the VAD.** The VAD must be carefully tuned, otherwise it will cut off unfinished speech and clean the rnn state.
 
 ##Pipeline and Data
+
 The data is about 80GB (linear spectrogram), which is too large to load into memory. So I save the data in tfrecords and feed into training model in streaming.
 
 I maintain two queues to manage the pipeline, filename queue and data queue. This part is tricky so be careful if you want to hack this part fo code, otherwise the pipeline might be stuck. Or if can also use tf's build-in input queue.(My queue is similar to tf's own queue, but add some customized features)
@@ -103,6 +107,7 @@ One more thing I would like to mention: the usage of tfrecord is also tricky, an
 Also the ctc function require sparse tensor as label, please be familiar with the operation of sparse tensor.
 
 ##Customize keyword
+
 In the customize branch, I implement a new feature which enable customized keyword by recording only 3 speech utterances. The new model is trained on original pre-trained model, with few data and fast training.
 
 This part is still in experiment.
@@ -128,6 +133,7 @@ Another problem is that logits scale of RNN outputs is not comparable between ol
 
 
 ##Attention
+
 Inspired by [https://arxiv.org/abs/1706.03762
 ](), I've tried to use self-Attention to replace RNN in the model structure, with other parts unchange.
 
