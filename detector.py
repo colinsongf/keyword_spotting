@@ -148,22 +148,7 @@ class HotwordDetector(object):
     def start(self, detected_callback=play_audio_file,
               interrupt_check=lambda: False,
               sleep_time=0.3):
-        """
-        Start the voice detector. For every `sleep_time` second it checks the
-        audio buffer for triggering keywords. If detected, then call
-        corresponding function in `detected_callback`, which can be a single
-        function (single model) or a list of callback functions (multiple
-        models). Every loop it also calls `interrupt_check` -- if it returns
-        True, then breaks from the loop and return.
 
-        :param detected_callback: a function or list of functions. The number of
-                                  items must match the number of models in
-                                  `decoder_model`.
-        :param interrupt_check: a function that returns True if the main loop
-                                needs to stop.
-        :param float sleep_time: how much time in second every loop waits.
-        :return: None
-        """
         if interrupt_check():
             logger.debug("detect voice return")
             return
