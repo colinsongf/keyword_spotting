@@ -1,6 +1,0 @@
-model_checkpoint_path: "latest.ckpt"
-all_model_checkpoint_paths: "best432.ckpt"
-all_model_checkpoint_paths: "best433.ckpt"
-all_model_checkpoint_paths: "best434.ckpt"
-all_model_checkpoint_paths: "best435.ckpt"
-all_model_checkpoint_paths: "latest.ckpt"
