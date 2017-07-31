@@ -1,0 +1,3 @@
+model_checkpoint_path: "/cephfs/ktqueue/output/keyword-20170725-attention-1e3-res-mel40-cus-noclip-keep09/latest.ckpt"
+all_model_checkpoint_paths: "/cephfs/ktqueue/output/keyword-20170725-attention-1e3-res-mel40-cus-noclip-keep09/best.ckpt"
+all_model_checkpoint_paths: "/cephfs/ktqueue/output/keyword-20170725-attention-1e3-res-mel40-cus-noclip-keep09/latest.ckpt"
