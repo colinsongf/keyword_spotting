@@ -26,9 +26,9 @@ class Config(object):
         self.label_dict = {'ni3': 1, 'hao3': 2,
                            'le4': 3}  # 0 for space 4 for other
 
-        self.model_path = './params/rnnctc1/'
-        self.save_path = './params/rnnctc1/'
-        self.graph_path = './graph/mel/'
+        self.model_path = './params/mel40/'
+        self.save_path = './params/mel40/'
+        self.graph_path = './graph/mel40/'
         self.graph_name = 'graph.pb'
 
         self.train_path = '/ssd/liuziqi/ctc_23w/train/'
