@@ -35,14 +35,13 @@ class Config(object):
         self.graph_path = './graph/mel/'
         self.graph_name = 'graph.pb'
 
-        self.train_path = '/ssd/liuziqi/ctc_23w/train/'
-        self.valid_path = '/ssd/liuziqi/ctc_23w/valid/'
-        self.noise_path = '/ssd/liuziqi/ctc_23w/noise/'
-        self.custom_path = '/ssd/liuziqi/ctc_23w/custom/'
-        self.custom_valid_path = '/ssd/liuziqi/ctc_23w/custom_valid/'
+        self.train_path = '/ssd/keyword/ctc_23w/train/'
+        self.valid_path = '/ssd/keyword/ctc_23w/valid/'
+        self.noise_path = '/ssd/keyword/ctc_23w/noise/'
+        self.custom_path = '/ssd/keyword/ctc_23w/custom/'
+        self.custom_valid_path = '/ssd/keyword/ctc_23w/custom_valid/'
         self.model_name = 'latest.ckpt'
-        self.rawdata_path = './rawdata/'
-        self.rawdata_path = '/ssd/keyword/'
+        self.rawdata_path = '/ssd/keyword_raw/'
         # self.data_path = './test/data/azure_garbage/'
 
 
