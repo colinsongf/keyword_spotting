@@ -36,11 +36,11 @@ def get_args():
                         help='whether run in ktq', type=int,
                         default=0)
     parser.add_argument('--train_path', help='train data path',
-                        default='/ssd/liuziqi/ctc_23w/train/')
+                        default='/ssd/keyword/ctc_23w/train/')
     parser.add_argument('--valid_path', help='valid data path',
-                        default='/ssd/liuziqi/ctc_23w/valid/')
+                        default='/ssd/keyword/ctc_23w/valid/')
     parser.add_argument('--noise_path', help='noise data path',
-                        default='/ssd/liuziqi/ctc_23w/noise/')
+                        default='/ssd/keyword/ctc_23w/noise/')
     parser.add_argument('-o', '--override', nargs='*', default=[],
                         help='Override configuration, with k-v pairs')
 
