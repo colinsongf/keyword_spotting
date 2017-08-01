@@ -41,6 +41,8 @@ def get_args():
                         default='/ssd/liuziqi/ctc_23w/valid/')
     parser.add_argument('--noise_path', help='noise data path',
                         default='/ssd/liuziqi/ctc_23w/noise/')
+    parser.add_argument('-o', '--override', nargs='*', default=[],
+                        help='Override configuration, with k-v pairs')
 
     flags = parser.parse_args().__dict__
     return flags
@@ -73,6 +75,12 @@ def parse_args():
             print("WARNING: Invalid override with attribute %s" % (key))
         else:
             setattr(config, key, config_value_cast(config, key, value))
+    for key in ['train_path','valid_path','noise_path']:
+        if not hasattr(config, key):
+            print("WARNING: Invalid override with attribute %s" % (key))
+        else:
+            setattr(config, key, config_value_cast(config, key, value))
+
 
     return config, model, mode
 
