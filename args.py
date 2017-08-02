@@ -80,7 +80,7 @@ def parse_args():
         if not hasattr(config, key):
             print("WARNING: Invalid override with attribute %s" % (key))
         else:
-            setattr(config, key, config_value_cast(config, key, value))
+            setattr(config, key, config_value_cast(config, key, flags[key]))
 
     return config, model, mode
 
