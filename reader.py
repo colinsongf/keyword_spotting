@@ -57,7 +57,7 @@ class DataSet(object):
                         'noise tfrecords not found. Or disable noise option')
 
         self.valid_filename = glob(path_join(valid_dir, '*.tfrecords'))
-        # self.valid_filename = sorted(self.valid_filename)
+        self.valid_filename = sorted(self.valid_filename)
         self.valid_file_size = len(self.valid_filename)
         if self.valid_file_size == 0:
             raise Exception('valid tfrecords not found')

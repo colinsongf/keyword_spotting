@@ -198,7 +198,7 @@ class HotwordDetector(object):
                 print(concated_soft.shape)
 
                 result = ctc_decode(concated_soft)
-                if ctc_predict(result):
+                if ctc_predict(result,'1233'):
                     detected_callback()
                     self.prob_queue.clear()
                     librosa.output.write_wav('./trigger.wav',
@@ -223,7 +223,7 @@ class HotwordDetector(object):
                        'model/rnn_initial_states:0': self.state})
         result = ctc_decode(softmax)
         print(result)
-        if ctc_predict(result):
+        if ctc_predict(result,'1233'):
             detected_callback()
         colors = ['r', 'b', 'g', 'm', 'y', 'k']
 
@@ -330,4 +330,4 @@ if __name__ == '__main__':
     #
 
 
-    detector.test2('trigger.wav')
+    detector.test('s_BA92843E74C1E7E6_你好乐乐.wav')

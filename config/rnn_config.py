@@ -25,6 +25,7 @@ class Config(object):
         self.spectrogram = 'mel'  # mfcc,mel
         self.label_dict = {'ni3': 1, 'hao3': 2,
                            'le4': 3}  # 0 for space 4 for other
+        self.label_seqs="1233"
 
         self.model_path = './params/mel60/'
         self.graph_path = './graph/mel60/'

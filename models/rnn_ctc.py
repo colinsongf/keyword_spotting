@@ -120,9 +120,6 @@ class DeployModel(object):
         """
 
         # input place holder
-        config.use_bg_noise = False
-        config.use_white_noise = False
-        config.keep_prob = 1
         with tf.device('/cpu:0'):
             self._rnn_initial_states = tf.placeholder(
                 tf.float32,

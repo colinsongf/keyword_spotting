@@ -84,7 +84,7 @@ def ctc_decode_strict(softmax, classnum, lockout=4, thres=0.5):
     return np.asarray(new_result, dtype=np.int32)
 
 
-def ctc_predict(seq, label):
+def ctc_predict(seq, label='1233'):
     text = ''
     for i in seq:
         if i < 0:

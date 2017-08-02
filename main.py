@@ -83,11 +83,7 @@ class Runner(object):
             sess.run(tf.local_variables_initializer())
             tf.Graph.finalize(graph)
 
-            best_miss = 1
-            best_false = 1
-            accu_loss = 0
             st_time = time.time()
-            epoch_step = config.tfrecord_size * self.data.train_file_size // config.batch_size
             if os.path.exists(path_join(self.config.model_path, 'best.pkl')):
                 with open(path_join(self.config.model_path, 'best.pkl'),
                           'rb') as f:
@@ -99,6 +95,10 @@ class Runner(object):
             check_dir(self.config.model_path)
 
             if self.config.mode == 'train':
+                best_miss = 1
+                best_false = 1
+                accu_loss = 0
+                epoch_step = config.tfrecord_size * self.data.train_file_size // config.batch_size
 
                 if self.config.reset_global:
                     sess.run(self.train_model.reset_global_step)
@@ -139,14 +139,6 @@ class Runner(object):
                         print(i.name)
                     while self.epoch < self.config.max_epoch:
 
-                        # _, _, x, lab, step = sess.run(
-                        #     [self.train_model.stage_op,
-                        #      self.train_model.input_filequeue_enqueue_op,
-                        #      self.train_model.ctc_input,
-                        #      self.train_model.label_batch,
-                        #      self.train_model.global_step])
-                        # print(x.shape)
-                        # print(lab)
                         _, _, _, _, _, l, lr, step, grads = sess.run(
                             [self.train_model.train_op,
                              self.data.noise_stage_op,
@@ -269,6 +261,10 @@ class Runner(object):
                     # When done, ask the threads to stop.
 
             else:
+                with open(
+                                        config.rawdata_path + 'valid/' + "ctc_valid.pkl.sorted",
+                                        'rb') as f:
+                    pkl = pickle.load(f)
                 miss_count = 0
                 false_count = 0
                 target_count = 0
@@ -279,8 +275,8 @@ class Runner(object):
                     # if i > 7:
                     #     break
                     ind = 14
-                    ctc_output, ctc_input, correctness, labels, _, _ = sess.run(
-                        [self.valid_model.dense_output,
+                    softmax, ctc_input, correctness, labels, _, _ = sess.run(
+                        [self.valid_model.softmax,
                          self.valid_model.nn_outputs,
                          self.valid_model.correctness,
                          self.valid_model.labels,
@@ -291,11 +287,14 @@ class Runner(object):
                                         suppress=True)
 
                     correctness = correctness.tolist()
-                    result = [ctc_predict(seq, config.label_seqs) for seq in
-                              ctc_output]
+                    decode_output = [ctc_decode(s) for s in softmax]
+                    result = [ctc_predict(seq, config.label_seqs)
+                              for seq in
+                              decode_output]
                     for k, r in enumerate(result):
                         if r != correctness[k]:
-                            print(ctc_output[k])
+                            print(pkl[i * config.batch_size + k])
+                            print(decode_output[k])
                             print(labels[k])
                             with open('logits.txt', 'w') as f:
                                 f.write(str(ctc_input[k]))
@@ -368,6 +367,7 @@ class Runner(object):
                 self.config.graph_name[:-3] + '_octbit.pb',
                 as_text=False,
             )
+
 
 if __name__ == '__main__':
 
