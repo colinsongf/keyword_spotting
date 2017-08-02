@@ -51,7 +51,6 @@ def get_args():
 
 flags = get_args()
 model = flags['model']
-mode = flags['mode']
 if model == 'rnn':
     config = rnn_config.get_config()
 
@@ -67,6 +66,7 @@ print(flags)
 
 
 def parse_args():
+    mode = flags['mode']
     setattr(config, 'mode', mode)
     L = len(flags['override'])
     assert L % 2 == 0
@@ -82,7 +82,7 @@ def parse_args():
         else:
             setattr(config, key, config_value_cast(config, key, flags[key]))
 
-    return config, model, mode
+    return config, model
 
 
 if __name__ == '__main__':

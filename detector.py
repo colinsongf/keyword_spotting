@@ -102,7 +102,7 @@ def play_audio_file(fname=DETECT_SOUND):
 
 
 class HotwordDetector(object):
-    def __init__(self, model_file='./graph/mel/graph.pb'):
+    def __init__(self, model_file='./graph/mel60/graph.pb'):
 
         def audio_callback(in_data, frame_count, time_info, status):
             self.ring_buffer.extend(in_data)
