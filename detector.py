@@ -330,4 +330,4 @@ if __name__ == '__main__':
     #
 
 
-    detector.test('s_BA92843E74C1E7E6_你好乐乐.wav')
+    detector.test('s_C83548A62565E944_你好乐乐.wav')

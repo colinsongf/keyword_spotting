@@ -27,8 +27,8 @@ class Config(object):
                            'le4': 3}  # 0 for space 4 for other
         self.label_seqs="1233"
 
-        self.model_path = './params/mel60/'
-        self.graph_path = './graph/mel60/'
+        self.model_path = './params/test/'
+        self.graph_path = './graph/test/'
         self.graph_name = 'graph.pb'
 
         self.train_path = '/ssd/keyword/ctc_23w/train/'
@@ -46,7 +46,7 @@ class Config(object):
         self.valid_steps = 320
         self.gpu = "0"
         self.warmup = False
-        self.learning_rate = 2e-3
+        self.learning_rate = 1.5e-3
         self.max_epoch = 200
         self.valid_step = 320
         self.lr_decay = 0.8
@@ -68,8 +68,8 @@ class Config(object):
         self.use_white_noise = False
         self.use_bg_noise = True
         self.bg_noise_prob_raise = 1.05
-        self.bg_decay_max_db = -6
-        self.bg_decay_min_db = -20
+        self.bg_decay_max_db = -5
+        self.bg_decay_min_db = -15
         self.bg_noise_prob = 0.5
 
         # model params

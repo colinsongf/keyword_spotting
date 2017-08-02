@@ -293,9 +293,11 @@ class Runner(object):
                               decode_output]
                     for k, r in enumerate(result):
                         if r != correctness[k]:
-                            print(pkl[i * config.batch_size + k])
-                            print(decode_output[k])
-                            print(labels[k])
+                            name = pkl[i * config.batch_size + k][0]
+                            print("scp liuziqi@10.8.0.62:/ssd/keyword_raw/valid/%s ./"%name)
+                            # print(pkl[i * config.batch_size + k])
+                            # print(decode_output[k])
+                            # print(labels[k])
                             with open('logits.txt', 'w') as f:
                                 f.write(str(ctc_input[k]))
 
