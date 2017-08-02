@@ -26,8 +26,8 @@ class Config(object):
         self.label_dict = {'ni3': 1, 'hao3': 2,
                            'le4': 3}  # 0 for space 4 for other
 
-        self.model_path = './params/mel40/'
-        self.graph_path = './graph/mel40/'
+        self.model_path = './params/mel60/'
+        self.graph_path = './graph/mel60/'
         self.graph_name = 'graph.pb'
 
         self.train_path = '/ssd/keyword/ctc_23w/train/'

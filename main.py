@@ -29,6 +29,7 @@ from tensorflow.python.framework import graph_util
 from reader import read_dataset
 from utils.common import check_dir, path_join
 from utils.prediction import evaluate, ctc_predict, ctc_decode
+from octbit.octbit_graph import GraphRewriter
 
 from utils.wer import WERCalculator
 
@@ -340,8 +341,8 @@ class Runner(object):
                  'model/rnn_states', 'model/softmax', 'model/logit'])
             tf.train.write_graph(
                 frozen_graph_def,
-                os.path.dirname(graph_path),
-                os.path.basename(graph_path),
+                self.config.graph_path,
+                self.config.graph_name,
                 as_text=False,
             )
             try:
@@ -351,6 +352,22 @@ class Runner(object):
                 exit()
             print('graph saved in %s' % graph_path)
 
+            print("====octbit graph====")
+            rewriter = GraphRewriter(frozen_graph_def, mode="octbit")
+            octbit_graph = rewriter.rewrite(
+                ['model/inputX', 'model/rnn_initial_states',
+                 'model/rnn_states', 'model/softmax', 'model/logit'])
+            try:
+                tf.import_graph_def(octbit_graph, name="")
+            except Exception as e:
+                print("!!!!Import octbit graph meet error: ", e)
+                exit()
+            tf.train.write_graph(
+                octbit_graph,
+                self.config.graph_path,
+                self.config.graph_name[:-3] + '_octbit.pb',
+                as_text=False,
+            )
 
 if __name__ == '__main__':
 

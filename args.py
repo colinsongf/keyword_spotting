@@ -35,6 +35,7 @@ def get_args():
     parser.add_argument('--ktq',
                         help='whether run in ktq', type=int,
                         default=0)
+    parser.add_argument('-g', '--gpu', help='which gpu to use')
     parser.add_argument('--train_path', help='train data path',
                         default='/ssd/keyword/ctc_23w/train/')
     parser.add_argument('--valid_path', help='valid data path',
@@ -75,12 +76,11 @@ def parse_args():
             print("WARNING: Invalid override with attribute %s" % (key))
         else:
             setattr(config, key, config_value_cast(config, key, value))
-    for key in ['train_path','valid_path','noise_path']:
+    for key in ['train_path', 'valid_path', 'noise_path']:
         if not hasattr(config, key):
             print("WARNING: Invalid override with attribute %s" % (key))
         else:
             setattr(config, key, config_value_cast(config, key, value))
-
 
     return config, model, mode
 
