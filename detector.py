@@ -28,7 +28,7 @@ import tensorflow as tf
 
 from config.rnn_config import get_config
 from utils.basic_vad import vad
-from utils.prediction import ctc_predict, ctc_decode
+from utils.prediction import ctc_predict, ctc_decode,ctc_decode2
 from utils.queue import SimpleQueue
 
 interrupted = False
@@ -197,7 +197,7 @@ class HotwordDetector(object):
                 concated_soft = np.concatenate(self.prob_queue.get_all(), 0)
                 print(concated_soft.shape)
 
-                result = ctc_decode(concated_soft)
+                result = ctc_decode2(concated_soft,config.num_classes)
                 if ctc_predict(result,'1233'):
                     detected_callback()
                     self.prob_queue.clear()
@@ -324,10 +324,10 @@ if __name__ == '__main__':
 
     # main loop
 
-    # detector.start(detected_callback=play_audio_file,
-    #                interrupt_check=interrupt_callback,
-    #                sleep_time=0.03)
-    #
+    detector.start(detected_callback=play_audio_file,
+                   interrupt_check=interrupt_callback,
+                   sleep_time=0.03)
 
 
-    detector.test('s_C83548A62565E944_你好乐乐.wav')
+
+    # detector.test('s_C83548A62565E944_你好乐乐.wav')

@@ -25,7 +25,7 @@ class Config(object):
         self.spectrogram = 'mel'  # mfcc,mel
         self.label_dict = {'ni3': 1, 'hao3': 2,
                            'le4': 3}  # 0 for space 4 for other
-        self.label_seqs="1233"
+        self.label_seqs = "1233"
 
         self.model_path = './params/test/'
         self.graph_path = './graph/test/'
@@ -57,7 +57,7 @@ class Config(object):
         self.fft_size = 400
         self.hop_size = 160
         self.samplerate = 16000
-        self.max_sequence_length = 2000 #for noise data
+        self.max_sequence_length = 2000  # for noise data
         self.power = 1
         self.n_mfcc = 13
         self.n_mel = 60
@@ -78,7 +78,7 @@ class Config(object):
         self.use_residual = False
         self.use_layer_norm = False
         self.value_clip = -1
-        self.keep_prob = 0.6
+        self.keep_prob = 0.6  # n_mel=60 must use higher keep_prob
         self.variational_recurrent = False
         self.use_relu = False
         self.hidden_size = 128

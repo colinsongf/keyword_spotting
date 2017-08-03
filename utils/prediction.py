@@ -62,7 +62,31 @@ def ctc_decode(softmax, lockout=3, thres=0.5, loose_thres=0.2):
     return np.asarray(new_result, dtype=np.int32)
 
 
-def ctc_decode_strict(softmax, classnum, lockout=4, thres=0.5):
+def ctc_decode2(softmax, classnum, thres=0.4):
+    pre_word = -1
+    softmax = softmax[:, 1:classnum - 1]
+    i = 0
+    result = []
+    length = softmax.shape[0]
+
+    while (i < length):
+
+        if (softmax[i, :].max() > thres):
+            pos = softmax[i, :].argmax()
+            if pre_word == -1 or pre_word != pos:
+                result.append((pos + 1, i))
+            pre_word = pos
+        else:
+            pre_word = -1
+        i += 1
+    new_result = [0]
+    for i in result:
+        new_result.append(i[0])
+        new_result.append(0)
+    return np.asarray(new_result, dtype=np.int32)
+
+
+def ctc_decode_strict(softmax, classnum, lockout=3, thres=0.5):
     np.set_printoptions(precision=4, threshold=np.inf,
                         suppress=True, )
     softmax = softmax[:, 1:classnum - 1]
