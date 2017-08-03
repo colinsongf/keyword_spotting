@@ -150,6 +150,11 @@ Some notes for attention:
 Given that keywords is short speech utterance and we process windowed streaming input, this might work in read production, potentially. Still need further experiment to verify this.
 
 
+## Things to be tried out in the future
+
+* Non-Zero Initial States or noisy states. Please refer [https://r2rt.com/non-zero-initial-states-for-recurrent-neural-networks.html]()
+* Pure DNN-based network + CTC
+* Attention+CTC model in real production
 
 
 
